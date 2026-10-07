@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { unstable_cache } from 'next/cache';
 
 const BASE = 'https://smashmate.net';
 const UA = 'Mozilla/5.0 (compatible; NingyogekiStats/1.0)';
@@ -114,7 +115,6 @@ function finish(stats) {
   }
 }
 
-
 // ========================================
 // ユーザーの参加大会一覧から
 // 人形劇の大会を探す
@@ -128,14 +128,12 @@ async function discover() {
 
   const found = [];
 
-  // ページ内の全リンクを調べる
   $('a').each((_, e) => {
     const text = $(e)
       .text()
       .replace(/\s+/g, ' ')
       .trim();
 
-    // 「人形劇#132」などだけを拾う
     const match = text.match(/人形劇#(\d+)/);
 
     if (!match) return;
@@ -150,7 +148,6 @@ async function discover() {
     });
   });
 
-  // 同じ大会が複数回出てきた場合は1つにする
   const unique = new Map();
 
   for (const tournament of found) {
@@ -161,7 +158,6 @@ async function discover() {
     (a, b) => a.number - b.number
   );
 }
-
 
 // ========================================
 // 大会ページからトーナメント表URLを取得
@@ -197,171 +193,183 @@ async function resolve(tournament) {
   };
 }
 
+// ========================================
+// 実際にSmashmateから全データを取得
+// ========================================
+async function buildSeriesData() {
+
+  const found = await discover();
+
+  console.log(
+    '人形劇大会を発見:',
+    found.length
+  );
+
+  const resolved = [];
+
+  for (let i = 0; i < found.length; i += 3) {
+
+    const batch = await Promise.all(
+      found
+        .slice(i, i + 3)
+        .map(resolve)
+    );
+
+    resolved.push(
+      ...batch.filter(Boolean)
+    );
+  }
+
+  const tournaments =
+    resolved.sort(
+      (a, b) => a.number - b.number
+    );
+
+  const allPlayers = new Map();
+  const stats = {};
+  const records = [];
+  const done = [];
+
+  for (const tournament of tournaments) {
+
+    try {
+
+      const bracketHtml =
+        await html(tournament.bracketUrl);
+
+      const parsed =
+        parseBracket(
+          bracketHtml,
+          `人形劇#${tournament.number}`
+        );
+
+      if (!parsed.records.length) {
+        console.log(
+          `人形劇#${tournament.number}: 試合なし`
+        );
+
+        continue;
+      }
+
+      parsed.players.forEach(player => {
+        allPlayers.set(
+          player.id,
+          player
+        );
+      });
+
+      add(
+        stats,
+        parsed.records
+      );
+
+      parsed.records.forEach(record => {
+        records.push({
+          ...record,
+          tournamentNumber:
+            tournament.number,
+          tournament:
+            parsed.tournamentName
+        });
+      });
+
+      done.push({
+        number: tournament.number,
+        name: parsed.tournamentName,
+        tournamentUrl:
+          tournament.tournamentUrl,
+        bracketUrl:
+          tournament.bracketUrl,
+        matches:
+          parsed.records.length,
+        players:
+          parsed.players.length
+      });
+
+    } catch (error) {
+
+      console.error(
+        `人形劇#${tournament.number} 取得失敗`,
+        error
+      );
+
+    }
+  }
+
+  finish(stats);
+
+  return {
+    seriesName: '人形劇',
+    userId: USER_ID,
+    tournaments: done,
+    players: [...allPlayers.values()],
+    records,
+    matches: records.length,
+    stats,
+    discoveredOnListing: found.length,
+
+    minTournament:
+      found.length
+        ? Math.min(
+            ...found.map(x => x.number)
+          )
+        : null,
+
+    maxTournament:
+      found.length
+        ? Math.max(
+            ...found.map(x => x.number)
+          )
+        : null,
+
+    note:
+      'user_add_tournamentから人形劇大会を自動取得しています。'
+  };
+}
+
+// ========================================
+// キャッシュ
+// ========================================
+const getCachedSeriesData = unstable_cache(
+  async () => {
+    console.log('人形劇データをSmashmateから取得');
+    return buildSeriesData();
+  },
+  ['ningyogeki-series-data'],
+  {
+    revalidate: 3600
+  }
+);
 
 // ========================================
 // API
 // ========================================
-export async function GET() {
+export async function GET(request) {
+
   try {
 
-    // ------------------------------------
-    // ① 人形劇大会を探す
-    // ------------------------------------
-    const found = await discover();
+    const { searchParams } =
+      new URL(request.url);
 
-    console.log(
-      '人形劇大会を発見:',
-      found.length
-    );
+    const refresh =
+      searchParams.get('refresh') === '1';
 
+    // 通常アクセス
+    // → キャッシュを使用
+    if (!refresh) {
 
-    // ------------------------------------
-    // ② トーナメント表URLを取得
-    // ------------------------------------
-    const resolved = [];
+      const data =
+        await getCachedSeriesData();
 
-    for (let i = 0; i < found.length; i += 3) {
-
-      const batch = await Promise.all(
-        found
-          .slice(i, i + 3)
-          .map(resolve)
-      );
-
-      resolved.push(
-        ...batch.filter(Boolean)
-      );
+      return Response.json(data);
     }
 
-    const tournaments =
-      resolved.sort(
-        (a, b) => a.number - b.number
-      );
+    // 「最新データを取得」
+    // → キャッシュを使わず最新取得
+    const freshData =
+      await buildSeriesData();
 
-
-    // ------------------------------------
-    // ③ 全大会を集計
-    // ------------------------------------
-    const allPlayers = new Map();
-    const stats = {};
-    const records = [];
-    const done = [];
-
-    for (const tournament of tournaments) {
-
-      try {
-
-        const bracketHtml =
-          await html(tournament.bracketUrl);
-
-        const parsed =
-          parseBracket(
-            bracketHtml,
-            `人形劇#${tournament.number}`
-          );
-
-        if (!parsed.records.length) {
-          console.log(
-            `人形劇#${tournament.number}: 試合なし`
-          );
-
-          continue;
-        }
-
-        parsed.players.forEach(player => {
-          allPlayers.set(
-            player.id,
-            player
-          );
-        });
-
-        add(
-          stats,
-          parsed.records
-        );
-
-        parsed.records.forEach(record => {
-          records.push({
-            ...record,
-            tournamentNumber:
-              tournament.number,
-            tournament:
-              parsed.tournamentName
-          });
-        });
-
-        done.push({
-          number: tournament.number,
-          name: parsed.tournamentName,
-          tournamentUrl:
-            tournament.tournamentUrl,
-          bracketUrl:
-            tournament.bracketUrl,
-          matches:
-            parsed.records.length,
-          players:
-            parsed.players.length
-        });
-
-      } catch (error) {
-
-        console.error(
-          `人形劇#${tournament.number} 取得失敗`,
-          error
-        );
-
-      }
-    }
-
-
-    // ------------------------------------
-    // ④ 勝率計算
-    // ------------------------------------
-    finish(stats);
-
-
-    // ------------------------------------
-    // ⑤ 結果を返す
-    // ------------------------------------
-    return Response.json({
-
-      seriesName: '人形劇',
-
-      userId: USER_ID,
-
-      tournaments: done,
-
-      players:
-        [...allPlayers.values()],
-
-      records,
-
-      matches:
-        records.length,
-
-      stats,
-
-      discoveredOnListing:
-        found.length,
-
-      minTournament:
-        found.length
-          ? Math.min(
-              ...found.map(x => x.number)
-            )
-          : null,
-
-      maxTournament:
-        found.length
-          ? Math.max(
-              ...found.map(x => x.number)
-            )
-          : null,
-
-      note:
-        'user_add_tournamentから人形劇大会を自動取得しています。'
-
-    });
+    return Response.json(freshData);
 
   } catch (error) {
 
