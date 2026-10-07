@@ -8,9 +8,10 @@ const HEADERS = {
     'Mozilla/5.0 (compatible; NingyogekiStats/1.0)',
 };
 
-function isBracketUrl(value: string) {
+function isBracketUrl(value) {
   try {
     const u = new URL(value);
+
     return (
       u.hostname === 'smashmate.net' &&
       /^\/bracket\/\d+\/?$/.test(u.pathname)
@@ -20,9 +21,10 @@ function isBracketUrl(value: string) {
   }
 }
 
-function isUserTournamentUrl(value: string) {
+function isUserTournamentUrl(value) {
   try {
     const u = new URL(value);
+
     return (
       u.hostname === 'smashmate.net' &&
       u.pathname === '/user_add_tournament/' &&
@@ -34,8 +36,8 @@ function isUserTournamentUrl(value: string) {
 }
 
 /**
- * 81727 の参加大会一覧から
- * 「人形劇#数字」の大会だけを取得する
+ * 81727の参加大会一覧から
+ * 「人形劇#数字」の大会だけを取得
  */
 async function getNingyogekiTournaments() {
   const res = await fetch(USER_TOURNAMENT_URL, {
@@ -52,29 +54,30 @@ async function getNingyogekiTournaments() {
   const html = await res.text();
   const $ = cheerio.load(html);
 
-  const tournaments = new Map<
-    string,
-    {
-      name: string;
-      number: number;
-      url: string;
-    }
-  >();
+  const tournaments = new Map();
 
   $('a[href]').each((_, el) => {
     const href = $(el).attr('href');
+
     if (!href) return;
 
-    const name = $(el).text().replace(/\s+/g, ' ').trim();
+    const name = $(el)
+      .text()
+      .replace(/\s+/g, ' ')
+      .trim();
 
     // 「人形劇#132」のような大会名だけを対象にする
     const match = name.match(/^人形劇#(\d+)$/);
+
     if (!match) return;
 
-    let url: URL;
+    let url;
 
     try {
-      url = new URL(href, 'https://smashmate.net');
+      url = new URL(
+        href,
+        'https://smashmate.net'
+      );
     } catch {
       return;
     }
@@ -103,7 +106,7 @@ async function getNingyogekiTournaments() {
 /**
  * 1大会分の対戦結果を取得
  */
-async function scrapeTournament(url: string) {
+async function scrapeTournament(url) {
   const res = await fetch(url, {
     headers: HEADERS,
     cache: 'no-store',
@@ -121,75 +124,84 @@ async function scrapeTournament(url: string) {
   const tournamentName =
     $('title')
       .text()
-      .replace('のトーナメント表 スマメイト', '')
+      .replace(
+        'のトーナメント表 スマメイト',
+        ''
+      )
       .trim() || '人形劇';
 
-  const players = new Map<
-    string,
-    {
-      id: string;
-      name: string;
-    }
-  >();
+  const players = new Map();
+  const records = [];
 
-  const records: {
-    winner: string;
-    loser: string;
-    winnerId: string;
-    loserId: string;
-    round: string | undefined;
-    tournamentName: string;
-    tournamentUrl: string;
-  }[] = [];
+  $('[data-round] .tour_div_in').each(
+    (_, group) => {
+      const boxes = $(group)
+        .find('.tour_user_box')
+        .toArray();
 
-  $('[data-round] .tour_div_in').each((_, group) => {
-    const boxes = $(group).find('.tour_user_box').toArray();
+      if (boxes.length !== 2) return;
 
-    if (boxes.length !== 2) return;
+      const ps = boxes.map((el) => ({
+        id: $(el).attr('data-uid'),
+        name: $(el)
+          .find('.tour_user_name')
+          .text()
+          .trim(),
+        result: Number(
+          $(el).attr('data-result')
+        ),
+      }));
 
-    const ps = boxes.map((el) => ({
-      id: $(el).attr('data-uid'),
-      name: $(el).find('.tour_user_name').text().trim(),
-      result: Number($(el).attr('data-result')),
-    }));
+      if (
+        !ps[0].id ||
+        !ps[1].id ||
+        !ps[0].result ||
+        !ps[1].result
+      ) {
+        return;
+      }
 
-    if (
-      !ps[0].id ||
-      !ps[1].id ||
-      !ps[0].result ||
-      !ps[1].result
-    ) {
-      return;
-    }
+      ps.forEach((p) => {
+        if (!p.id) return;
 
-    ps.forEach((p) => {
-      if (!p.id) return;
-
-      players.set(p.id, {
-        id: p.id,
-        name: p.name,
+        players.set(p.id, {
+          id: p.id,
+          name: p.name,
+        });
       });
-    });
 
-    const winner = ps.find((p) => p.result === 1);
-    const loser = ps.find((p) => p.result === 2);
+      const winner = ps.find(
+        (p) => p.result === 1
+      );
 
-    if (!winner || !loser || !winner.id || !loser.id) return;
+      const loser = ps.find(
+        (p) => p.result === 2
+      );
 
-    const round = $(group)
-      .closest('[data-round]')
-      .attr('data-round');
+      if (
+        !winner ||
+        !loser ||
+        !winner.id ||
+        !loser.id
+      ) {
+        return;
+      }
 
-    records.push({
-      winner: winner.name,
-      loser: loser.name,
-      winnerId: winner.id,
-      loserId: loser.id,
-      round,
-      tournamentName,
-      tournamentUrl: url,
-    });
-  });
+      const round = $(group)
+        .closest('[data-round]')
+        .attr('data-round');
+
+      records.push({
+        winner: winner.name,
+        loser: loser.name,
+        winnerId: winner.id,
+        loserId: loser.id,
+        round,
+        tournamentName,
+        tournamentUrl: url,
+      });
+    }
+  );
 
   return {
     tournamentName,
@@ -201,23 +213,10 @@ async function scrapeTournament(url: string) {
 }
 
 /**
- * 全大会の対戦結果から直接対戦成績を作る
+ * 全大会の直接対戦成績を計算
  */
-function calculateStats(records: {
-  winnerId: string;
-  loserId: string;
-}[]) {
-  const stats: Record<
-    string,
-    Record<
-      string,
-      {
-        wins: number;
-        losses: number;
-        rate: number;
-      }
-    >
-  > = {};
+function calculateStats(records) {
+  const stats = {};
 
   for (const r of records) {
     stats[r.winnerId] ??= {};
@@ -236,17 +235,22 @@ function calculateStats(records: {
     };
 
     stats[r.winnerId][r.loserId].wins++;
+
     stats[r.loserId][r.winnerId].losses++;
   }
 
   for (const a of Object.keys(stats)) {
     for (const b of Object.keys(stats[a])) {
       const s = stats[a][b];
-      const total = s.wins + s.losses;
+
+      const total =
+        s.wins + s.losses;
 
       s.rate =
         total > 0
-          ? Math.round((s.wins / total) * 1000) / 10
+          ? Math.round(
+              (s.wins / total) * 1000
+            ) / 10
           : 0;
     }
   }
@@ -254,21 +258,19 @@ function calculateStats(records: {
   return stats;
 }
 
-export async function POST(req: Request) {
+export async function POST(req) {
   try {
     const body = await req.json();
     const { url } = body;
 
     /*
-     * ---------------------------------------------------------
-     * パターン1:
-     * 81727の参加大会一覧URLが渡された場合
-     *
-     * → 人形劇#1 ～ 最新の人形劇を全部取得
-     * ---------------------------------------------------------
+     * --------------------------------------------------
+     * 人形劇全大会モード
+     * --------------------------------------------------
      */
     if (url && isUserTournamentUrl(url)) {
-      const tournaments = await getNingyogekiTournaments();
+      const tournaments =
+        await getNingyogekiTournaments();
 
       if (tournaments.length === 0) {
         return Response.json(
@@ -280,33 +282,30 @@ export async function POST(req: Request) {
         );
       }
 
-      const allRecords: any[] = [];
-      const allPlayers = new Map<
-        string,
-        {
-          id: string;
-          name: string;
-        }
-      >();
-
+      const allRecords = [];
+      const allPlayers = new Map();
       const tournamentResults = [];
 
-      /*
-       * 大会を1つずつ取得
-       *
-       * 同時に大量アクセスするとSmashmate側に
-       * 負荷をかける可能性があるので順番に取得する
-       */
       for (const tournament of tournaments) {
         try {
-          const result = await scrapeTournament(
-            tournament.url
+          console.log(
+            `人形劇#${tournament.number} を取得中...`
           );
 
-          allRecords.push(...result.records);
+          const result =
+            await scrapeTournament(
+              tournament.url
+            );
+
+          allRecords.push(
+            ...result.records
+          );
 
           for (const player of result.players) {
-            allPlayers.set(player.id, player);
+            allPlayers.set(
+              player.id,
+              player
+            );
           }
 
           tournamentResults.push({
@@ -321,10 +320,6 @@ export async function POST(req: Request) {
             e
           );
 
-          /*
-           * 1大会取得失敗しても、
-           * 他の大会は引き続き集計する
-           */
           tournamentResults.push({
             name: tournament.name,
             number: tournament.number,
@@ -338,31 +333,45 @@ export async function POST(req: Request) {
         }
       }
 
-      const stats = calculateStats(allRecords);
+      const stats =
+        calculateStats(allRecords);
 
       return Response.json({
-        tournamentName: '人形劇 全大会',
-        tournaments: tournamentResults,
-        tournamentCount: tournaments.length,
-        players: [...allPlayers.values()],
-        records: allRecords,
-        matches: allRecords.length,
+        tournamentName:
+          '人形劇 全大会',
+
+        tournaments:
+          tournamentResults,
+
+        tournamentCount:
+          tournaments.length,
+
+        players:
+          [...allPlayers.values()],
+
+        records:
+          allRecords,
+
+        matches:
+          allRecords.length,
+
         stats,
       });
     }
 
     /*
-     * ---------------------------------------------------------
-     * パターン2:
-     * 今まで通り、単一の /bracket/ URL が渡された場合
-     *
-     * → 既存機能も残す
-     * ---------------------------------------------------------
+     * --------------------------------------------------
+     * 従来の1大会モード
+     * --------------------------------------------------
      */
     if (url && isBracketUrl(url)) {
-      const result = await scrapeTournament(url);
+      const result =
+        await scrapeTournament(url);
 
-      const stats = calculateStats(result.records);
+      const stats =
+        calculateStats(
+          result.records
+        );
 
       return Response.json({
         ...result,
@@ -382,9 +391,13 @@ export async function POST(req: Request) {
 
     return Response.json(
       {
-        error: '解析中にエラーが発生しました。',
+        error:
+          '解析中にエラーが発生しました。',
+
         detail:
-          e instanceof Error ? e.message : String(e),
+          e instanceof Error
+            ? e.message
+            : String(e),
       },
       { status: 500 }
     );
