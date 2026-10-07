@@ -1,10 +1,187 @@
 import * as cheerio from 'cheerio';
-const BASE='https://smashmate.net', UA='Mozilla/5.0 (compatible; NingyogekiStats/1.0)';
-const SEEDS=[{number:1,bracketUrl:'https://smashmate.net/bracket/21446/'}];
-async function html(url){const r=await fetch(url,{headers:{'User-Agent':UA},cache:'no-store'});if(!r.ok)throw Error(`${r.status} ${url}`);return r.text()}
-function parseBracket(h,fallback){const $=cheerio.load(h), players=new Map(),records=[];const name=$('title').text().replace('のトーナメント表 スマメイト','').trim()||fallback;$('[data-round] .tour_div_in').each((_,g)=>{const b=$(g).find('.tour_user_box').toArray();if(b.length!==2)return;const p=b.map(e=>({id:$(e).attr('data-uid'),name:$(e).find('.tour_user_name').text().trim(),result:Number($(e).attr('data-result'))}));if(!p[0].id||!p[1].id||!p[0].result||!p[1].result)return;p.forEach(x=>players.set(x.id,{id:x.id,name:x.name}));const w=p.find(x=>x.result===1),l=p.find(x=>x.result===2);if(!w||!l)return;records.push({winner:w.name,loser:l.name,winnerId:w.id,loserId:l.id,round:$(g).closest('[data-round]').attr('data-round')||''})});return{tournamentName:name,players:[...players.values()],records}}
-function add(stats,rs){for(const r of rs){stats[r.winnerId]??={};stats[r.loserId]??={};stats[r.winnerId][r.loserId]??={wins:0,losses:0};stats[r.loserId][r.winnerId]??={wins:0,losses:0};stats[r.winnerId][r.loserId].wins++;stats[r.loserId][r.winnerId].losses++}}
-function finish(stats){for(const a of Object.keys(stats))for(const b of Object.keys(stats[a])){const s=stats[a][b],t=s.wins+s.losses;s.rate=t?Math.round(s.wins/t*1000)/10:0}}
-async function discover(){const $=cheerio.load(await html(`${BASE}/tournament/`)),out=[];$('a[href^="/tournament/"]').each((_,e)=>{const href=$(e).attr('href'),text=$(e).text().replace(/\s+/g,' ').trim(),m=href?.match(/^\/tournament\/(\d+)\/?$/),n=text.match(/人形劇#(\d+)/);if(m&&n)out.push({number:+n[1],tournamentUrl:BASE+href})});return out}
-async function resolve(x){const $=cheerio.load(await html(x.tournamentUrl));let b=null;$('a[href*="/bracket/"]').each((_,e)=>{if(!b&&$(e).attr('href'))b=new URL($(e).attr('href'),BASE).toString()});return b?{...x,bracketUrl:b}:null}
-export async function GET(){try{const found=await discover(),map=new Map(SEEDS.map(x=>[x.number,x]));for(const x of found)map.set(x.number,x);const need=[...map.values()].filter(x=>!x.bracketUrl),resolved=[];for(let i=0;i<need.length;i+=3){const r=await Promise.all(need.slice(i,i+3).map(resolve));resolved.push(...r.filter(Boolean))}for(const x of resolved)map.set(x.number,x);const tournaments=[...map.values()].sort((a,b)=>a.number-b.number),allPlayers=new Map(),stats={},records=[],done=[];for(const t of tournaments){try{const p=parseBracket(await html(t.bracketUrl),`人形劇#${t.number}`);if(!p.records.length)continue;p.players.forEach(x=>allPlayers.set(x.id,x));add(stats,p.records);p.records.forEach(r=>records.push({...r,tournamentNumber:t.number,tournament:p.tournamentName}));done.push({number:t.number,name:p.tournamentName,bracketUrl:t.bracketUrl,matches:p.records.length,players:p.players.length})}catch{}}finish(stats);return Response.json({seriesName:'人形劇',tournaments:done,players:[...allPlayers.values()],records,matches:records.length,stats,discoveredOnListing:found.length,note:'現在の大会一覧から見つかった大会＋人形劇#1を集計しています。古い大会一覧の探索は次の拡張で対応します。'})}catch(e){return Response.json({error:'人形劇シリーズの取得に失敗しました。',detail:e.message},{status:502})}}
+
+const BASE = 'https://smashmate.net';
+const USER_ID = 81727;
+const UA = 'Mozilla/5.0 (compatible; NingyogekiStats/1.0)';
+const CONCURRENCY = 8;
+
+async function html(url) {
+  const r = await fetch(url, {
+    headers: { 'User-Agent': UA },
+    cache: 'no-store'
+  });
+  if (!r.ok) throw new Error(`${r.status} ${url}`);
+  return r.text();
+}
+
+// いぶさんの参加大会一覧から「人形劇#数字」だけを拾う。
+async function discoverFromUserPage() {
+  const url = `${BASE}/user_add_tournament/?user=${USER_ID}`;
+  const $ = cheerio.load(await html(url));
+  const found = new Map();
+
+  $('a[href^="/tournament/"]').each((_, e) => {
+    const href = $(e).attr('href') || '';
+    const text = $(e).text().replace(/\s+/g, ' ').trim();
+    const id = href.match(/^\/tournament\/(\d+)\/?$/)?.[1];
+    const number = text.match(/人形劇#(\d+)/)?.[1];
+    if (!id || !number) return;
+    found.set(Number(number), {
+      number: Number(number),
+      tournamentUrl: `${BASE}/tournament/${id}/`,
+      bracketUrl: `${BASE}/bracket/${id}/`
+    });
+  });
+
+  return [...found.values()].sort((a, b) => a.number - b.number);
+}
+
+function parseBracket(h, fallback) {
+  const $ = cheerio.load(h);
+  const players = new Map();
+  const records = [];
+  const title = $('title').text().replace('のトーナメント表 スマメイト', '').trim();
+  const tournamentName = title || fallback;
+
+  $('[data-round] .tour_div_in').each((_, group) => {
+    const boxes = $(group).find('.tour_user_box').toArray();
+    if (boxes.length !== 2) return;
+
+    const pair = boxes.map((el) => ({
+      id: $(el).attr('data-uid'),
+      name: $(el).find('.tour_user_name').text().trim(),
+      result: Number($(el).attr('data-result'))
+    }));
+
+    if (pair.some((p) => !p.id || !p.name || !p.result)) return;
+    pair.forEach((p) => players.set(p.id, { id: p.id, name: p.name }));
+
+    const winner = pair.find((p) => p.result === 1);
+    const loser = pair.find((p) => p.result === 2);
+    if (!winner || !loser) return;
+
+    records.push({
+      winner: winner.name,
+      loser: loser.name,
+      winnerId: winner.id,
+      loserId: loser.id,
+      round: $(group).closest('[data-round]').attr('data-round') || ''
+    });
+  });
+
+  return { tournamentName, players: [...players.values()], records };
+}
+
+function addStats(stats, records) {
+  for (const r of records) {
+    stats[r.winnerId] ??= {};
+    stats[r.loserId] ??= {};
+    stats[r.winnerId][r.loserId] ??= { wins: 0, losses: 0 };
+    stats[r.loserId][r.winnerId] ??= { wins: 0, losses: 0 };
+    stats[r.winnerId][r.loserId].wins++;
+    stats[r.loserId][r.winnerId].losses++;
+  }
+}
+
+function finishStats(stats) {
+  for (const a of Object.keys(stats)) {
+    for (const b of Object.keys(stats[a])) {
+      const s = stats[a][b];
+      const total = s.wins + s.losses;
+      s.rate = total ? Math.round((s.wins / total) * 1000) / 10 : 0;
+    }
+  }
+}
+
+async function mapWithConcurrency(items, limit, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+
+  async function worker() {
+    while (true) {
+      const index = next++;
+      if (index >= items.length) return;
+      try {
+        out[index] = await fn(items[index], index);
+      } catch (error) {
+        out[index] = { error: error instanceof Error ? error.message : String(error) };
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
+export async function GET() {
+  try {
+    const tournaments = await discoverFromUserPage();
+
+    const results = await mapWithConcurrency(tournaments, CONCURRENCY, async (t) => {
+      const parsed = parseBracket(
+        await html(t.bracketUrl),
+        `人形劇#${t.number}`
+      );
+      return { ...t, ...parsed };
+    });
+
+    const allPlayers = new Map();
+    const stats = {};
+    const records = [];
+    const done = [];
+    const failed = [];
+
+    results.forEach((result, index) => {
+      const source = tournaments[index];
+      if (!result || result.error) {
+        failed.push({
+          number: source.number,
+          error: result?.error || '取得に失敗しました'
+        });
+        return;
+      }
+
+      result.players.forEach((p) => allPlayers.set(p.id, p));
+      addStats(stats, result.records);
+
+      result.records.forEach((record) => {
+        records.push({
+          ...record,
+          tournamentNumber: source.number,
+          tournament: result.tournamentName
+        });
+      });
+
+      done.push({
+        number: source.number,
+        name: result.tournamentName,
+        tournamentUrl: source.tournamentUrl,
+        bracketUrl: source.bracketUrl,
+        matches: result.records.length,
+        players: result.players.length
+      });
+    });
+
+    finishStats(stats);
+
+    return Response.json({
+      seriesName: '人形劇',
+      source: `${BASE}/user_add_tournament/?user=${USER_ID}`,
+      tournaments: done.sort((a, b) => a.number - b.number),
+      players: [...allPlayers.values()],
+      records,
+      matches: records.length,
+      stats,
+      discoveredOnUserPage: tournaments.length,
+      failed
+    });
+  } catch (error) {
+    return Response.json(
+      {
+        error: '人形劇シリーズの取得に失敗しました。',
+        detail: error instanceof Error ? error.message : String(error)
+      },
+      { status: 502 }
+    );
+  }
+}
