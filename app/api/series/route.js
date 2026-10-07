@@ -5,6 +5,30 @@ const USER_ID = 81727;
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
 const CONCURRENCY = 3;
 
+// 同一人物の別アカウントをまとめたい場合、
+// 「旧アカウントUID: 現在まとめたいUID」の形で追加してください。
+// 例: { '12345': '67890' }
+const ACCOUNT_ALIASES = {
+  // 同一人物の別アカウントを統合（各グループ内で最新UID側へ寄せる）
+  '99450': '145071',
+  '118591': '149650',
+  '148400': '164481',
+  '80108': '142959',
+  '100389': '167992',
+  '159344': '167992',
+  '156108': '156414',
+};
+
+function canonicalId(id) {
+  let current = String(id);
+  const seen = new Set();
+  while (ACCOUNT_ALIASES[current] && !seen.has(current)) {
+    seen.add(current);
+    current = String(ACCOUNT_ALIASES[current]);
+  }
+  return current;
+}
+
 async function html(url, referer = BASE + '/') {
   let lastError;
   for (let attempt = 1; attempt <= 2; attempt++) {
@@ -99,6 +123,14 @@ function parseBracket(h, fallback) {
   return { tournamentName, players: [...players.values()], records };
 }
 
+function normalizeRecords(records) {
+  return records.map((r) => ({
+    ...r,
+    winnerId: canonicalId(r.winnerId),
+    loserId: canonicalId(r.loserId)
+  }));
+}
+
 function addStats(stats, records) {
   for (const r of records) {
     stats[r.winnerId] ??= {};
@@ -135,6 +167,28 @@ async function mapWithConcurrency(items, limit, fn) {
   return out;
 }
 
+
+async function fetchCurrentPlayerName(player) {
+  try {
+    const page = await html(`${BASE}/user/${player.id}/`);
+    const $ = cheerio.load(page);
+    const heading = $('h1').first().text().replace(/\s+/g, ' ').trim();
+    const m = heading.match(/^(.*?)さんのユーザーページ$/u);
+    if (m && m[1].trim()) return { id: player.id, name: m[1].trim() };
+    // Fallback: the user page has a "MATE ID" line and the name immediately
+    // before it in the user-info area. Keep the bracket name if parsing fails.
+    const bodyText = $('body').text().replace(/\s+/g, ' ').trim();
+    const beforeMate = bodyText.match(/ユーザー情報.*?\|\s*([^|]+?)\s*有線確認済み.*?MATE ID/);
+    if (beforeMate && beforeMate[1].trim()) return { id: player.id, name: beforeMate[1].trim() };
+  } catch (_) {}
+  return { id: player.id, name: player.name };
+}
+
+async function refreshCurrentPlayerNames(players) {
+  const refreshed = await mapWithConcurrency(players, 5, fetchCurrentPlayerName);
+  return refreshed.map((p, i) => p?.error ? players[i] : p);
+}
+
 export async function GET() {
   try {
     const tournaments = await discoverFromUserPage();
@@ -156,9 +210,15 @@ export async function GET() {
         failed.push({ number: source.number, tournamentUrl: source.tournamentUrl, error: result?.error || '取得に失敗しました' });
         return;
       }
-      result.players.forEach((p) => allPlayers.set(p.id, p));
-      addStats(stats, result.records);
-      result.records.forEach((record) => records.push({ ...record, tournamentNumber: source.number, tournament: result.tournamentName }));
+      result.players.forEach((p) => {
+        const id = canonicalId(p.id);
+        if (!allPlayers.has(id) || !ACCOUNT_ALIASES[p.id]) {
+          allPlayers.set(id, { ...p, id });
+        }
+      });
+      const normalized = normalizeRecords(result.records);
+      addStats(stats, normalized);
+      normalized.forEach((record) => records.push({ ...record, tournamentNumber: source.number, tournament: result.tournamentName }));
       done.push({
         number: source.number,
         name: result.tournamentName,
@@ -171,11 +231,27 @@ export async function GET() {
 
     finishStats(stats);
 
+    // 統合先UIDだけが存在するケースでも現在名を取得できるようにする。
+    for (const targetId of Object.values(ACCOUNT_ALIASES)) {
+      const id = canonicalId(targetId);
+      if (!allPlayers.has(id)) allPlayers.set(id, { id, name: id });
+    }
+
+    // Bracket pages preserve historical names. For display, refresh every UID
+    // from the player's current Smashmate user page.
+    const currentPlayers = await refreshCurrentPlayerNames([...allPlayers.values()]);
+    const currentNameById = new Map(currentPlayers.map(p => [String(p.id), p.name]));
+    for (const record of records) {
+      record.winner = currentNameById.get(String(record.winnerId)) || record.winner;
+      record.loser = currentNameById.get(String(record.loserId)) || record.loser;
+    }
+    for (const p of done) { /* tournament names are intentionally historical */ }
+
     return Response.json({
       seriesName: '人形劇',
       source: `${BASE}/user_add_tournament/?user=${USER_ID}`,
       tournaments: done.sort((a, b) => a.number - b.number),
-      players: [...allPlayers.values()],
+      players: currentPlayers,
       records,
       matches: records.length,
       stats,
