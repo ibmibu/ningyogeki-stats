@@ -19,127 +19,26 @@ async function html(url) {
   return r.text();
 }
 
-
-// ==============================
-// 大会一覧から「人形劇」を探す
-// ==============================
-async function discover() {
-  const found = new Map();
-
-  let page = 1;
-
-  while (true) {
-    const url =
-      page === 1
-        ? `${BASE}/user_add_tournament/?user=${USER_ID}`
-        : `${BASE}/user_add_tournament/?user=${USER_ID}&page=${page}`;
-
-    const $ = cheerio.load(await html(url));
-
-    let foundOnPage = 0;
-
-    $('a[href^="/tournament/"]').each((_, e) => {
-      const href = $(e).attr('href');
-      const text = $(e)
-        .text()
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      const m = href?.match(/^\/tournament\/(\d+)\/?$/);
-      const n = text.match(/人形劇#(\d+)/);
-
-      if (!m || !n) return;
-
-      const number = Number(n[1]);
-
-      if (!found.has(number)) {
-        found.set(number, {
-          number,
-          tournamentUrl: BASE + href
-        });
-
-        foundOnPage++;
-      }
-    });
-
-    // このページに人形劇が無ければ終了
-    if (foundOnPage === 0) {
-      break;
-    }
-
-    page++;
-
-    // 念のため無限ループ防止
-    if (page > 100) {
-      break;
-    }
-  }
-
-  return [...found.values()];
-}
-
-
-// ==============================
-// 大会ページからbracket URLを探す
-// ==============================
-async function resolve(tournament) {
-  const $ = cheerio.load(
-    await html(tournament.tournamentUrl)
-  );
-
-  let bracketUrl = null;
-
-  $('a[href*="/bracket/"]').each((_, e) => {
-    const href = $(e).attr('href');
-
-    if (!bracketUrl && href) {
-      bracketUrl = new URL(href, BASE).toString();
-    }
-  });
-
-  if (!bracketUrl) {
-    return null;
-  }
-
-  return {
-    ...tournament,
-    bracketUrl
-  };
-}
-
-
-// ==============================
-// トーナメント表を解析
-// ==============================
 function parseBracket(h, fallback) {
   const $ = cheerio.load(h);
-
   const players = new Map();
   const records = [];
 
-  const tournamentName =
+  const name =
     $('title')
       .text()
       .replace('のトーナメント表 スマメイト', '')
-      .trim() ||
-    fallback;
+      .trim() || fallback;
 
   $('[data-round] .tour_div_in').each((_, g) => {
-    const boxes = $(g)
-      .find('.tour_user_box')
-      .toArray();
+    const b = $(g).find('.tour_user_box').toArray();
 
-    if (boxes.length !== 2) return;
+    if (b.length !== 2) return;
 
-    const p = boxes.map(e => ({
+    const p = b.map(e => ({
       id: $(e).attr('data-uid'),
-      name: $(e)
-        .find('.tour_user_name')
-        .text()
-        .trim(),
-      result: Number(
-        $(e).attr('data-result')
-      )
+      name: $(e).find('.tour_user_name').text().trim(),
+      result: Number($(e).attr('data-result'))
     }));
 
     if (
@@ -147,33 +46,25 @@ function parseBracket(h, fallback) {
       !p[1].id ||
       !p[0].result ||
       !p[1].result
-    ) {
-      return;
-    }
+    ) return;
 
-    p.forEach(x => {
+    p.forEach(x =>
       players.set(x.id, {
         id: x.id,
         name: x.name
-      });
-    });
-
-    const winner = p.find(
-      x => x.result === 1
+      })
     );
 
-    const loser = p.find(
-      x => x.result === 2
-    );
+    const w = p.find(x => x.result === 1);
+    const l = p.find(x => x.result === 2);
 
-    if (!winner || !loser) return;
+    if (!w || !l) return;
 
     records.push({
-      winner: winner.name,
-      loser: loser.name,
-      winnerId: winner.id,
-      loserId: loser.id,
-
+      winner: w.name,
+      loser: l.name,
+      winnerId: w.id,
+      loserId: l.id,
       round:
         $(g)
           .closest('[data-round]')
@@ -182,18 +73,14 @@ function parseBracket(h, fallback) {
   });
 
   return {
-    tournamentName,
+    tournamentName: name,
     players: [...players.values()],
     records
   };
 }
 
-
-// ==============================
-// 対戦成績を追加
-// ==============================
-function add(stats, records) {
-  for (const r of records) {
+function add(stats, rs) {
+  for (const r of rs) {
     stats[r.winnerId] ??= {};
     stats[r.loserId] ??= {};
 
@@ -208,144 +95,185 @@ function add(stats, records) {
     };
 
     stats[r.winnerId][r.loserId].wins++;
-
     stats[r.loserId][r.winnerId].losses++;
   }
 }
 
-
-// ==============================
-// 勝率計算
-// ==============================
 function finish(stats) {
   for (const a of Object.keys(stats)) {
     for (const b of Object.keys(stats[a])) {
       const s = stats[a][b];
+      const t = s.wins + s.losses;
 
-      const total =
-        s.wins + s.losses;
-
-      s.rate =
-        total
-          ? Math.round(
-              (s.wins / total) * 1000
-            ) / 10
-          : 0;
+      s.rate = t
+        ? Math.round((s.wins / t) * 1000) / 10
+        : 0;
     }
   }
 }
 
 
-// ==============================
+// ========================================
+// ユーザーの大会一覧から人形劇を探す
+// ========================================
+async function discover() {
+  const url =
+    `${BASE}/user_add_tournament/?user=${USER_ID}`;
+
+  const $ = cheerio.load(await html(url));
+  const out = [];
+
+  $('a[href*="/tournament/"]').each((_, e) => {
+    const href = $(e).attr('href');
+    const text = $(e)
+      .text()
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const m = text.match(/人形劇#(\d+)/);
+
+    if (!m || !href) return;
+
+    out.push({
+      number: Number(m[1]),
+      tournamentUrl: new URL(href, BASE).toString()
+    });
+  });
+
+  // 重複を削除して大会番号順にする
+  const unique = new Map();
+
+  for (const x of out) {
+    unique.set(x.number, x);
+  }
+
+  return [...unique.values()].sort(
+    (a, b) => a.number - b.number
+  );
+}
+
+
+// ========================================
+// 大会ページからBracket URLを探す
+// ========================================
+async function resolve(x) {
+  const $ = cheerio.load(
+    await html(x.tournamentUrl)
+  );
+
+  let bracketUrl = null;
+
+  $('a[href*="/bracket/"]').each((_, e) => {
+    const href = $(e).attr('href');
+
+    if (!bracketUrl && href) {
+      bracketUrl =
+        new URL(href, BASE).toString();
+    }
+  });
+
+  if (!bracketUrl) {
+    return null;
+  }
+
+  return {
+    ...x,
+    bracketUrl
+  };
+}
+
+
+// ========================================
 // API
-// ==============================
+// ========================================
 export async function GET() {
   try {
 
-    // --------------------------
-    // ① ユーザーの大会一覧を取得
-    // --------------------------
-    const discovered = await discover();
+    // ------------------------------------
+    // ① ユーザーの参加大会から人形劇を取得
+    // ------------------------------------
+    const found = await discover();
 
 
-    // --------------------------
-    // ② 人形劇だけ取得
-    // --------------------------
-    discovered.sort(
+    // ------------------------------------
+    // ② 各大会のBracket URLを取得
+    //    同時に3大会ずつ処理
+    // ------------------------------------
+    const resolved = [];
+
+    for (let i = 0; i < found.length; i += 3) {
+      const r = await Promise.all(
+        found
+          .slice(i, i + 3)
+          .map(resolve)
+      );
+
+      resolved.push(
+        ...r.filter(Boolean)
+      );
+    }
+
+    const tournaments = resolved.sort(
       (a, b) => a.number - b.number
     );
 
 
-    // --------------------------
-    // ③ 各大会のbracketを取得
-    // --------------------------
-    const tournaments = [];
-
-    for (const tournament of discovered) {
-      try {
-
-        const resolved =
-          await resolve(tournament);
-
-        if (resolved) {
-          tournaments.push(resolved);
-        }
-
-      } catch (e) {
-        console.error(
-          '大会取得失敗:',
-          tournament.number,
-          e
-        );
-      }
-    }
-
-
-    // --------------------------
-    // ④ 全大会を集計
-    // --------------------------
+    // ------------------------------------
+    // ③ 全大会を集計
+    // ------------------------------------
     const allPlayers = new Map();
     const stats = {};
     const records = [];
     const done = [];
 
-    for (const tournament of tournaments) {
+    for (const t of tournaments) {
 
       try {
 
-        const parsed =
-          parseBracket(
-            await html(tournament.bracketUrl),
-            `人形劇#${tournament.number}`
-          );
+        const p = parseBracket(
+          await html(t.bracketUrl),
+          `人形劇#${t.number}`
+        );
 
-        if (!parsed.records.length) {
+        if (!p.records.length) {
           continue;
         }
 
-        // プレイヤー登録
-        parsed.players.forEach(player => {
-          allPlayers.set(
-            player.id,
-            player
-          );
+
+        // プレイヤー
+        p.players.forEach(x => {
+          allPlayers.set(x.id, x);
         });
 
-        // 対戦成績追加
-        add(
-          stats,
-          parsed.records
-        );
 
-        // 個別試合
-        parsed.records.forEach(record => {
+        // 戦績
+        add(stats, p.records);
+
+
+        // 対戦記録
+        p.records.forEach(r => {
           records.push({
-            ...record,
-            tournamentNumber:
-              tournament.number,
-            tournament:
-              parsed.tournamentName
+            ...r,
+            tournamentNumber: t.number,
+            tournament: p.tournamentName
           });
         });
 
+
+        // 完了した大会
         done.push({
-          number: tournament.number,
-          name: parsed.tournamentName,
-          tournamentUrl:
-            tournament.tournamentUrl,
-          bracketUrl:
-            tournament.bracketUrl,
-          matches:
-            parsed.records.length,
-          players:
-            parsed.players.length
+          number: t.number,
+          name: p.tournamentName,
+          tournamentUrl: t.tournamentUrl,
+          bracketUrl: t.bracketUrl,
+          matches: p.records.length,
+          players: p.players.length
         });
 
       } catch (e) {
 
         console.error(
-          'bracket解析失敗:',
-          tournament.number,
+          `人形劇#${t.number} の取得に失敗:`,
           e
         );
 
@@ -353,53 +281,48 @@ export async function GET() {
     }
 
 
-    // --------------------------
-    // ⑤ 勝率計算
-    // --------------------------
+    // ------------------------------------
+    // ④ 勝率を計算
+    // ------------------------------------
     finish(stats);
 
 
-    // --------------------------
-    // ⑥ JSON返却
-    // --------------------------
+    // ------------------------------------
+    // ⑤ JSONを返す
+    // ------------------------------------
     return Response.json({
-
       seriesName: '人形劇',
 
       userId: USER_ID,
 
       tournaments: done,
 
-      players:
-        [...allPlayers.values()],
+      players: [...allPlayers.values()],
 
       records,
 
-      matches:
-        records.length,
+      matches: records.length,
 
       stats,
 
-      discoveredOnListing:
-        discovered.length,
+      discoveredOnListing: found.length,
 
       minTournament:
-        discovered.length
+        found.length
           ? Math.min(
-              ...discovered.map(
-                x => x.number
-              )
+              ...found.map(x => x.number)
             )
           : null,
 
       maxTournament:
-        discovered.length
+        found.length
           ? Math.max(
-              ...discovered.map(
-                x => x.number
-              )
+              ...found.map(x => x.number)
             )
-          : null
+          : null,
+
+      note:
+        'user_add_tournamentから人形劇の大会を自動取得して集計しています。'
     });
 
   } catch (e) {
@@ -408,8 +331,7 @@ export async function GET() {
       {
         error:
           '人形劇シリーズの取得に失敗しました。',
-        detail:
-          e.message
+        detail: e.message
       },
       {
         status: 502
