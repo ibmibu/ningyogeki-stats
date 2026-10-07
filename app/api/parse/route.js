@@ -1,178 +1,41 @@
 import * as cheerio from 'cheerio';
 
-const BASE = 'https://smashmate.net';
-const UA =
-  'Mozilla/5.0 (compatible; NingyogekiStats/1.0)';
-
-const USER_ID = 81727;
-
-async function fetchHtml(url) {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': UA,
-    },
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `HTTP ${response.status}: ${url}`
-    );
-  }
-
-  return await response.text();
+function validUrl(value) {
+  try { const u = new URL(value); return u.hostname === 'smashmate.net' && /^\/bracket\/\d+\/?$/.test(u.pathname); } catch { return false; }
 }
 
-async function getNingyogekiTournaments() {
-  const url =
-    `${BASE}/user_add_tournament/?user=${USER_ID}`;
-
-  const html = await fetchHtml(url);
-  const $ = cheerio.load(html);
-
-  const tournaments = new Map();
-
-  $('a[href]').each((_, element) => {
-    const a = $(element);
-
-    const text = a
-      .text()
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    const href = a.attr('href');
-
-    if (!href) return;
-
-    const match = text.match(
-      /人形劇#(\d+)/
-    );
-
-    if (!match) return;
-
-    const number = Number(match[1]);
-
-    const tournamentMatch = href.match(
-      /\/tournament\/(\d+)\/?/
-    );
-
-    if (!tournamentMatch) return;
-
-    const tournamentId =
-      Number(tournamentMatch[1]);
-
-    tournaments.set(number, {
-      number,
-      tournamentId,
-      name: `人形劇#${number}`,
-      url:
-        new URL(href, BASE).toString(),
-    });
-  });
-
-  return [...tournaments.values()]
-    .sort(
-      (a, b) => b.number - a.number
-    );
-}
-
-async function getBracketUrl(tournament) {
-  const html =
-    await fetchHtml(tournament.url);
-
-  const $ = cheerio.load(html);
-
-  let bracketUrl = null;
-
-  $('a[href]').each((_, element) => {
-    if (bracketUrl) return;
-
-    const href =
-      $(element).attr('href');
-
-    if (!href) return;
-
-    if (
-      href.includes('/bracket/')
-    ) {
-      bracketUrl =
-        new URL(href, BASE).toString();
-    }
-  });
-
-  return {
-    ...tournament,
-    bracketUrl,
-  };
-}
-
-export async function GET() {
+export async function POST(req) {
   try {
-    // ① 人形劇を全部発見
-    const discovered =
-      await getNingyogekiTournaments();
-
-    // ② 各大会のトーナメント表URLを取得
-    const tournaments = [];
-
-    for (const tournament of discovered) {
-      try {
-        const result =
-          await getBracketUrl(tournament);
-
-        tournaments.push(result);
-      } catch (error) {
-        console.error(
-          `取得失敗: 人形劇#${tournament.number}`,
-          error
-        );
-
-        tournaments.push({
-          ...tournament,
-          bracketUrl: null,
-          error: String(error),
-        });
-      }
-    }
-
-    return Response.json({
-      seriesName: '人形劇',
-
-      count: tournaments.length,
-
-      min:
-        tournaments.length > 0
-          ? Math.min(
-              ...tournaments.map(
-                x => x.number
-              )
-            )
-          : null,
-
-      max:
-        tournaments.length > 0
-          ? Math.max(
-              ...tournaments.map(
-                x => x.number
-              )
-            )
-          : null,
-
-      tournaments,
+    const { url } = await req.json();
+    if (!validUrl(url)) return Response.json({error:'Smashmateの /bracket/番号/ URLを入力してください。'}, {status:400});
+    const res = await fetch(url, { headers:{'User-Agent':'Mozilla/5.0 (compatible; NingyogekiStats/1.0)'}, cache:'no-store' });
+    if (!res.ok) return Response.json({error:`Smashmateから取得できませんでした（${res.status}）`},{status:502});
+    const html = await res.text();
+    const $ = cheerio.load(html);
+    const tournamentName = $('title').text().replace('のトーナメント表 スマメイト','').trim() || '人形劇';
+    const players = new Map();
+    const records = [];
+    $('[data-round] .tour_div_in').each((_, group) => {
+      const boxes = $(group).find('.tour_user_box').toArray();
+      if (boxes.length !== 2) return;
+      const ps = boxes.map(el => ({id:$(el).attr('data-uid'), name:$(el).find('.tour_user_name').text().trim(), result:Number($(el).attr('data-result'))}));
+      if (!ps[0].id || !ps[1].id || !ps[0].result || !ps[1].result) return;
+      ps.forEach(p=>players.set(p.id,{id:p.id,name:p.name}));
+      const winner = ps.find(p=>p.result===1), loser = ps.find(p=>p.result===2);
+      const round = $(group).closest('[data-round]').attr('data-round');
+      records.push({winner:winner.name, loser:loser.name, winnerId:winner.id, loserId:loser.id, round});
     });
-
-  } catch (error) {
-    console.error(error);
-
-    return Response.json(
-      {
-        error:
-          '人形劇大会一覧の取得に失敗しました。',
-        detail: String(error),
-      },
-      {
-        status: 500,
-      }
-    );
-  }
+    const stats = {};
+    for (const r of records) {
+      stats[r.winnerId] ??= {}; stats[r.loserId] ??= {};
+      stats[r.winnerId][r.loserId] ??= {wins:0,losses:0};
+      stats[r.loserId][r.winnerId] ??= {wins:0,losses:0};
+      stats[r.winnerId][r.loserId].wins++;
+      stats[r.loserId][r.winnerId].losses++;
+    }
+    for (const a of Object.keys(stats)) for (const b of Object.keys(stats[a])) {
+      const s=stats[a][b]; const total=s.wins+s.losses; s.rate=Math.round((s.wins/total)*1000)/10;
+    }
+    return Response.json({tournamentName, players:[...players.values()], records, matches:records.length, stats});
+  } catch (e) { return Response.json({error:'解析中にエラーが発生しました。', detail:e.message},{status:500}); }
 }
