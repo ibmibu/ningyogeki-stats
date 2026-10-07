@@ -1,5 +1,4 @@
 import * as cheerio from 'cheerio';
-import { unstable_cache } from 'next/cache';
 
 const BASE = 'https://smashmate.net';
 const UA = 'Mozilla/5.0 (compatible; NingyogekiStats/1.0)';
@@ -344,35 +343,13 @@ const getCachedSeriesData = unstable_cache(
 // ========================================
 // API
 // ========================================
-export async function GET(request) {
-
+export async function GET() {
   try {
+    const data = await buildSeriesData();
 
-    const { searchParams } =
-      new URL(request.url);
-
-    const refresh =
-      searchParams.get('refresh') === '1';
-
-    // 通常アクセス
-    // → キャッシュを使用
-    if (!refresh) {
-
-      const data =
-        await getCachedSeriesData();
-
-      return Response.json(data);
-    }
-
-    // 「最新データを取得」
-    // → キャッシュを使わず最新取得
-    const freshData =
-      await buildSeriesData();
-
-    return Response.json(freshData);
+    return Response.json(data);
 
   } catch (error) {
-
     console.error(
       '人形劇シリーズ取得エラー',
       error
