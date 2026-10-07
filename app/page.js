@@ -1,4 +1,133 @@
 'use client';
-import {useEffect,useMemo,useState} from 'react';
-const rate=s=>s?`${s.rate}%`:'—';
-export default function Home(){const[data,setData]=useState(null),[error,setError]=useState(''),[loading,setLoading]=useState(false),[selected,setSelected]=useState('all'),[show,setShow]=useState(false);async function load(){setLoading(true);setError('');try{const r=await fetch('/api/series',{cache:'no-store'}),j=await r.json();if(!r.ok)throw Error(j.error||'取得に失敗しました');setData(j);setSelected('all')}catch(e){setError(e.message)}finally{setLoading(false)}}useEffect(()=>{load()},[]);const ranking=useMemo(()=>!data?[]:data.players.map(p=>{let w=0,l=0;Object.values(data.stats?.[p.id]||{}).forEach(s=>{w+=s.wins||0;l+=s.losses||0});return{...p,wins:w,losses:l,total:w+l,rate:w+l?Math.round(w/(w+l)*1000)/10:0}}).sort((a,b)=>b.rate-a.rate||b.total-a.total||b.wins-a.wins),[data]);return <main className="site"><header className="hero"><div className="heroGlow"/><div className="heroInner"><div className="brandMark">◎</div><div><div className="eyebrow">SMASHMATE / TOURNAMENT STATS</div><h1>人形劇 <span>戦績表</span></h1><p>人形劇の直接対戦成績をまとめて確認できます。</p></div></div></header><div className="content"><section className="control card"><div><div className="sectionLabel">NINGYOGEKI SERIES</div><h2>大会全体を集計</h2><p>スマメイトから「人形劇」の大会を探して、取得できる結果をまとめます。</p></div><button className="primary" onClick={load} disabled={loading}>{loading?'データ取得中…':'最新データを取得'}</button><div className="hint">大会の追加後も「最新データを取得」で更新できます。</div></section>{error&&<div className="error card">⚠ {error}</div>}{loading&&!data&&<section className="empty card"><div className="spinner"/><h2>人形劇の大会を探しています</h2><p>大会一覧とトーナメント表を順番に確認しています。</p></section>}{data&&<><section className="statsGrid"><div className="stat card"><span>取得大会</span><strong>{data.tournaments.length}</strong><small>tournaments</small></div><div className="stat card"><span>参加人数</span><strong>{data.players.length}</strong><small>players</small></div><div className="stat card"><span>総対戦数</span><strong>{data.matches}</strong><small>matches</small></div></section><section className="card"><div className="sectionHead"><div><div className="sectionLabel">RANKING</div><h2>シリーズ勝率ランキング</h2></div><span className="badge">ALL</span></div><div className="rankingList">{ranking.map((p,i)=><div className="rankRow" key={p.id}><div className="rankNo">{String(i+1).padStart(2,'0')}</div><div className="rankName">{p.name}</div><div className="bar"><i style={{width:`${p.rate}%`}}/></div><div className="rankRate">{p.rate}%</div><div className="record">{p.wins}勝 {p.losses}敗</div></div>)}</div></section><section className="card matrixCard"><div className="sectionHead"><div><div className="sectionLabel">PLAYER VIEW</div><h2>対戦表</h2><p>最初は全員分。名前を選ぶと、その選手視点の戦績に切り替わります。</p></div></div><div className="playerTabs"><button className={selected==='all'?'active':''} onClick={()=>setSelected('all')}>全体</button>{data.players.map(p=><button key={p.id} className={selected===p.id?'active':''} onClick={()=>setSelected(p.id)}>{p.name}</button>)}</div>{selected==='all'?<div className="matrixWrap"><table className="matrix"><thead><tr><th>PLAYER</th>{data.players.map(p=><th key={p.id}>{p.name}</th>)}</tr></thead><tbody>{data.players.map(r=><tr key={r.id}><th>{r.name}</th>{data.players.map(c=>{const s=data.stats?.[r.id]?.[c.id];return <td key={c.id} className={r.id===c.id?'self':s?'hasData':''}>{r.id===c.id?'—':s?<><strong>{rate(s)}</strong><small>{s.wins}-{s.losses}</small></>:'—'}</td>})}</tr>)}</tbody></table></div>:<div className="playerTableWrap"><table className="playerTable"><thead><tr><th>対戦相手</th><th>勝率</th><th>戦績</th><th>対戦数</th></tr></thead><tbody>{data.players.filter(p=>p.id!==selected).map(o=>{const s=data.stats?.[selected]?.[o.id];return <tr key={o.id}><td className="opponentName">{o.name}</td><td>{s?<strong>{s.rate}%</strong>:'—'}</td><td>{s?`${s.wins}勝 ${s.losses}敗`:'対戦なし'}</td><td>{s?s.wins+s.losses:0}</td></tr>})}</tbody></table></div>}</section><section className="card"><div className="sectionHead"><div><div className="sectionLabel">TOURNAMENTS</div><h2>取得した人形劇大会</h2></div><span className="badge">{data.tournaments.length}</span></div><div className="tournamentList">{data.tournaments.slice().reverse().map(t=><a key={t.number} href={t.bracketUrl} target="_blank" rel="noreferrer"><b>人形劇#{t.number}</b><span>{t.players}人 / {t.matches}試合</span><em>↗</em></a>)}</div></section><section className="card matchesCard"><button className="collapse" onClick={()=>setShow(!show)}>{show?'▼':'▶'} 全対戦履歴 <span>{data.records.length} MATCHES</span></button>{show&&<div className="matchList">{data.records.map((m,i)=><div className="match" key={i}><span className="round">#{m.tournamentNumber}</span><span className="winner">{m.winner}</span><b>WIN</b><span className="loser">{m.loser}</span></div>)}</div>}</section></>}<footer>NINGYOGEKI STATS <span>—</span> Smashmate tournament results</footer></div></main>}
+
+import { useEffect, useState } from 'react';
+
+export default function Home() {
+  const [data, setData] =
+    useState(null);
+
+  const [error, setError] =
+    useState(null);
+
+  useEffect(() => {
+    fetch('/api/series')
+      .then(async (res) => {
+        const json =
+          await res.json();
+
+        if (!res.ok) {
+          throw new Error(
+            json.detail ||
+              json.error ||
+              '取得失敗'
+          );
+        }
+
+        return json;
+      })
+      .then(setData)
+      .catch((e) =>
+        setError(e.message)
+      );
+  }, []);
+
+  if (error) {
+    return (
+      <main
+        style={{
+          padding: 40,
+          fontFamily: 'sans-serif',
+        }}
+      >
+        <h1>人形劇 戦績表</h1>
+
+        <p style={{ color: 'red' }}>
+          {error}
+        </p>
+      </main>
+    );
+  }
+
+  if (!data) {
+    return (
+      <main
+        style={{
+          padding: 40,
+          fontFamily: 'sans-serif',
+        }}
+      >
+        <h1>人形劇 戦績表</h1>
+        <p>人形劇を取得中...</p>
+      </main>
+    );
+  }
+
+  return (
+    <main
+      style={{
+        padding: 40,
+        fontFamily: 'sans-serif',
+        maxWidth: 900,
+        margin: '0 auto',
+      }}
+    >
+      <h1>人形劇 戦績表</h1>
+
+      <h2>
+        {data.count}大会取得
+      </h2>
+
+      <p>
+        最新：人形劇#
+        {data.latest}
+      </p>
+
+      <p>
+        最古：人形劇#
+        {data.oldest}
+      </p>
+
+      <hr />
+
+      {data.tournaments.map(
+        (tournament) => (
+          <div
+            key={tournament.number}
+            style={{
+              padding: '12px 0',
+              borderBottom:
+                '1px solid #ddd',
+            }}
+          >
+            <strong>
+              {tournament.name}
+            </strong>
+
+            <br />
+
+            大会ID：
+            {tournament.tournamentId}
+
+            <br />
+
+            {tournament.bracketUrl ? (
+              <a
+                href={
+                  tournament.bracketUrl
+                }
+                target="_blank"
+                rel="noreferrer"
+              >
+                トーナメント表
+              </a>
+            ) : (
+              <span>
+                トーナメント表なし
+              </span>
+            )}
+          </div>
+        )
+      )}
+    </main>
+  );
+}
