@@ -331,7 +331,7 @@ export default function Home() {
   const [show, setShow] = useState(false);
   const [sortKey, setSortKey] = useState('opponent');
   const [sortDir, setSortDir] = useState('asc');
-  const [season, setSeason] = useState('all');
+  const [season, setSeason] = useState('current');
 
   async function loadLatest(savedData = data, forceFull = false) {
     setLoading(true);
@@ -468,7 +468,7 @@ export default function Home() {
     localStorage.removeItem('ningyogeki-selected-player');
     setData(null);
     setSelected('all');
-    setSeason('all');
+    setSeason('current');
     setError('');
   }
 
@@ -507,9 +507,17 @@ export default function Home() {
     );
   }, [data]);
 
+  const currentSeason = seasons.length
+    ? seasons[seasons.length - 1].key
+    : 'all';
+
+  const selectedSeason = season === 'current'
+    ? currentSeason
+    : season;
+
   const ranking = useMemo(
-    () => calculateGlicko2Ranking(data, season),
-    [data, season]
+    () => calculateGlicko2Ranking(data, selectedSeason),
+    [data, selectedSeason]
   );
 
   const selectedPlayer = data?.players.find(
@@ -909,6 +917,17 @@ export default function Home() {
           <div className="seasonTabs">
             <button
               className={
+                season === 'current' ? 'active' : ''
+              }
+              onClick={() =>
+                setSeason('current')
+              }
+            >
+              現在
+            </button>
+
+            <button
+              className={
                 season === 'all' ? 'active' : ''
               }
               onClick={() =>
@@ -982,7 +1001,65 @@ export default function Home() {
           </div>
         </section>
 
-        {/* シーズンGlicko-2ランキングの下 */}
+        <section className="card matchesCard">
+          <button
+            className="collapse"
+            onClick={() =>
+              setShow(!show)
+            }
+          >
+            {show ? '▼' : '▶'} 全対戦履歴{' '}
+            <span>
+              {data.records.length} MATCHES
+            </span>
+          </button>
+
+          {show && (
+            <div className="matchList">
+              {calculateMatchRatingChanges(data).slice().reverse().map(
+                (match, index) => (
+                  <div
+                    className="match"
+                    key={`${match.tournamentNumber}-${match.winnerId}-${match.loserId}-${index}`}
+                  >
+                    <span className="round">
+                      #{match.tournamentNumber}
+                    </span>
+
+                    <span className="winner">
+                      <strong>{match.winner}</strong>
+                      {match.winnerBefore != null && (
+                        <small className="ratingChange">
+                          {match.winnerBefore} → {match.winnerAfter}{' '}
+                          <i className={match.winnerDelta >= 0 ? 'up' : 'down'}>
+                            ({match.winnerDelta >= 0 ? '+' : ''}{match.winnerDelta})
+                          </i>
+                        </small>
+                      )}
+                    </span>
+
+                    <b>WIN</b>
+
+                    <span className="loser">
+                      <strong>{match.loser}</strong>
+                      {match.loserBefore != null && (
+                        <small className="ratingChange">
+                          {match.loserBefore} → {match.loserAfter}{' '}
+                          <i className={match.loserDelta >= 0 ? 'up' : 'down'}>
+                            ({match.loserDelta >= 0 ? '+' : ''}{match.loserDelta})
+                          </i>
+                        </small>
+                      )}
+                    </span>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </section>
+
+
+        {/* 全対戦履歴の下 */}
         <section className="control card" style={{ marginTop: '18px' }}>
           <div>
             <h2>人形劇全体を集計</h2>
@@ -1059,63 +1136,6 @@ export default function Home() {
                 </a>
               ))}
           </div>
-        </section>
-
-        <section className="card matchesCard">
-          <button
-            className="collapse"
-            onClick={() =>
-              setShow(!show)
-            }
-          >
-            {show ? '▼' : '▶'} 全対戦履歴{' '}
-            <span>
-              {data.records.length} MATCHES
-            </span>
-          </button>
-
-          {show && (
-            <div className="matchList">
-              {calculateMatchRatingChanges(data).slice().reverse().map(
-                (match, index) => (
-                  <div
-                    className="match"
-                    key={`${match.tournamentNumber}-${match.winnerId}-${match.loserId}-${index}`}
-                  >
-                    <span className="round">
-                      #{match.tournamentNumber}
-                    </span>
-
-                    <span className="winner">
-                      <strong>{match.winner}</strong>
-                      {match.winnerBefore != null && (
-                        <small className="ratingChange">
-                          {match.winnerBefore} → {match.winnerAfter}{' '}
-                          <i className={match.winnerDelta >= 0 ? 'up' : 'down'}>
-                            ({match.winnerDelta >= 0 ? '+' : ''}{match.winnerDelta})
-                          </i>
-                        </small>
-                      )}
-                    </span>
-
-                    <b>WIN</b>
-
-                    <span className="loser">
-                      <strong>{match.loser}</strong>
-                      {match.loserBefore != null && (
-                        <small className="ratingChange">
-                          {match.loserBefore} → {match.loserAfter}{' '}
-                          <i className={match.loserDelta >= 0 ? 'up' : 'down'}>
-                            ({match.loserDelta >= 0 ? '+' : ''}{match.loserDelta})
-                          </i>
-                        </small>
-                      )}
-                    </span>
-                  </div>
-                )
-              )}
-            </div>
-          )}
         </section>
 
         <footer>
