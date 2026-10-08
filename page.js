@@ -109,33 +109,41 @@ function getSeason(number) {
  * 左側が最新。
  */
 function getRecentResults(records, playerId, opponentId) {
-  return (records || [])
-    .filter(
-      (record) =>
-        (
-          String(record.winnerId) === String(playerId) &&
-          String(record.loserId) === String(opponentId)
-        ) ||
-        (
-          String(record.winnerId) === String(opponentId) &&
-          String(record.loserId) === String(playerId)
-        )
-    )
-    .sort(
-      (a, b) =>
-        Number(b.tournamentNumber || 0) -
-        Number(a.tournamentNumber || 0)
-    )
-    .slice(0, 5)
-    .map((record) => ({
-      result:
-        String(record.winnerId) === String(playerId)
-          ? 'W'
-          : 'L',
-      tournamentNumber: record.tournamentNumber,
-    }));
-}
+  if (!Array.isArray(records)) {
+    return [];
+  }
 
+  const player = String(playerId);
+  const opponent = String(opponentId);
+
+  return records
+    .filter((record) => {
+      if (!record) return false;
+
+      const winnerId = String(record.winnerId ?? '');
+      const loserId = String(record.loserId ?? '');
+
+      return (
+        (winnerId === player && loserId === opponent) ||
+        (winnerId === opponent && loserId === player)
+      );
+    })
+    .sort((a, b) => {
+      const tournamentA = Number(a.tournamentNumber ?? 0);
+      const tournamentB = Number(b.tournamentNumber ?? 0);
+
+      return tournamentB - tournamentA;
+    })
+    .slice(0, 5)
+    .map((record) => {
+      const winnerId = String(record.winnerId ?? '');
+
+      return {
+        result: winnerId === player ? 'W' : 'L',
+        tournamentNumber: record.tournamentNumber,
+      };
+    });
+}
 export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -1039,4 +1047,83 @@ export default function Home() {
       </footer>
     </main>
   );
+}
+.opponentTable .recordCell {
+  width: 32% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+.opponentTable .recentResults {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  width: 100% !important;
+  margin-top: 7px !important;
+  min-height: 25px !important;
+  height: auto !important;
+  white-space: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none;
+}
+
+.opponentTable .recentResults::-webkit-scrollbar {
+  display: none;
+}
+
+.opponentTable .recentResult {
+  display: grid !important;
+  place-items: center !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  flex: 0 0 20px !important;
+  border-radius: 4px !important;
+  color: #fff !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+}
+
+.opponentTable .recentResult.win {
+  background: #35a66b !important;
+}
+
+.opponentTable .recentResult.loss {
+  background: #c94d58 !important;
+}
+
+.opponentTable .recentResult.latest {
+  width: 25px !important;
+  height: 25px !important;
+  min-width: 25px !important;
+  flex-basis: 25px !important;
+  font-size: 11px !important;
+}
+
+@media (max-width: 700px) {
+  .opponentTable .recordCell {
+    width: 35% !important;
+  }
+
+  .opponentTable .recentResults {
+    justify-content: flex-start !important;
+  }
+
+  .opponentTable .recentResult {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    flex-basis: 18px !important;
+    font-size: 8px !important;
+  }
+
+  .opponentTable .recentResult.latest {
+    width: 23px !important;
+    height: 23px !important;
+    min-width: 23px !important;
+    flex-basis: 23px !important;
+    font-size: 10px !important;
+  }
 }
