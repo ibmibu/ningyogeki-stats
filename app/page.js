@@ -880,17 +880,23 @@ export default function Home() {
                   <div className="bar">
                     <i
                       style={{
-                        width: `${player.rate}%`,
+                        width: `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            ((player.rating - 1000) / 1000) * 100
+                          )
+                        )}%`,
                       }}
                     />
                   </div>
 
                   <div className="rankRate">
-                    {player.rate}%
+                    {player.rating}
                   </div>
 
                   <div className="record">
-                    {player.wins}勝{' '}
+                    ±{player.rd} / {player.wins}勝{' '}
                     {player.losses}敗 /{' '}
                     {player.total}戦
                   </div>
@@ -900,7 +906,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* シーズン勝率ランキングの下 */}
+        {/* シーズンGlicko-2ランキングの下 */}
         <section className="control card" style={{ marginTop: '18px' }}>
           <div>
             <h2>人形劇全体を集計</h2>
