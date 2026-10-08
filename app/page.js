@@ -290,26 +290,7 @@ export default function Home() {
   }, [data, selectedPlayer, sortKey, sortDir]);
 
   if (!data) {
-    return (
-      <main className="site">
-        <div className="content">
-          <section className="empty card">
-            <div className="spinner" />
-            <h2>{loading ? '人形劇のデータを確認しています' : '人形劇のデータを取得します'}</h2>
-            <p>{loading ? '保存済みデータがあれば、それを表示したうえで未取得の大会だけ確認しています。' : '大会一覧とトーナメント表を取得します。'}</p>
-            {!loading && (
-              <button className="primary" onClick={() => loadLatest(null, true)}>
-                データを取得
-              </button>
-            )}
-            {error && <p className="error">⚠ {error}</p>}
-          </section>
-        </div>
-      </main>
-    );
-  }
-
-  return (
+      return (
     <main className="site">
       <header className="hero">
         <div className="heroGlow" />
@@ -322,10 +303,28 @@ export default function Home() {
         </div>
       </header>
 
-      
-          <div className="stat card"><span>取得大会</span><strong>{data.tournaments.length}</strong><small>tournaments</small></div>
-          <div className="stat card"><span>参加人数</span><strong>{data.players.length}</strong><small>players</small></div>
-          <div className="stat card"><span>総対戦数</span><strong>{data.matches}</strong><small>matches</small></div>
+      <div className="content">
+
+        {error && <div className="error card">⚠ {error}</div>}
+
+        <section className="statsGrid">
+          <div className="stat card">
+            <span>取得大会</span>
+            <strong>{data.tournaments.length}</strong>
+            <small>tournaments</small>
+          </div>
+
+          <div className="stat card">
+            <span>参加人数</span>
+            <strong>{data.players.length}</strong>
+            <small>players</small>
+          </div>
+
+          <div className="stat card">
+            <span>総対戦数</span>
+            <strong>{data.matches}</strong>
+            <small>matches</small>
+          </div>
         </section>
 
         <section className="card matrixCard">
@@ -339,10 +338,17 @@ export default function Home() {
 
           <div className="playerSelectWrap">
             <label htmlFor="playerSelect">表示する選手</label>
-            <select id="playerSelect" value={selected} onChange={(e) => setSelected(e.target.value)}>
+            <select
+              id="playerSelect"
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+            >
               <option value="all">全体（全選手）</option>
+
               {sortedPlayers.map((player) => (
-                <option key={player.id} value={player.id}>{player.name}</option>
+                <option key={player.id} value={player.id}>
+                  {player.name}
+                </option>
               ))}
             </select>
           </div>
@@ -350,16 +356,47 @@ export default function Home() {
           {selected === 'all' ? (
             <div className="matrixWrap">
               <table className="matrix">
-                <thead><tr><th>PLAYER</th>{sortedPlayers.map((player) => <th key={player.id}>{player.name}</th>)}</tr></thead>
+                <thead>
+                  <tr>
+                    <th>PLAYER</th>
+
+                    {sortedPlayers.map((player) => (
+                      <th key={player.id}>{player.name}</th>
+                    ))}
+                  </tr>
+                </thead>
+
                 <tbody>
                   {sortedPlayers.map((row) => (
                     <tr key={row.id}>
                       <th>{row.name}</th>
+
                       {sortedPlayers.map((col) => {
                         const stat = data.stats?.[row.id]?.[col.id];
+
                         return (
-                          <td key={col.id} className={row.id === col.id ? 'self' : stat ? 'hasData' : ''}>
-                            {row.id === col.id ? '—' : stat ? <><strong>{rate(stat)}</strong><small>{stat.wins}-{stat.losses}</small></> : '—'}
+                          <td
+                            key={col.id}
+                            className={
+                              row.id === col.id
+                                ? 'self'
+                                : stat
+                                ? 'hasData'
+                                : ''
+                            }
+                          >
+                            {row.id === col.id ? (
+                              '—'
+                            ) : stat ? (
+                              <>
+                                <strong>{rate(stat)}</strong>
+                                <small>
+                                  {stat.wins}-{stat.losses}
+                                </small>
+                              </>
+                            ) : (
+                              '—'
+                            )}
                           </td>
                         );
                       })}
@@ -371,21 +408,56 @@ export default function Home() {
           ) : (
             <div className="playerTableWrap">
               <table className="playerTable">
-                <colgroup><col className="opponentCol" /><col className="rateCol" /><col className="recordCol" /><col className="matchesCol" /></colgroup>
+                <colgroup>
+                  <col className="opponentCol" />
+                  <col className="rateCol" />
+                  <col className="recordCol" />
+                  <col className="matchesCol" />
+                </colgroup>
+
                 <thead>
                   <tr>
-                    <th><button className="sortButton" onClick={() => toggleSort('opponent')}>対戦相手{sortMark('opponent')}</button></th>
-                    <th><button className="sortButton" onClick={() => toggleSort('rate')}>勝率{sortMark('rate')}</button></th>
+                    <th>
+                      <button
+                        className="sortButton"
+                        onClick={() => toggleSort('opponent')}
+                      >
+                        対戦相手{sortMark('opponent')}
+                      </button>
+                    </th>
+
+                    <th>
+                      <button
+                        className="sortButton"
+                        onClick={() => toggleSort('rate')}
+                      >
+                        勝率{sortMark('rate')}
+                      </button>
+                    </th>
+
                     <th>戦績</th>
-                    <th><button className="sortButton" onClick={() => toggleSort('matches')}>対戦数{sortMark('matches')}</button></th>
+
+                    <th>
+                      <button
+                        className="sortButton"
+                        onClick={() => toggleSort('matches')}
+                      >
+                        対戦数{sortMark('matches')}
+                      </button>
+                    </th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {opponentRows.map(({ player, stat }) => (
                     <tr key={player.id}>
                       <td className="opponentName">{player.name}</td>
-                      <td><strong>{stat.rate}%</strong></td>
-                      <td>{stat.wins}勝 {stat.losses}敗</td>
+                      <td>
+                        <strong>{stat.rate}%</strong>
+                      </td>
+                      <td>
+                        {stat.wins}勝 {stat.losses}敗
+                      </td>
                       <td>{stat.wins + stat.losses}</td>
                     </tr>
                   ))}
@@ -397,69 +469,152 @@ export default function Home() {
 
         <section className="card">
           <div className="sectionHead">
-            <div><div className="sectionLabel">SEASON WIN RATE</div><h2>シーズン勝率ランキング</h2><p>25大会ごとにシーズンを区切って表示できます。</p></div>
+            <div>
+              <div className="sectionLabel">SEASON WIN RATE</div>
+              <h2>シーズン勝率ランキング</h2>
+              <p>25大会ごとにシーズンを区切って表示できます。</p>
+            </div>
+
             <span className="badge">WIN RATE</span>
           </div>
+
           <div className="seasonTabs">
-            <button className={season === 'all' ? 'active' : ''} onClick={() => setSeason('all')}>すべて</button>
-            {seasons.map((s) => <button key={s.key} className={season === s.key ? 'active' : ''} onClick={() => setSeason(s.key)}>{s.label}</button>)}
+            <button
+              className={season === 'all' ? 'active' : ''}
+              onClick={() => setSeason('all')}
+            >
+              すべて
+            </button>
+
+            {seasons.map((s) => (
+              <button
+                key={s.key}
+                className={season === s.key ? 'active' : ''}
+                onClick={() => setSeason(s.key)}
+              >
+                {s.label}
+              </button>
+            ))}
           </div>
+
           <div className="rankingList">
             {ranking.map((player, index) => (
               <div className="rankRow" key={player.id}>
-                <div className="rankNo">{String(index + 1).padStart(2, '0')}</div>
+                <div className="rankNo">
+                  {String(index + 1).padStart(2, '0')}
+                </div>
+
                 <div className="rankName">{player.name}</div>
-                <div className="bar"><i style={{ width: `${player.rate}%` }} /></div>
+
+                <div className="bar">
+                  <i style={{ width: `${player.rate}%` }} />
+                </div>
+
                 <div className="rankRate">{player.rate}%</div>
-                <div className="record">{player.wins}勝 {player.losses}敗 / {player.total}戦</div>
+
+                <div className="record">
+                  {player.wins}勝 {player.losses}敗 / {player.total}戦
+                </div>
               </div>
             ))}
           </div>
         </section>
 
-<div className="content">
+        {/* 人形劇全体を集計 */}
         <section className="control card">
           <div>
             <h2>人形劇全体を集計</h2>
-            <p>ページを開くたびに大会一覧だけを確認し、まだ読み込んでいない大会がある場合だけ取得します。</p>
+            <p>
+              ページを開くたびに大会一覧だけを確認し、まだ読み込んでいない大会がある場合だけ取得します。
+            </p>
           </div>
+
           <div className="buttonGroup">
-            <button className="primary" onClick={() => loadLatest()} disabled={loading}>
+            <button
+              className="primary"
+              onClick={() => loadLatest()}
+              disabled={loading}
+            >
               {loading ? '未取得大会を確認中…' : '最新データを確認'}
             </button>
-            <button className="secondary" onClick={resetData} disabled={loading}>
+
+            <button
+              className="secondary"
+              onClick={resetData}
+              disabled={loading}
+            >
               保存データをリセット
             </button>
           </div>
+
           <div className="hint">
-            {loading ? '既存の大会は再取得しません。' : '未取得の大会がある場合だけ追加で読み込みます。'}
+            {loading
+              ? '既存の大会は再取得しません。'
+              : '未取得の大会がある場合だけ追加で読み込みます。'}
           </div>
         </section>
 
-        {error && <div className="error card">⚠ {error}</div>}
-
-        <section className="statsGrid">
-              
         <section className="card">
           <div className="sectionHead">
-            <div><div className="sectionLabel">TOURNAMENTS</div><h2>取得した人形劇</h2></div>
+            <div>
+              <div className="sectionLabel">TOURNAMENTS</div>
+              <h2>取得した人形劇</h2>
+            </div>
+
             <span className="badge">{data.tournaments.length}</span>
           </div>
+
           <div className="tournamentList">
-            {data.tournaments.slice().reverse().map((tournament) => (
-              <a key={tournament.number} href={tournament.bracketUrl} target="_blank" rel="noreferrer">
-                <b>人形劇#{tournament.number}</b><span>{tournament.players}人 / {tournament.matches}試合</span><em>↗</em>
-              </a>
-            ))}
+            {data.tournaments
+              .slice()
+              .reverse()
+              .map((tournament) => (
+                <a
+                  key={tournament.number}
+                  href={tournament.bracketUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <b>人形劇#{tournament.number}</b>
+                  <span>
+                    {tournament.players}人 / {tournament.matches}試合
+                  </span>
+                  <em>↗</em>
+                </a>
+              ))}
           </div>
         </section>
 
         <section className="card matchesCard">
-          <button className="collapse" onClick={() => setShow(!show)}>{show ? '▼' : '▶'} 全対戦履歴 <span>{data.records.length} MATCHES</span></button>
-          {show && <div className="matchList">{data.records.map((match, index) => <div className="match" key={`${match.tournamentNumber}-${match.winnerId}-${match.loserId}-${index}`}><span className="round">#{match.tournamentNumber}</span><span className="winner">{match.winner}</span><b>WIN</b><span className="loser">{match.loser}</span></div>)}</div>}
+          <button
+            className="collapse"
+            onClick={() => setShow(!show)}
+          >
+            {show ? '▼' : '▶'} 全対戦履歴{' '}
+            <span>{data.records.length} MATCHES</span>
+          </button>
+
+          {show && (
+            <div className="matchList">
+              {data.records.map((match, index) => (
+                <div
+                  className="match"
+                  key={`${match.tournamentNumber}-${match.winnerId}-${match.loserId}-${index}`}
+                >
+                  <span className="round">#{match.tournamentNumber}</span>
+                  <span className="winner">{match.winner}</span>
+                  <b>WIN</b>
+                  <span className="loser">{match.loser}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
-        <footer>NINGYOGEKI STATS <span>—</span> Smashmate tournament results</footer>
+        <footer>
+          NINGYOGEKI STATS <span>—</span> Smashmate tournament results
+        </footer>
+
       </div>
     </main>
   );
