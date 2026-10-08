@@ -993,9 +993,6 @@ export default function Home() {
               </p>
             </div>
 
-            <span className="badge">
-              GLICKO-2
-            </span>
           </div>
 
           <div className="seasonTabs">
