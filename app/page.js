@@ -206,8 +206,14 @@ function calculateGlicko2Ranking(data, season) {
 }
 
 
-function calculateMatchRatingChanges(data) {
+function calculateMatchRatingChanges(data, season = 'all') {
   if (!data?.records?.length) return [];
+
+  const records = season === 'all' ? data.records : data.records.filter((record) => {
+    const n = Number(record.tournamentNumber) || 0;
+    const s = Number(season);
+    return n >= (s - 1) * 25 + 1 && n <= s * 25;
+  });
 
   const playerStates = new Map();
 
@@ -219,7 +225,7 @@ function calculateMatchRatingChanges(data) {
     });
   }
 
-  const sortedRecords = [...data.records].sort(
+  const sortedRecords = [...records].sort(
     (a, b) =>
       (Number(a.tournamentNumber) || 0) -
       (Number(b.tournamentNumber) || 0)
@@ -517,6 +523,11 @@ export default function Home() {
 
   const ranking = useMemo(
     () => calculateGlicko2Ranking(data, selectedSeason),
+    [data, selectedSeason]
+  );
+
+  const matchHistory = useMemo(
+    () => calculateMatchRatingChanges(data, selectedSeason),
     [data, selectedSeason]
   );
 
@@ -1008,13 +1019,13 @@ export default function Home() {
           >
             {show ? '▼' : '▶'} 全対戦履歴{' '}
             <span>
-              {data.records.length} MATCHES
+              {matchHistory.length} MATCHES
             </span>
           </button>
 
           {show && (
             <div className="matchList">
-              {calculateMatchRatingChanges(data).slice().reverse().map(
+              {matchHistory.slice().reverse().map(
                 (match, index) => (
                   <div
                     className="match"
