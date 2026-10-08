@@ -243,15 +243,18 @@ function updateEloPlayer(
   );
 
   // 相手のRDが自分より大きいほど、レート変動を小さくする。
-  // RD差100なら変動は約75%（= 25%減少）になる。
-  // 自分よりRDが低い相手との対戦では、この補正はかけない。
+  // RD差0なら100%、RD差100なら25%まで段階的に下げる。
+  // 100を超える差では25%を下限にする。
   const rdDifference = Math.max(
     0,
     opponent.rd - player.rd
   );
 
   const rdFactor =
-    1 / (1 + rdDifference / 300);
+    Math.max(
+      0.25,
+      1 - (rdDifference / 100) * 0.75
+    );
 
   const delta =
     ELO_K *
