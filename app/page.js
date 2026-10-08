@@ -1328,6 +1328,14 @@ export default function Home() {
 
           {show && (
             <div className="matchList">
+              <div className="matchHeader">
+                <span>大会</span>
+                <span>選手名</span>
+                <span>RD</span>
+                <span>レート変動</span>
+                <span>結果</span>
+              </div>
+
               {matchHistory.slice().reverse().map(
                 (match, index) => (
                   <div
@@ -1338,41 +1346,36 @@ export default function Home() {
                       #{match.tournamentNumber}
                     </span>
 
-                    <span className="winner">
+                    <div className="matchPlayer winner">
                       <strong>{match.winner}</strong>
-                      {match.winnerBefore != null && (
-                        <small className="ratingChange">
-                          {match.winnerBefore} → {match.winnerAfter}{' '}
-                          <i className={match.winnerDelta >= 0 ? 'up' : 'down'}>
-                            ({match.winnerDelta >= 0 ? '+' : ''}{match.winnerDelta})
-                          </i>
-                          {match.winnerRd != null && (
-                            <span className="rdChange">
-                              {' '}RD {match.winnerRd}
-                            </span>
-                          )}
-                        </small>
-                      )}
+                    </div>
+
+                    <span className="matchRd">
+                      {match.winnerRd ?? '—'}
                     </span>
 
-                    <b>WIN</b>
+                    <span className="matchRatingChange up">
+                      {match.winnerDelta != null ? `+${match.winnerDelta}` : '—'}
+                    </span>
 
-                    <span className="loser">
+                    <b className="matchResult win">WIN</b>
+
+                    <span className="round roundLoser">
+                    </span>
+
+                    <div className="matchPlayer loser">
                       <strong>{match.loser}</strong>
-                      {match.loserBefore != null && (
-                        <small className="ratingChange">
-                          {match.loserBefore} → {match.loserAfter}{' '}
-                          <i className={match.loserDelta >= 0 ? 'up' : 'down'}>
-                            ({match.loserDelta >= 0 ? '+' : ''}{match.loserDelta})
-                          </i>
-                          {match.loserRd != null && (
-                            <span className="rdChange">
-                              {' '}RD {match.loserRd}
-                            </span>
-                          )}
-                        </small>
-                      )}
+                    </div>
+
+                    <span className="matchRd">
+                      {match.loserRd ?? '—'}
                     </span>
+
+                    <span className="matchRatingChange down">
+                      {match.loserDelta != null ? `${match.loserDelta > 0 ? '+' : ''}${match.loserDelta}` : '—'}
+                    </span>
+
+                    <b className="matchResult loss">LOSE</b>
                   </div>
                 )
               )}
