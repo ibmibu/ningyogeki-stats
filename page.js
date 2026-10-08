@@ -113,34 +113,94 @@ function getRecentResults(records, playerId, opponentId) {
     return [];
   }
 
+  const getId = (value) => {
+    if (value == null) return null;
+
+    if (typeof value === 'object') {
+      return (
+        value.id ??
+        value.playerId ??
+        value.player_id ??
+        null
+      );
+    }
+
+    return value;
+  };
+
+  const getWinnerId = (record) => {
+    return getId(
+      record.winnerId ??
+      record.winner_id ??
+      record.winner ??
+      record.winnerPlayer ??
+      record.winner_player
+    );
+  };
+
+  const getLoserId = (record) => {
+    return getId(
+      record.loserId ??
+      record.loser_id ??
+      record.loser ??
+      record.loserPlayer ??
+      record.loser_player
+    );
+  };
+
   const player = String(playerId);
   const opponent = String(opponentId);
 
   return records
     .filter((record) => {
-      if (!record) return false;
+      const winnerId = getWinnerId(record);
+      const loserId = getLoserId(record);
 
-      const winnerId = String(record.winnerId ?? '');
-      const loserId = String(record.loserId ?? '');
+      if (winnerId == null || loserId == null) {
+        return false;
+      }
+
+      const winner = String(winnerId);
+      const loser = String(loserId);
 
       return (
-        (winnerId === player && loserId === opponent) ||
-        (winnerId === opponent && loserId === player)
+        (winner === player && loser === opponent) ||
+        (winner === opponent && loser === player)
       );
     })
     .sort((a, b) => {
-      const tournamentA = Number(a.tournamentNumber ?? 0);
-      const tournamentB = Number(b.tournamentNumber ?? 0);
-
-      return tournamentB - tournamentA;
+      return (
+        Number(
+          b.tournamentNumber ??
+          b.tournament_number ??
+          b.tournament ??
+          0
+        ) -
+        Number(
+          a.tournamentNumber ??
+          a.tournament_number ??
+          a.tournament ??
+          0
+        )
+      );
     })
     .slice(0, 5)
     .map((record) => {
-      const winnerId = String(record.winnerId ?? '');
+      const winnerId = getWinnerId(record);
+
+      const tournamentNumber =
+        record.tournamentNumber ??
+        record.tournament_number ??
+        record.tournament ??
+        '?';
 
       return {
-        result: winnerId === player ? 'W' : 'L',
-        tournamentNumber: record.tournamentNumber,
+        result:
+          String(winnerId) === player
+            ? 'W'
+            : 'L',
+
+        tournamentNumber,
       };
     });
 }
