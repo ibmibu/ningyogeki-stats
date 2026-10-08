@@ -257,10 +257,15 @@ function calculateGlicko2(data, season = 'all') {
         },
       ]);
 
-      winner.rating = winnerAfterState.rating;
+      const winnerGames = winner.wins + winner.losses;
+      const loserGames = loser.wins + loser.losses;
+      const winnerScale = winnerGames < 5 ? 0.2 : 1;
+      const loserScale = loserGames < 5 ? 0.2 : 1;
+
+      winner.rating = winner.rating + (winnerAfterState.rating - winner.rating) * winnerScale;
       winner.rd = winnerAfterState.rd;
       winner.volatility = winnerAfterState.volatility;
-      loser.rating = loserAfterState.rating;
+      loser.rating = loser.rating + (loserAfterState.rating - loser.rating) * loserScale;
       loser.rd = loserAfterState.rd;
       loser.volatility = loserAfterState.volatility;
 
