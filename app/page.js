@@ -322,28 +322,7 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="content">
-        <section className="control card">
-          <div>
-            <h2>人形劇全体を集計</h2>
-            <p>ページを開くたびに大会一覧だけを確認し、まだ読み込んでいない大会がある場合だけ取得します。</p>
-          </div>
-          <div className="buttonGroup">
-            <button className="primary" onClick={() => loadLatest()} disabled={loading}>
-              {loading ? '未取得大会を確認中…' : '最新データを確認'}
-            </button>
-            <button className="secondary" onClick={resetData} disabled={loading}>
-              保存データをリセット
-            </button>
-          </div>
-          <div className="hint">
-            {loading ? '既存の大会は再取得しません。' : '未取得の大会がある場合だけ追加で読み込みます。'}
-          </div>
-        </section>
-
-        {error && <div className="error card">⚠ {error}</div>}
-
-        <section className="statsGrid">
+      
           <div className="stat card"><span>取得大会</span><strong>{data.tournaments.length}</strong><small>tournaments</small></div>
           <div className="stat card"><span>参加人数</span><strong>{data.players.length}</strong><small>players</small></div>
           <div className="stat card"><span>総対戦数</span><strong>{data.matches}</strong><small>matches</small></div>
@@ -438,6 +417,29 @@ export default function Home() {
           </div>
         </section>
 
+<div className="content">
+        <section className="control card">
+          <div>
+            <h2>人形劇全体を集計</h2>
+            <p>ページを開くたびに大会一覧だけを確認し、まだ読み込んでいない大会がある場合だけ取得します。</p>
+          </div>
+          <div className="buttonGroup">
+            <button className="primary" onClick={() => loadLatest()} disabled={loading}>
+              {loading ? '未取得大会を確認中…' : '最新データを確認'}
+            </button>
+            <button className="secondary" onClick={resetData} disabled={loading}>
+              保存データをリセット
+            </button>
+          </div>
+          <div className="hint">
+            {loading ? '既存の大会は再取得しません。' : '未取得の大会がある場合だけ追加で読み込みます。'}
+          </div>
+        </section>
+
+        {error && <div className="error card">⚠ {error}</div>}
+
+        <section className="statsGrid">
+              
         <section className="card">
           <div className="sectionHead">
             <div><div className="sectionLabel">TOURNAMENTS</div><h2>取得した人形劇</h2></div>
