@@ -980,9 +980,7 @@ export default function Home() {
         <section className="card">
           <div className="sectionHead">
             <div>
-              <div className="sectionLabel">
-                SEASON GLICKO-2
-              </div>
+              <div className="sectionLabel">SEASON RANKING</div>
 
               <h2>
                 シーズンGlicko-2ランキング
