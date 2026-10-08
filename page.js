@@ -1,27 +1,127 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import {
+  Fragment,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 const STORAGE_KEY = 'ningyogeki-stats-v3';
 
-function rate(stat) {
-  return stat ? `${stat.rate}%` : '—';
+function getValueId(value) {
+  if (value == null) return null;
+
+  if (typeof value === 'object') {
+    return (
+      value.id ??
+      value.playerId ??
+      value.player_id ??
+      null
+    );
+  }
+
+  return value;
+}
+
+function getWinnerId(record) {
+  return getValueId(
+    record?.winnerId ??
+      record?.winner_id ??
+      record?.winner ??
+      record?.winnerPlayer ??
+      record?.winner_player
+  );
+}
+
+function getLoserId(record) {
+  return getValueId(
+    record?.loserId ??
+      record?.loser_id ??
+      record?.loser ??
+      record?.loserPlayer ??
+      record?.loser_player
+  );
+}
+
+function getTournamentNumber(record) {
+  return Number(
+    record?.tournamentNumber ??
+      record?.tournament_number ??
+      record?.tournament ??
+      0
+  );
+}
+
+function getPlayerName(record, side) {
+  if (!record) return '';
+
+  if (side === 'winner') {
+    if (typeof record.winner === 'string') {
+      return record.winner;
+    }
+
+    if (
+      record.winner &&
+      typeof record.winner === 'object'
+    ) {
+      return (
+        record.winner.name ??
+        record.winner.playerName ??
+        ''
+      );
+    }
+
+    return (
+      record.winnerName ??
+      record.winner_name ??
+      ''
+    );
+  }
+
+  if (typeof record.loser === 'string') {
+    return record.loser;
+  }
+
+  if (
+    record.loser &&
+    typeof record.loser === 'object'
+  ) {
+    return (
+      record.loser.name ??
+      record.loser.playerName ??
+      ''
+    );
+  }
+
+  return (
+    record.loserName ??
+    record.loser_name ??
+    ''
+  );
 }
 
 function mergeStats(base = {}, added = {}) {
   const result = structuredClone(base);
 
-  for (const [playerId, opponents] of Object.entries(added || {})) {
+  for (const [playerId, opponents] of Object.entries(
+    added || {}
+  )) {
     result[playerId] ??= {};
 
-    for (const [opponentId, stat] of Object.entries(opponents || {})) {
+    for (const [opponentId, stat] of Object.entries(
+      opponents || {}
+    )) {
       result[playerId][opponentId] ??= {
         wins: 0,
         losses: 0,
       };
 
-      result[playerId][opponentId].wins += stat.wins || 0;
-      result[playerId][opponentId].losses += stat.losses || 0;
+      result[playerId][opponentId].wins +=
+        stat.wins || 0;
+
+      result[playerId][opponentId].losses +=
+        stat.losses || 0;
 
       const total =
         result[playerId][opponentId].wins +
@@ -29,7 +129,9 @@ function mergeStats(base = {}, added = {}) {
 
       result[playerId][opponentId].rate = total
         ? Math.round(
-            (result[playerId][opponentId].wins / total) * 1000
+            (result[playerId][opponentId].wins /
+              total) *
+              1000
           ) / 10
         : 0;
     }
@@ -63,6 +165,21 @@ function mergeData(oldData, newData) {
     tournamentMap.set(tournament.number, tournament);
   }
 
+  const recordMap = new Map();
+
+  for (const record of [
+    ...(oldData.records || []),
+    ...(newData.records || []),
+  ]) {
+    const key = [
+      getTournamentNumber(record),
+      getWinnerId(record),
+      getLoserId(record),
+    ].join('-');
+
+    recordMap.set(key, record);
+  }
+
   return {
     ...oldData,
     ...newData,
@@ -73,12 +190,12 @@ function mergeData(oldData, newData) {
       (a, b) => a.number - b.number
     ),
 
-    records: [
-      ...(oldData.records || []),
-      ...(newData.records || []),
-    ],
+    records: [...recordMap.values()],
 
-    stats: mergeStats(oldData.stats, newData.stats),
+    stats: mergeStats(
+      oldData.stats,
+      newData.stats
+    ),
 
     matches:
       (oldData.matches || 0) +
@@ -94,59 +211,31 @@ function getLastTournament(data) {
   }
 
   return Math.max(
-    ...data.tournaments.map((t) => t.number || 0)
+    ...data.tournaments.map(
+      (t) => t.number || 0
+    )
   );
 }
 
 function getSeason(number) {
   if (!number) return 1;
-  return Math.floor((number - 1) / 25) + 1;
+
+  return Math.floor(
+    (number - 1) / 25
+  ) + 1;
 }
 
 /*
- * プレイヤー同士の直近5試合
- *
- * 左側が最新。
+ * 選択プレイヤーと対戦相手の直近5戦
  */
-function getRecentResults(records, playerId, opponentId) {
+function getRecentResults(
+  records,
+  playerId,
+  opponentId
+) {
   if (!Array.isArray(records)) {
     return [];
   }
-
-  const getId = (value) => {
-    if (value == null) return null;
-
-    if (typeof value === 'object') {
-      return (
-        value.id ??
-        value.playerId ??
-        value.player_id ??
-        null
-      );
-    }
-
-    return value;
-  };
-
-  const getWinnerId = (record) => {
-    return getId(
-      record.winnerId ??
-        record.winner_id ??
-        record.winner ??
-        record.winnerPlayer ??
-        record.winner_player
-    );
-  };
-
-  const getLoserId = (record) => {
-    return getId(
-      record.loserId ??
-        record.loser_id ??
-        record.loser ??
-        record.loserPlayer ??
-        record.loser_player
-    );
-  };
 
   const player = String(playerId);
   const opponent = String(opponentId);
@@ -156,7 +245,10 @@ function getRecentResults(records, playerId, opponentId) {
       const winnerId = getWinnerId(record);
       const loserId = getLoserId(record);
 
-      if (winnerId == null || loserId == null) {
+      if (
+        winnerId == null ||
+        loserId == null
+      ) {
         return false;
       }
 
@@ -164,45 +256,26 @@ function getRecentResults(records, playerId, opponentId) {
       const loser = String(loserId);
 
       return (
-        (winner === player && loser === opponent) ||
-        (winner === opponent && loser === player)
+        (winner === player &&
+          loser === opponent) ||
+        (winner === opponent &&
+          loser === player)
       );
     })
-    .sort((a, b) => {
-      return (
-        Number(
-          b.tournamentNumber ??
-            b.tournament_number ??
-            b.tournament ??
-            0
-        ) -
-        Number(
-          a.tournamentNumber ??
-            a.tournament_number ??
-            a.tournament ??
-            0
-        )
-      );
-    })
+    .sort(
+      (a, b) =>
+        getTournamentNumber(b) -
+        getTournamentNumber(a)
+    )
     .slice(0, 5)
-    .map((record) => {
-      const winnerId = getWinnerId(record);
-
-      const tournamentNumber =
-        record.tournamentNumber ??
-        record.tournament_number ??
-        record.tournament ??
-        '?';
-
-      return {
-        result:
-          String(winnerId) === player
-            ? 'W'
-            : 'L',
-
-        tournamentNumber,
-      };
-    });
+    .map((record) => ({
+      result:
+        String(getWinnerId(record)) === player
+          ? 'W'
+          : 'L',
+      tournamentNumber:
+        getTournamentNumber(record),
+    }));
 }
 
 export default function Home() {
@@ -210,34 +283,34 @@ export default function Home() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [selected, setSelected] = useState('all');
-  const [sortKey, setSortKey] = useState('rate');
-  const [season, setSeason] = useState('all');
+  const [selected, setSelected] =
+    useState('all');
 
-  const [loaded, setLoaded] = useState(false);
+  const [sortKey, setSortKey] =
+    useState('rate');
 
-  /*
-   * 今開いている対戦相手
-   *
-   * null なら全部閉じている。
-   */
+  const [season, setSeason] =
+    useState('all');
+
+  const [loaded, setLoaded] =
+    useState(false);
+
   const [expandedOpponent, setExpandedOpponent] =
     useState(null);
 
-  /*
-   * 初回表示
-   *
-   * localStorage に保存されていれば API を呼ばない。
-   * 保存データがなければ初回だけ全大会を取得する。
-   */
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved =
+        localStorage.getItem(STORAGE_KEY);
 
       if (saved) {
-        const parsed = JSON.parse(saved);
+        const parsed =
+          JSON.parse(saved);
 
-        if (parsed?.players && parsed?.stats) {
+        if (
+          parsed?.players &&
+          parsed?.stats
+        ) {
           setData(parsed);
         }
       }
@@ -251,9 +324,6 @@ export default function Home() {
     setLoaded(true);
   }, []);
 
-  /*
-   * データを保存
-   */
   useEffect(() => {
     if (!loaded || !data) return;
 
@@ -270,12 +340,6 @@ export default function Home() {
     }
   }, [data, loaded]);
 
-  /*
-   * 最新データ取得
-   *
-   * 保存されている最新大会番号を since として API に渡す。
-   * API 側ではそれより新しい大会だけ取得する。
-   */
   async function loadLatest() {
     setLoading(true);
     setError('');
@@ -293,7 +357,8 @@ export default function Home() {
         cache: 'no-store',
       });
 
-      const json = await response.json();
+      const json =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -318,10 +383,6 @@ export default function Home() {
     }
   }
 
-  /*
-   * 保存データを全部消して、
-   * 次回取得時に全大会を取り直す。
-   */
   function resetData() {
     if (
       !window.confirm(
@@ -341,67 +402,18 @@ export default function Home() {
     setError('');
   }
 
-  /*
-   * プレイヤー一覧
-   */
   const players = useMemo(() => {
     if (!data) return [];
 
-    return [...(data.players || [])].sort((a, b) =>
-      String(a.name).localeCompare(
-        String(b.name),
-        'ja'
-      )
+    return [...(data.players || [])].sort(
+      (a, b) =>
+        String(a.name).localeCompare(
+          String(b.name),
+          'ja'
+        )
     );
   }, [data]);
 
-  /*
-   * 総合ランキング
-   */
-  const ranking = useMemo(() => {
-    if (!data) return [];
-
-    return players
-      .map((player) => {
-        let wins = 0;
-        let losses = 0;
-
-        Object.values(
-          data.stats?.[player.id] || {}
-        ).forEach((stat) => {
-          wins += stat.wins || 0;
-          losses += stat.losses || 0;
-        });
-
-        const total = wins + losses;
-
-        return {
-          ...player,
-          wins,
-          losses,
-          total,
-          rate: total
-            ? Math.round(
-                (wins / total) * 1000
-              ) / 10
-            : 0,
-        };
-      })
-      .sort(
-        (a, b) =>
-          b.rate - a.rate ||
-          b.total - a.total ||
-          b.wins - a.wins ||
-          String(a.name).localeCompare(
-            String(b.name),
-            'ja'
-          )
-      );
-  }, [data, players]);
-
-  /*
-   * シーズン一覧
-   */
   const seasons = useMemo(() => {
     if (!data?.tournaments?.length) {
       return [];
@@ -419,9 +431,6 @@ export default function Home() {
     );
   }, [data]);
 
-  /*
-   * 選択中プレイヤー
-   */
   const selectedPlayer = useMemo(() => {
     if (
       !data ||
@@ -432,28 +441,32 @@ export default function Home() {
 
     return players.find(
       (player) =>
-        String(player.id) === String(selected)
+        String(player.id) ===
+        String(selected)
     );
-  }, [data, players, selected]);
+  }, [
+    data,
+    players,
+    selected,
+  ]);
 
-  /*
-   * 選択プレイヤーの対戦相手一覧
-   */
   const opponents = useMemo(() => {
     if (!data || !selectedPlayer) {
       return [];
     }
 
     const ownStats =
-      data.stats?.[selectedPlayer.id] || {};
+      data.stats?.[selectedPlayer.id] ||
+      {};
 
     return Object.entries(ownStats)
       .map(([opponentId, stat]) => {
-        const opponent = players.find(
-          (player) =>
-            String(player.id) ===
-            String(opponentId)
-        );
+        const opponent =
+          players.find(
+            (player) =>
+              String(player.id) ===
+              String(opponentId)
+          );
 
         if (!opponent) {
           return null;
@@ -474,7 +487,9 @@ export default function Home() {
       .filter(Boolean)
       .sort((a, b) => {
         if (sortKey === 'name') {
-          return String(a.name).localeCompare(
+          return String(
+            a.name
+          ).localeCompare(
             String(b.name),
             'ja'
           );
@@ -499,22 +514,26 @@ export default function Home() {
     sortKey,
   ]);
 
-  /*
-   * 選択プレイヤーの対戦履歴
-   */
   const matchHistory = useMemo(() => {
     if (!data || !selectedPlayer) {
       return [];
     }
 
     return (data.records || [])
-      .filter(
-        (record) =>
-          String(record.winnerId) ===
+      .filter((record) => {
+        const winnerId =
+          getWinnerId(record);
+
+        const loserId =
+          getLoserId(record);
+
+        return (
+          String(winnerId) ===
             String(selectedPlayer.id) ||
-          String(record.loserId) ===
+          String(loserId) ===
             String(selectedPlayer.id)
-      )
+        );
+      })
       .filter((record) => {
         if (season === 'all') {
           return true;
@@ -522,14 +541,14 @@ export default function Home() {
 
         return (
           getSeason(
-            record.tournamentNumber
+            getTournamentNumber(record)
           ) === Number(season)
         );
       })
       .sort(
         (a, b) =>
-          b.tournamentNumber -
-          a.tournamentNumber
+          getTournamentNumber(b) -
+          getTournamentNumber(a)
       );
   }, [
     data,
@@ -537,9 +556,6 @@ export default function Home() {
     season,
   ]);
 
-  /*
-   * シーズン別ランキング
-   */
   const seasonRanking = useMemo(() => {
     if (!data) return [];
 
@@ -549,36 +565,51 @@ export default function Home() {
         : (data.records || []).filter(
             (record) =>
               getSeason(
-                record.tournamentNumber
+                getTournamentNumber(record)
               ) === Number(season)
           );
 
     const stats = {};
 
     for (const record of targetRecords) {
-      stats[record.winnerId] ??= {
+      const winnerId =
+        getWinnerId(record);
+
+      const loserId =
+        getLoserId(record);
+
+      if (
+        winnerId == null ||
+        loserId == null
+      ) {
+        continue;
+      }
+
+      stats[winnerId] ??= {
         wins: 0,
         losses: 0,
       };
 
-      stats[record.loserId] ??= {
+      stats[loserId] ??= {
         wins: 0,
         losses: 0,
       };
 
-      stats[record.winnerId].wins++;
-      stats[record.loserId].losses++;
+      stats[winnerId].wins++;
+      stats[loserId].losses++;
     }
 
     return players
       .map((player) => {
-        const stat = stats[player.id] || {
-          wins: 0,
-          losses: 0,
-        };
+        const stat =
+          stats[player.id] || {
+            wins: 0,
+            losses: 0,
+          };
 
         const total =
-          stat.wins + stat.losses;
+          stat.wins +
+          stat.losses;
 
         return {
           ...player,
@@ -587,29 +618,34 @@ export default function Home() {
           total,
           rate: total
             ? Math.round(
-                (stat.wins / total) * 1000
+                (stat.wins / total) *
+                  1000
               ) / 10
             : 0,
         };
       })
       .filter(
-        (player) => player.total > 0
+        (player) =>
+          player.total > 0
       )
       .sort(
         (a, b) =>
           b.rate - a.rate ||
           b.total - a.total ||
           b.wins - a.wins ||
-          String(a.name).localeCompare(
+          String(
+            a.name
+          ).localeCompare(
             String(b.name),
             'ja'
           )
       );
-  }, [data, players, season]);
+  }, [
+    data,
+    players,
+    season,
+  ]);
 
-  /*
-   * データがまだない場合
-   */
   if (!data) {
     return (
       <main className="container">
@@ -640,6 +676,7 @@ export default function Home() {
 
   return (
     <main className="container">
+
       <header className="header">
         <div>
           <h1>人形劇 戦績</h1>
@@ -723,28 +760,33 @@ export default function Home() {
             全期間
           </button>
 
-          {seasons.map((seasonNumber) => (
-            <button
-              key={seasonNumber}
-              className={
-                Number(season) ===
-                seasonNumber
-                  ? 'active'
-                  : ''
-              }
-              onClick={() =>
-                setSeason(seasonNumber)
-              }
-            >
-              Season {seasonNumber}
+          {seasons.map(
+            (seasonNumber) => (
+              <button
+                key={seasonNumber}
+                className={
+                  Number(season) ===
+                  seasonNumber
+                    ? 'active'
+                    : ''
+                }
+                onClick={() =>
+                  setSeason(
+                    seasonNumber
+                  )
+                }
+              >
+                Season {seasonNumber}
 
-              <small>
-                #{seasonNumber * 25 - 24}
-                〜#
-                {seasonNumber * 25}
-              </small>
-            </button>
-          ))}
+                <small>
+                  #
+                  {seasonNumber * 25 - 24}
+                  〜#
+                  {seasonNumber * 25}
+                </small>
+              </button>
+            )
+          )}
         </div>
 
         <div className="tableWrap">
@@ -764,17 +806,23 @@ export default function Home() {
               {seasonRanking.map(
                 (player, index) => (
                   <tr key={player.id}>
-                    <td>{index + 1}</td>
+                    <td>
+                      {index + 1}
+                    </td>
 
                     <td>
                       <button
                         className="playerLink"
                         onClick={() => {
                           setSelected(
-                            String(player.id)
+                            String(
+                              player.id
+                            )
                           );
 
-                          setExpandedOpponent(null);
+                          setExpandedOpponent(
+                            null
+                          );
 
                           window.scrollTo({
                             top: 0,
@@ -813,14 +861,21 @@ export default function Home() {
       </section>
 
       <section className="section">
-        <h2>プレイヤー別対戦成績</h2>
+        <h2>
+          プレイヤー別対戦成績
+        </h2>
 
         <div className="playerSelectWrap">
           <select
             value={selected}
             onChange={(e) => {
-              setSelected(e.target.value);
-              setExpandedOpponent(null);
+              setSelected(
+                e.target.value
+              );
+
+              setExpandedOpponent(
+                null
+              );
             }}
           >
             <option value="all">
@@ -885,7 +940,7 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="tableWrap">
+            <div className="tableWrap opponentTableWrap">
               <table className="opponentTable">
                 <thead>
                   <tr>
@@ -897,131 +952,166 @@ export default function Home() {
                 </thead>
 
                 <tbody>
-                  {opponents.map((opponent) => {
-                    const recentResults =
-                      getRecentResults(
-                        data.records,
-                        selectedPlayer.id,
-                        opponent.id
-                      );
+                  {opponents.map(
+                    (opponent) => {
+                      const recentResults =
+                        getRecentResults(
+                          data.records,
+                          selectedPlayer.id,
+                          opponent.id
+                        );
 
-                    const isExpanded =
-                      expandedOpponent ===
-                      String(opponent.id);
+                      const isExpanded =
+                        expandedOpponent ===
+                        String(
+                          opponent.id
+                        );
 
-                    return (
-                      <tr
-                        key={opponent.id}
-                        className={`opponentRow ${
-                          isExpanded
-                            ? 'expanded'
-                            : ''
-                        }`}
-                        onClick={() => {
-                          setExpandedOpponent(
-                            isExpanded
-                              ? null
-                              : String(
-                                  opponent.id
-                                )
-                          );
-                        }}
-                      >
-                        <td className="opponentCell">
-                          <div className="opponentName">
-                            {opponent.name}
-                          </div>
+                      return (
+                        <Fragment
+                          key={opponent.id}
+                        >
+                          <tr
+                            className={`opponentRow ${
+                              isExpanded
+                                ? 'expanded'
+                                : ''
+                            }`}
+                            onClick={() => {
+                              setExpandedOpponent(
+                                isExpanded
+                                  ? null
+                                  : String(
+                                      opponent.id
+                                    )
+                              );
+                            }}
+                          >
+                            <td className="opponentCell">
+                              <div className="opponentName">
+                                {opponent.name}
+                              </div>
 
-                          <div className="opponentTapHint">
-                            {isExpanded
-                              ? 'タップで閉じる'
-                              : 'タップで詳細'}
-                          </div>
-                        </td>
+                              <div className="opponentTapHint">
+                                {isExpanded
+                                  ? 'タップで閉じる'
+                                  : 'タップで直近5戦'}
+                              </div>
+                            </td>
 
-                        <td className="rateCell">
-                          <strong>
-                            {opponent.rate}%
-                          </strong>
-                        </td>
+                            <td className="rateCell">
+                              <strong>
+                                {
+                                  opponent.rate
+                                }
+                                %
+                              </strong>
+                            </td>
 
-                        <td className="recordCell">
-                          <div className="recordSummary">
-                            <span>
-                              {opponent.wins}勝
-                            </span>
+                            <td className="recordCell">
+                              <div className="recordSummary">
+                                <span>
+                                  {
+                                    opponent.wins
+                                  }
+                                  勝
+                                </span>
 
-                            <span>
-                              {opponent.losses}敗
-                            </span>
-                          </div>
+                                <span>
+                                  {
+                                    opponent.losses
+                                  }
+                                  敗
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="matchesCell">
+                              <div className="matchesValue">
+                                {
+                                  opponent.matches
+                                }
+                              </div>
+
+                              <div className="opponentArrow">
+                                {isExpanded
+                                  ? '▲'
+                                  : '▼'}
+                              </div>
+                            </td>
+                          </tr>
 
                           {isExpanded && (
-                            <div
-                              className="recentResults"
-                              aria-label="直近5試合"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                              }}
-                            >
-                              {recentResults.length >
-                              0 ? (
-                                recentResults.map(
-                                  (
-                                    result,
-                                    index
-                                  ) => (
-                                    <span
-                                      key={`${result.tournamentNumber}-${index}`}
-                                      className={[
-                                        'recentResult',
-                                        result.result ===
-                                        'W'
-                                          ? 'win'
-                                          : 'loss',
-                                        index === 0
-                                          ? 'latest'
-                                          : '',
-                                      ]
-                                        .filter(
-                                          Boolean
-                                        )
-                                        .join(' ')}
-                                      title={
-                                        result.tournamentNumber
-                                          ? `人形劇#${result.tournamentNumber}`
-                                          : '対戦結果'
-                                      }
-                                    >
-                                      {
-                                        result.result
-                                      }
+                            <tr className="recentDetailRow">
+                              <td
+                                colSpan="4"
+                                className="recentDetailCell"
+                              >
+                                <div className="recentDetail">
+
+                                  <div className="recentDetailTitle">
+                                    <span>
+                                      直近5戦
                                     </span>
-                                  )
-                                )
-                              ) : (
-                                <span className="recentNoData">
-                                  データなし
-                                </span>
-                              )}
-                            </div>
+
+                                    <small>
+                                      左が最新
+                                    </small>
+                                  </div>
+
+                                  {recentResults.length > 0 ? (
+                                    <div className="recentResults">
+                                      {recentResults.map(
+                                        (
+                                          result,
+                                          index
+                                        ) => (
+                                          <div
+                                            key={`${result.tournamentNumber}-${index}`}
+                                            className="recentItem"
+                                          >
+                                            <div
+                                              className={`recentResult ${
+                                                result.result ===
+                                                'W'
+                                                  ? 'win'
+                                                  : 'loss'
+                                              } ${
+                                                index ===
+                                                0
+                                                  ? 'latest'
+                                                  : ''
+                                              }`}
+                                            >
+                                              {
+                                                result.result
+                                              }
+                                            </div>
+
+                                            <span className="recentTournament">
+                                              #
+                                              {
+                                                result.tournamentNumber
+                                              }
+                                            </span>
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="recentNoData">
+                                      この対戦の試合データがありません
+                                    </div>
+                                  )}
+
+                                </div>
+                              </td>
+                            </tr>
                           )}
-                        </td>
-
-                        <td className="matchesCell">
-                          <div className="matchesValue">
-                            {opponent.matches}
-                          </div>
-
-                          <div className="opponentArrow">
-                            {isExpanded
-                              ? '▲'
-                              : '▼'}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                        </Fragment>
+                      );
+                    }
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1045,30 +1135,40 @@ export default function Home() {
                     (record, index) => {
                       const isWinner =
                         String(
-                          record.winnerId
+                          getWinnerId(record)
                         ) ===
                         String(
                           selectedPlayer.id
                         );
 
-                      const opponent =
+                      const opponentName =
                         isWinner
-                          ? record.loser
-                          : record.winner;
+                          ? getPlayerName(
+                              record,
+                              'loser'
+                            )
+                          : getPlayerName(
+                              record,
+                              'winner'
+                            );
 
                       return (
                         <tr
-                          key={`${record.tournamentNumber}-${index}`}
+                          key={`${getTournamentNumber(
+                            record
+                          )}-${index}`}
                         >
                           <td>
                             人形劇#
                             {
-                              record.tournamentNumber
+                              getTournamentNumber(
+                                record
+                              )
                             }
                           </td>
 
                           <td>
-                            {opponent}
+                            {opponentName || '—'}
                           </td>
 
                           <td>
@@ -1150,15 +1250,20 @@ export default function Home() {
 
       {data.failed?.length > 0 && (
         <section className="section">
-          <h2>取得できなかった大会</h2>
+          <h2>
+            取得できなかった大会
+          </h2>
 
           <ul>
-            {data.failed.map((item) => (
-              <li key={item.number}>
-                人形劇#{item.number}：
-                {item.error}
-              </li>
-            ))}
+            {data.failed.map(
+              (item) => (
+                <li key={item.number}>
+                  人形劇#
+                  {item.number}：
+                  {item.error}
+                </li>
+              )
+            )}
           </ul>
         </section>
       )}
