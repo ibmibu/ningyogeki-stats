@@ -89,7 +89,7 @@ function mergeData(oldData, newData) {
 }
 
 const ELO_INITIAL_RATING = 1500;
-const ELO_K = 64;
+const ELO_K = 96;
 
 const GLICKO2_SCALE = 173.7178;
 const GLICKO2_TAU = 0.5;
@@ -1267,7 +1267,7 @@ export default function Home() {
               </h2>
 
               <p>
-                25大会ごとにシーズンを区切り、Eloでレートを算出します。Eloは各シーズン1500から開始し、1試合ごとに更新します。K値は64で、相手のRDが大きいほどレート変動を小さくします。RDはシーズンをまたいで引き継ぎ、長期間プレイしていない場合は経過期間に応じて増加します。
+                25大会ごとにシーズンを区切り、Eloでレートを算出します。Eloは各シーズン1500から開始し、1試合ごとに更新します。K値は96で、相手のRDが大きいほどレート変動を小さくします。RDはシーズンをまたいで引き継ぎ、長期間プレイしていない場合は経過期間に応じて増加します。
               </p>
             </div>
 
