@@ -315,9 +315,9 @@ export default function Home() {
         <div className="heroGlow" />
         <div className="heroInner">
           <div>
-            <div className="eyebrow">SMASHMATE / TOURNAMENT STATS</div>
+            <div className="eyebrow">NINGYOGEKI / TOURNAMENT STATS</div>
             <h1>人形劇 <span>戦績表</span></h1>
-            <p>人形劇シリーズ全体の直接対戦成績をまとめて確認できます。</p>
+            <p>人形劇全体の直接対戦成績をまとめて確認できます。</p>
           </div>
         </div>
       </header>
@@ -325,8 +325,7 @@ export default function Home() {
       <div className="content">
         <section className="control card">
           <div>
-            <div className="sectionLabel">NINGYOGEKI SERIES</div>
-            <h2>シリーズ全体を集計</h2>
+            <h2>人形劇全体を集計</h2>
             <p>ページを開くたびに大会一覧だけを確認し、まだ読み込んでいない大会がある場合だけ取得します。</p>
           </div>
           <div className="buttonGroup">
@@ -419,7 +418,7 @@ export default function Home() {
 
         <section className="card">
           <div className="sectionHead">
-            <div><div className="sectionLabel">SERIES WIN RATE</div><h2>シリーズ勝率ランキング</h2><p>25大会ごとにシーズンを区切って表示できます。</p></div>
+            <div><div className="sectionLabel">SEASON WIN RATE</div><h2>シーズン勝率ランキング</h2><p>25大会ごとにシーズンを区切って表示できます。</p></div>
             <span className="badge">WIN RATE</span>
           </div>
           <div className="seasonTabs">
@@ -441,7 +440,7 @@ export default function Home() {
 
         <section className="card">
           <div className="sectionHead">
-            <div><div className="sectionLabel">TOURNAMENTS</div><h2>取得した人形劇大会</h2></div>
+            <div><div className="sectionLabel">TOURNAMENTS</div><h2>取得した人形劇</h2></div>
             <span className="badge">{data.tournaments.length}</span>
           </div>
           <div className="tournamentList">
