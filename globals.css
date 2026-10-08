@@ -1,9 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap');
 
-/* =========================================================
-   Base
-========================================================= */
-
 * {
   box-sizing: border-box;
 }
@@ -40,11 +36,6 @@ a {
   padding: 30px 24px 60px;
 }
 
-
-/* =========================================================
-   Header
-========================================================= */
-
 .header {
   display: flex;
   align-items: center;
@@ -74,11 +65,6 @@ a {
   justify-content: flex-end;
 }
 
-
-/* =========================================================
-   Buttons
-========================================================= */
-
 .button {
   min-height: 44px;
   padding: 0 18px;
@@ -89,10 +75,6 @@ a {
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
-  transition:
-    opacity 0.15s ease,
-    background 0.15s ease,
-    border-color 0.15s ease;
 }
 
 .button:hover:not(:disabled) {
@@ -115,11 +97,6 @@ a {
   cursor: default;
 }
 
-
-/* =========================================================
-   Error
-========================================================= */
-
 .error {
   margin: 0 0 18px;
   padding: 14px 16px;
@@ -129,11 +106,6 @@ a {
   color: #ffb1b1;
   font-size: 13px;
 }
-
-
-/* =========================================================
-   Summary
-========================================================= */
 
 .summary {
   display: grid;
@@ -165,11 +137,6 @@ a {
   letter-spacing: 0.08em;
 }
 
-
-/* =========================================================
-   Sections
-========================================================= */
-
 .section {
   margin-top: 18px;
   padding: 24px;
@@ -197,18 +164,12 @@ a {
   line-height: 1.7;
 }
 
-
-/* =========================================================
-   Season tabs
-========================================================= */
-
 .seasonTabs {
   display: flex;
   gap: 7px;
   overflow-x: auto;
   padding: 2px 0 15px;
   margin-bottom: 4px;
-  scrollbar-width: thin;
 }
 
 .seasonTabs button {
@@ -221,22 +182,12 @@ a {
   font: 700 12px Inter, "Noto Sans JP", sans-serif;
   cursor: pointer;
   white-space: nowrap;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease,
-    background 0.15s ease;
-}
-
-.seasonTabs button:hover {
-  border-color: #62447a;
-  color: #ddd5e5;
 }
 
 .seasonTabs button.active {
   background: #a760e8;
   border-color: #a760e8;
   color: #fff;
-  box-shadow: 0 6px 18px #a760e833;
 }
 
 .seasonTabs small {
@@ -246,11 +197,6 @@ a {
   font-weight: 500;
   opacity: 0.7;
 }
-
-
-/* =========================================================
-   Player selector
-========================================================= */
 
 .playerSelectWrap {
   display: flex;
@@ -274,22 +220,6 @@ a {
   padding: 11px 38px 11px 13px;
   font: 600 13px Inter, "Noto Sans JP", sans-serif;
   outline: none;
-  cursor: pointer;
-
-  background-image:
-    linear-gradient(45deg, transparent 50%, #a760e8 50%),
-    linear-gradient(135deg, #a760e8 50%, transparent 50%);
-  background-position:
-    calc(100% - 17px) 48%,
-    calc(100% - 12px) 48%;
-  background-size:
-    5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-}
-
-.playerSelectWrap select:focus {
-  border-color: #8952c5;
-  box-shadow: 0 0 0 3px #8952c522;
 }
 
 .playerSelectWrap select option {
@@ -301,11 +231,6 @@ a {
   margin: 0 0 12px !important;
   font-size: 18px !important;
 }
-
-
-/* =========================================================
-   Sort buttons
-========================================================= */
 
 .sortButtons {
   display: flex;
@@ -326,21 +251,11 @@ a {
   white-space: nowrap;
 }
 
-.sortButtons button:hover {
-  border-color: #62447a;
-  color: #ddd5e5;
-}
-
 .sortButtons button.active {
   background: #a760e8;
   border-color: #a760e8;
   color: #fff;
 }
-
-
-/* =========================================================
-   General table
-========================================================= */
 
 .tableWrap {
   width: 100%;
@@ -385,11 +300,6 @@ a {
   font-size: 15px;
 }
 
-
-/* =========================================================
-   Player ranking table
-========================================================= */
-
 .tableWrap .playerLink {
   border: 0;
   padding: 0;
@@ -405,10 +315,13 @@ a {
   text-decoration: underline;
 }
 
-
 /* =========================================================
    Opponent table
 ========================================================= */
+
+.opponentTableWrap {
+  overflow-x: hidden;
+}
 
 .opponentTable {
   width: 100% !important;
@@ -420,7 +333,6 @@ a {
 .opponentTable th,
 .opponentTable td {
   padding: 13px 12px;
-  border-bottom: 1px solid #242128;
 }
 
 .opponentTable th {
@@ -428,7 +340,6 @@ a {
   color: #817a88;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.08em;
 }
 
 .opponentTable td {
@@ -436,46 +347,28 @@ a {
   color: #b7b0bc;
 }
 
-.opponentTable tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-
-/* =========================================================
-   Opponent row
-========================================================= */
-
 .opponentRow {
   cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    box-shadow 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
 .opponentRow:hover {
-  background: rgba(167, 96, 232, 0.045);
+  background: rgba(167, 96, 232, 0.05);
 }
 
 .opponentRow:active {
-  background: rgba(167, 96, 232, 0.09);
+  background: rgba(167, 96, 232, 0.1);
 }
 
 .opponentRow.expanded {
-  background: rgba(167, 96, 232, 0.075);
+  background: rgba(167, 96, 232, 0.08);
 }
-
-
-/* =========================================================
-   Opponent name
-========================================================= */
 
 .opponentCell {
   width: 31% !important;
   color: #eee9f0 !important;
   font-weight: 700;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .opponentName {
@@ -490,14 +383,7 @@ a {
   font-size: 8px;
   font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.02em;
-  opacity: 0.8;
 }
-
-
-/* =========================================================
-   Win rate
-========================================================= */
 
 .rateCell {
   width: 19% !important;
@@ -509,102 +395,121 @@ a {
   font-size: 16px;
 }
 
-
-/* =========================================================
-   Record
-========================================================= */
-
 .recordCell {
   width: 32% !important;
   text-align: center !important;
-  vertical-align: middle;
-  overflow: visible !important;
 }
 
 .recordSummary {
-  color: #f4f1f6;
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.2;
-  white-space: nowrap;
-
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
+  color: #f4f1f6;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
+.matchesCell {
+  width: 18% !important;
+  text-align: center !important;
+  color: #d0cad4 !important;
+  font-weight: 600;
+}
+
+.matchesValue {
+  color: #d0cad4;
+}
+
+.opponentArrow {
+  margin-top: 4px;
+  color: #68616e;
+  font-size: 8px;
+  line-height: 1;
+}
+
+.opponentRow.expanded .opponentArrow {
+  color: #b66bea;
+}
 
 /* =========================================================
-   Recent results
+   Recent result detail
 ========================================================= */
+
+.recentDetailRow {
+  background: #100e13;
+}
+
+.recentDetailCell {
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+.recentDetail {
+  padding: 14px 16px 16px;
+  border-top: 1px solid #2b2531;
+  background: linear-gradient(
+    180deg,
+    rgba(167, 96, 232, 0.055),
+    rgba(167, 96, 232, 0.015)
+  );
+}
+
+.recentDetailTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 11px;
+}
+
+.recentDetailTitle span {
+  color: #ddd5e5;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.recentDetailTitle small {
+  color: #68616e;
+  font-size: 9px;
+}
 
 .recentResults {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 10px;
   width: 100%;
-  min-width: 0;
-
-  margin-top: 7px;
-  min-height: 28px;
-  height: auto;
-
-  white-space: nowrap;
   overflow-x: auto;
-  overflow-y: hidden;
-
+  padding: 2px 0 4px;
   scrollbar-width: none;
-  -ms-overflow-style: none;
-
-  animation: recentResultsOpen 0.16s ease-out;
 }
 
 .recentResults::-webkit-scrollbar {
   display: none;
 }
 
-@keyframes recentResultsOpen {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.recentItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
 }
-
-
-/* =========================================================
-   W / L
-========================================================= */
 
 .recentResult {
   display: grid;
   place-items: center;
-
-  width: 20px;
-  height: 20px;
-
-  min-width: 20px;
-  max-width: 20px;
-
-  flex: 0 0 20px;
-
-  border-radius: 4px;
-
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 6px;
   color: #fff;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
-  line-height: 1;
-
   box-shadow:
     inset 0 0 0 1px #ffffff18,
-    0 2px 5px #0004;
+    0 2px 6px #0005;
 }
 
 .recentResult.win {
@@ -616,72 +521,28 @@ a {
 }
 
 .recentResult.latest {
-  width: 25px;
-  height: 25px;
-
-  min-width: 25px;
-  max-width: 25px;
-
-  flex: 0 0 25px;
-
-  border-radius: 5px;
-
-  font-size: 11px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 7px;
+  font-size: 12px;
+  box-shadow:
+    inset 0 0 0 2px #ffffff22,
+    0 3px 8px #0006;
 }
 
-
-/* =========================================================
-   No data
-========================================================= */
+.recentTournament {
+  color: #68616e;
+  font-size: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
 
 .recentNoData {
   color: #77717e;
   font-size: 10px;
   font-weight: 600;
-  white-space: nowrap;
 }
-
-
-/* =========================================================
-   Matches
-========================================================= */
-
-.matchesCell {
-  width: 18% !important;
-  text-align: center !important;
-  color: #d0cad4 !important;
-  font-weight: 600;
-  vertical-align: middle;
-}
-
-.matchesValue {
-  color: #d0cad4;
-}
-
-.opponentArrow {
-  margin-top: 4px;
-
-  color: #68616e;
-  font-size: 8px;
-  line-height: 1;
-
-  transition:
-    color 0.15s ease,
-    transform 0.15s ease;
-}
-
-.opponentRow:hover .opponentArrow {
-  color: #a88ac2;
-}
-
-.opponentRow.expanded .opponentArrow {
-  color: #b66bea;
-}
-
-
-/* =========================================================
-   Tournament links
-========================================================= */
 
 .tableWrap a {
   color: #b66bea;
@@ -694,11 +555,6 @@ a {
   text-decoration: underline;
 }
 
-
-/* =========================================================
-   Lists
-========================================================= */
-
 .section ul {
   margin: 0;
   padding-left: 20px;
@@ -709,11 +565,6 @@ a {
   margin: 7px 0;
   font-size: 13px;
 }
-
-
-/* =========================================================
-   Footer
-========================================================= */
 
 .footer {
   padding: 35px 0;
@@ -727,41 +578,12 @@ a {
   margin: 5px 0;
 }
 
-
-/* =========================================================
-   Empty / initial state
-========================================================= */
-
-.container > h1 {
-  margin-top: 20px;
-}
-
-.container > p {
-  color: #8f8a96;
-  font-size: 13px;
-}
-
-.container > .button {
-  margin-top: 10px;
-}
-
-
-/* =========================================================
-   Loading / disabled
-========================================================= */
-
 button:disabled {
   opacity: 0.55;
   cursor: default;
 }
 
-
-/* =========================================================
-   Mobile
-========================================================= */
-
 @media (max-width: 700px) {
-
   .container {
     padding: 18px 14px 45px;
   }
@@ -817,24 +639,15 @@ button:disabled {
     border-radius: 10px;
   }
 
-  .tableWrap table {
-    min-width: 480px;
-  }
-
   .tableWrap th,
   .tableWrap td {
     padding: 11px 7px;
     font-size: 11px;
   }
 
-  .tableWrap td strong {
-    font-size: 14px;
+  .opponentTableWrap {
+    overflow-x: hidden;
   }
-
-
-  /* -------------------------------------------------------
-     Opponent table mobile
-  ------------------------------------------------------- */
 
   .opponentTable {
     width: 100% !important;
@@ -872,57 +685,44 @@ button:disabled {
   }
 
   .opponentTapHint {
-    margin-top: 3px;
     font-size: 7px;
   }
 
   .opponentArrow {
-    margin-top: 3px;
     font-size: 7px;
   }
 
+  .recentDetail {
+    padding: 12px 10px 14px;
+  }
+
+  .recentDetailTitle {
+    margin-bottom: 9px;
+  }
+
   .recentResults {
-    justify-content: flex-start;
-    gap: 3px;
-    margin-top: 6px;
-    padding: 0 2px;
-    overflow-x: auto;
+    gap: 8px;
   }
 
   .recentResult {
-    width: 18px;
-    height: 18px;
-
-    min-width: 18px;
-    max-width: 18px;
-
-    flex: 0 0 18px;
-
-    border-radius: 3px;
-    font-size: 8px;
-  }
-
-  .recentResult.latest {
-    width: 23px;
-    height: 23px;
-
-    min-width: 23px;
-    max-width: 23px;
-
-    flex: 0 0 23px;
-
-    border-radius: 4px;
+    width: 25px;
+    height: 25px;
+    min-width: 25px;
+    border-radius: 5px;
     font-size: 10px;
   }
 
-  .recentNoData {
-    font-size: 9px;
+  .recentResult.latest {
+    width: 29px;
+    height: 29px;
+    min-width: 29px;
+    border-radius: 6px;
+    font-size: 11px;
   }
 
-
-  /* -------------------------------------------------------
-     Other mobile
-  ------------------------------------------------------- */
+  .recentTournament {
+    font-size: 7px;
+  }
 
   .sortButtons {
     margin-bottom: 10px;
@@ -931,10 +731,6 @@ button:disabled {
   .sortButtons button {
     padding: 7px 11px;
     font-size: 10px;
-  }
-
-  .seasonTabs {
-    margin-bottom: 0;
   }
 
   .seasonTabs button {
