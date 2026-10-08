@@ -111,25 +111,6 @@ function glicko2F(x, delta, phi, v, a) {
   );
 }
 
-function applyLoserRatingBasedWinSuppression(
-  beforeRating,
-  afterRating,
-  loserBeforeRating,
-  loserAfterRating
-) {
-  const winnerDelta = afterRating - beforeRating;
-  const loserDelta = loserAfterRating - loserBeforeRating;
-
-  if (winnerDelta <= 0 || loserDelta >= 0) {
-    return afterRating;
-  }
-
-  const lossMagnitude = Math.max(0, -loserDelta);
-  const baseMultiplier = 2 / (1 + lossMagnitude / 100);
-
-  return beforeRating + winnerDelta * baseMultiplier;
-}
-
 function updateGlicko2Player(player, results) {
   const mu = (player.rating - GLICKO2_INITIAL_RATING) / GLICKO2_SCALE;
   const phi = player.rd / GLICKO2_SCALE;
@@ -276,12 +257,7 @@ function calculateGlicko2(data, season = 'all') {
         },
       ]);
 
-      winner.rating = applyLoserRatingBasedWinSuppression(
-        winner.rating,
-        winnerAfterState.rating,
-        loser.rating,
-        loserAfterState.rating
-      );
+      winner.rating = winnerAfterState.rating;
       winner.rd = winnerAfterState.rd;
       winner.volatility = winnerAfterState.volatility;
       loser.rating = loserAfterState.rating;
