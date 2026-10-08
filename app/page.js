@@ -261,6 +261,8 @@ function calculateGlicko2(data, season = 'all') {
             loserBefore: null,
             loserAfter: null,
             loserDelta: null,
+            winnerRd: null,
+            loserRd: null,
           });
         }
         continue;
@@ -317,6 +319,8 @@ function calculateGlicko2(data, season = 'all') {
           loserBefore,
           loserAfter,
           loserDelta: loserAfter - loserBefore,
+          winnerRd: Math.round(winner.rd),
+          loserRd: Math.round(loser.rd),
         });
       }
     }
@@ -1157,6 +1161,11 @@ export default function Home() {
 
                     <span className="winner">
                       <strong>{match.winner}</strong>
+                      {match.winnerRd != null && (
+                        <small className="ratingChange">
+                          RD {match.winnerRd}
+                        </small>
+                      )}
                       {match.winnerBefore != null && (
                         <small className="ratingChange">
                           {match.winnerBefore} → {match.winnerAfter}{' '}
@@ -1171,6 +1180,11 @@ export default function Home() {
 
                     <span className="loser">
                       <strong>{match.loser}</strong>
+                      {match.loserRd != null && (
+                        <small className="ratingChange">
+                          RD {match.loserRd}
+                        </small>
+                      )}
                       {match.loserBefore != null && (
                         <small className="ratingChange">
                           {match.loserBefore} → {match.loserAfter}{' '}
