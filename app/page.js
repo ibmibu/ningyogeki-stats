@@ -231,123 +231,60 @@ function calculateMatchRatingChanges(data, season = 'all') {
       (Number(b.tournamentNumber) || 0)
   );
 
-  const tournamentNumbers = [
-    ...new Set(
-      sortedRecords
-        .map((record) => Number(record.tournamentNumber))
-        .filter(Number.isFinite)
-    ),
-  ].sort((a, b) => a - b);
+  return sortedRecords.map((record) => {
+    const winner = playerStates.get(String(record.winnerId));
+    const loser = playerStates.get(String(record.loserId));
 
-  const history = [];
-
-  for (const tournamentNumber of tournamentNumbers) {
-    const tournamentRecords = sortedRecords.filter(
-      (record) =>
-        Number(record.tournamentNumber) === tournamentNumber
-    );
-
-    const beforeRatings = new Map();
-
-    for (const record of tournamentRecords) {
-      const winner = playerStates.get(String(record.winnerId));
-      const loser = playerStates.get(String(record.loserId));
-
-      if (winner && !beforeRatings.has(String(winner.id))) {
-        beforeRatings.set(String(winner.id), Math.round(winner.rating));
-      }
-
-      if (loser && !beforeRatings.has(String(loser.id))) {
-        beforeRatings.set(String(loser.id), Math.round(loser.rating));
-      }
-    }
-
-    const resultsByPlayer = new Map();
-
-    for (const record of tournamentRecords) {
-      const winner = playerStates.get(String(record.winnerId));
-      const loser = playerStates.get(String(record.loserId));
-
-      if (!winner || !loser) continue;
-
-      if (!resultsByPlayer.has(String(winner.id))) {
-        resultsByPlayer.set(String(winner.id), []);
-      }
-
-      if (!resultsByPlayer.has(String(loser.id))) {
-        resultsByPlayer.set(String(loser.id), []);
-      }
-
-      resultsByPlayer.get(String(winner.id)).push({
-        opponent: {
-          rating: loser.rating,
-          rd: loser.rd,
-        },
-        score: 1,
-      });
-
-      resultsByPlayer.get(String(loser.id)).push({
-        opponent: {
-          rating: winner.rating,
-          rd: winner.rd,
-        },
-        score: 0,
-      });
-    }
-
-    const updated = new Map();
-
-    for (const [playerId, results] of resultsByPlayer) {
-      updated.set(
-        playerId,
-        updateGlicko2Player(
-          playerStates.get(playerId),
-          results
-        )
-      );
-    }
-
-    for (const [playerId, next] of updated) {
-      const player = playerStates.get(playerId);
-
-      player.rating = next.rating;
-      player.rd = next.rd;
-      player.volatility = next.volatility;
-    }
-
-    for (const record of tournamentRecords) {
-      const winnerId = String(record.winnerId);
-      const loserId = String(record.loserId);
-      const winnerBefore = beforeRatings.get(winnerId);
-      const loserBefore = beforeRatings.get(loserId);
-      const winnerAfterState = playerStates.get(winnerId);
-      const loserAfterState = playerStates.get(loserId);
-      const winnerAfter = winnerAfterState
-        ? Math.round(winnerAfterState.rating)
-        : null;
-      const loserAfter = loserAfterState
-        ? Math.round(loserAfterState.rating)
-        : null;
-
-      history.push({
+    if (!winner || !loser) {
+      return {
         ...record,
-        winnerBefore: winnerBefore ?? null,
-        winnerAfter,
-        winnerDelta:
-          winnerBefore != null && winnerAfter != null
-            ? winnerAfter - winnerBefore
-            : null,
-        loserBefore: loserBefore ?? null,
-        loserAfter,
-        loserDelta:
-          loserBefore != null && loserAfter != null
-            ? loserAfter - loserBefore
-            : null,
-      });
+        winnerBefore: null,
+        winnerAfter: null,
+        winnerDelta: null,
+        loserBefore: null,
+        loserAfter: null,
+        loserDelta: null,
+      };
     }
-  }
 
-  return history;
+    const winnerBefore = Math.round(winner.rating);
+    const loserBefore = Math.round(loser.rating);
+
+    const winnerAfterState = updateGlicko2Player(winner, [
+      {
+        opponent: { rating: loser.rating, rd: loser.rd },
+        score: 1,
+      },
+    ]);
+
+    const loserAfterState = updateGlicko2Player(loser, [
+      {
+        opponent: { rating: winner.rating, rd: winner.rd },
+        score: 0,
+      },
+    ]);
+
+    winner.rating = winnerAfterState.rating;
+    winner.rd = winnerAfterState.rd;
+    winner.volatility = winnerAfterState.volatility;
+
+    loser.rating = loserAfterState.rating;
+    loser.rd = loserAfterState.rd;
+    loser.volatility = loserAfterState.volatility;
+
+    const winnerAfter = Math.round(winner.rating);
+    const loserAfter = Math.round(loser.rating);
+
+    return {
+      ...record,
+      winnerBefore,
+      winnerAfter,
+      winnerDelta: winnerAfter - winnerBefore,
+      loserBefore,
+      loserAfter,
+      loserDelta: loserAfter - loserBefore,
+    };
+  });
 }
 
 function getRecentResults(records, playerId, opponentId) {
@@ -980,7 +917,9 @@ export default function Home() {
         <section className="card">
           <div className="sectionHead">
             <div>
-              <div className="sectionLabel">SEASON RANKING</div>
+              <div className="sectionLabel">
+                SEASON GLICKO-2
+              </div>
 
               <h2>
                 シーズンGlicko-2ランキング
@@ -991,6 +930,9 @@ export default function Home() {
               </p>
             </div>
 
+            <span className="badge">
+              GLICKO-2
+            </span>
           </div>
 
           <div className="seasonTabs">
