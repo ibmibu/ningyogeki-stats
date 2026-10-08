@@ -90,8 +90,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState('all');
   const [show, setShow] = useState(false);
-  const [sortKey, setSortKey] = useState('matches');
-  const [sortDir, setSortDir] = useState('desc');
+  const [sortKey, setSortKey] = useState('opponent');
+  const [sortDir, setSortDir] = useState('asc');
   const [season, setSeason] = useState('all');
 
   async function loadLatest(savedData = data, forceFull = false) {
@@ -372,12 +372,12 @@ export default function Home() {
           {selected === 'all' ? (
             <div className="matrixWrap">
               <table className="matrix">
-                <thead><tr><th>PLAYER</th>{data.players.map((player) => <th key={player.id}>{player.name}</th>)}</tr></thead>
+                <thead><tr><th>PLAYER</th>{sortedPlayers.map((player) => <th key={player.id}>{player.name}</th>)}</tr></thead>
                 <tbody>
-                  {data.players.map((row) => (
+                  {sortedPlayers.map((row) => (
                     <tr key={row.id}>
                       <th>{row.name}</th>
-                      {data.players.map((col) => {
+                      {sortedPlayers.map((col) => {
                         const stat = data.stats?.[row.id]?.[col.id];
                         return (
                           <td key={col.id} className={row.id === col.id ? 'self' : stat ? 'hasData' : ''}>

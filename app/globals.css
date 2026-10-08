@@ -10,3 +10,10 @@
 .playerTable{table-layout:fixed}.playerTable .opponentCol{width:34%}.playerTable .rateCol{width:20%}.playerTable .recordCol{width:28%}.playerTable .matchesCol{width:18%}.playerTable th,.playerTable td{padding:13px 12px}.playerTable th:first-child,.playerTable td:first-child{padding-left:14px}.sortButton{border:0;background:none;color:inherit;font:inherit;padding:0;cursor:pointer;white-space:nowrap}.sortButton:hover{color:#c9a5e6}.playerTable th:nth-child(2),.playerTable td:nth-child(2),.playerTable th:nth-child(4),.playerTable td:nth-child(4){text-align:center}.playerTable th:nth-child(3),.playerTable td:nth-child(3){text-align:center}@media(max-width:700px){.playerTable{min-width:0}.playerTable .opponentCol{width:31%}.playerTable .rateCol{width:20%}.playerTable .recordCol{width:31%}.playerTable .matchesCol{width:18%}.playerTable th,.playerTable td{padding:11px 7px;font-size:11px}.playerTable td strong{font-size:14px}.playerTable .opponentName{font-size:11px}}
 
 .seasonTabs{display:flex;gap:7px;overflow-x:auto;padding:2px 0 15px;margin-bottom:4px;scrollbar-width:thin}.seasonTabs button{flex:0 0 auto;border:1px solid #302b36;background:#0e0d11;color:#8f8895;border-radius:999px;padding:9px 15px;font:700 12px Inter,"Noto Sans JP",sans-serif;cursor:pointer;white-space:nowrap}.seasonTabs button:hover{border-color:#62447a;color:#ddd5e5}.seasonTabs button.active{background:#a760e8;border-color:#a760e8;color:#fff;box-shadow:0 6px 18px #a760e833}
+
+.buttonGroup{display:flex;gap:10px;margin-top:22px}
+.buttonGroup .primary,.buttonGroup .secondary{flex:1;margin-top:0;height:48px;padding:0 22px;border:0;border-radius:11px;font-weight:800;cursor:pointer}
+.buttonGroup .primary{background:#a760e8;color:#fff}
+.buttonGroup .secondary{background:#2a2630;color:#eee;border:1px solid #453d4d}
+.buttonGroup .primary:disabled,.buttonGroup .secondary:disabled{opacity:.55;cursor:default}
+@media(max-width:700px){.buttonGroup{flex-direction:column}.buttonGroup .primary,.buttonGroup .secondary{width:100%}}
