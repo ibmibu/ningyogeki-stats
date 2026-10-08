@@ -115,8 +115,7 @@ function applyLoserRatingBasedWinSuppression(
   beforeRating,
   afterRating,
   loserBeforeRating,
-  loserAfterRating,
-  winnerRd
+  loserAfterRating
 ) {
   const winnerDelta = afterRating - beforeRating;
   const loserDelta = loserAfterRating - loserBeforeRating;
@@ -135,7 +134,7 @@ function applyLoserRatingBasedWinSuppression(
   // RD350で0.35倍、RD0で1倍まで線形に緩和する。
   const normalizedRd = Math.max(
     0,
-    Math.min(GLICKO2_INITIAL_RD, winnerRd)
+    Math.min(GLICKO2_INITIAL_RD, playerRd)
   );
   const rdMultiplier =
     1 - 0.65 * (normalizedRd / GLICKO2_INITIAL_RD);
@@ -293,8 +292,7 @@ function calculateGlicko2(data, season = 'all') {
         winner.rating,
         winnerAfterState.rating,
         loser.rating,
-        loserAfterState.rating,
-        winner.rd
+        loserAfterState.rating
       );
       winner.rd = winnerAfterState.rd;
       winner.volatility = winnerAfterState.volatility;
