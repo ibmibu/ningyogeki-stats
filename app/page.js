@@ -172,101 +172,173 @@ function calculateGlicko2(data, season = 'all') {
     return { ranking: [], history: [] };
   }
 
-  const records = season === 'all'
-    ? data.records
-    : data.records.filter((record) => {
-        const n = Number(record.tournamentNumber) || 0;
-        const s = Number(season);
-        return n >= (s - 1) * 25 + 1 && n <= s * 25;
-      });
-
-  const sortedRecords = [...records].sort(
+  const allRecords = [...data.records].sort(
     (a, b) =>
       (Number(a.tournamentNumber) || 0) -
-        (Number(b.tournamentNumber) || 0)
+      (Number(b.tournamentNumber) || 0)
   );
 
-  const players = new Map();
-
-  for (const player of data.players || []) {
-    players.set(String(player.id), {
-      id: player.id,
-      name: player.name,
-      rating: GLICKO2_INITIAL_RATING,
-      rd: GLICKO2_INITIAL_RD,
-      volatility: GLICKO2_INITIAL_VOLATILITY,
-      wins: 0,
-      losses: 0,
+  const getSeasonRecords = (seasonNumber) =>
+    allRecords.filter((record) => {
+      const n = Number(record.tournamentNumber) || 0;
+      return (
+        n >= (seasonNumber - 1) * 25 + 1 &&
+        n <= seasonNumber * 25
+      );
     });
-  }
 
-  const history = [];
+  const createPlayers = (rdByPlayer = new Map()) => {
+    const players = new Map();
 
-  // 全対戦履歴を1試合ずつ時系列に処理し、
-  // 各試合が終わるたびにGlicko-2を更新する。
-  for (const record of sortedRecords) {
-    const winner = players.get(String(record.winnerId));
-    const loser = players.get(String(record.loserId));
+    for (const player of data.players || []) {
+      const previousRd = rdByPlayer.get(String(player.id));
 
-    if (!winner || !loser) {
-      history.push({
-        ...record,
-        winnerBefore: null,
-        winnerAfter: null,
-        winnerDelta: null,
-        loserBefore: null,
-        loserAfter: null,
-        loserDelta: null,
+      players.set(String(player.id), {
+        id: player.id,
+        name: player.name,
+        rating: GLICKO2_INITIAL_RATING,
+        rd: Number.isFinite(previousRd)
+          ? previousRd
+          : GLICKO2_INITIAL_RD,
+        volatility: GLICKO2_INITIAL_VOLATILITY,
+        wins: 0,
+        losses: 0,
       });
-      continue;
     }
 
-    const winnerBefore = Math.round(winner.rating);
-    const loserBefore = Math.round(loser.rating);
+    return players;
+  };
 
-    const winnerAfterState = updateGlicko2Player(winner, [
-      {
-        opponent: {
-          rating: loser.rating,
-          rd: loser.rd,
+  const processRecords = (players, records, collectHistory = false) => {
+    const history = [];
+
+    // 1試合ずつ時系列に処理し、各試合が終わるたびにGlicko-2を更新する。
+    for (const record of records) {
+      const winner = players.get(String(record.winnerId));
+      const loser = players.get(String(record.loserId));
+
+      if (!winner || !loser) {
+        if (collectHistory) {
+          history.push({
+            ...record,
+            winnerBefore: null,
+            winnerAfter: null,
+            winnerDelta: null,
+            loserBefore: null,
+            loserAfter: null,
+            loserDelta: null,
+          });
+        }
+        continue;
+      }
+
+      const winnerBefore = Math.round(winner.rating);
+      const loserBefore = Math.round(loser.rating);
+
+      const winnerAfterState = updateGlicko2Player(winner, [
+        {
+          opponent: {
+            rating: loser.rating,
+            rd: loser.rd,
+          },
+          score: 1,
         },
-        score: 1,
-      },
-    ]);
+      ]);
 
-    const loserAfterState = updateGlicko2Player(loser, [
-      {
-        opponent: {
-          rating: winner.rating,
-          rd: winner.rd,
+      const loserAfterState = updateGlicko2Player(loser, [
+        {
+          opponent: {
+            rating: winner.rating,
+            rd: winner.rd,
+          },
+          score: 0,
         },
-        score: 0,
-      },
-    ]);
+      ]);
 
-    winner.rating = winnerAfterState.rating;
-    winner.rd = winnerAfterState.rd;
-    winner.volatility = winnerAfterState.volatility;
-    loser.rating = loserAfterState.rating;
-    loser.rd = loserAfterState.rd;
-    loser.volatility = loserAfterState.volatility;
+      winner.rating = winnerAfterState.rating;
+      winner.rd = winnerAfterState.rd;
+      winner.volatility = winnerAfterState.volatility;
+      loser.rating = loserAfterState.rating;
+      loser.rd = loserAfterState.rd;
+      loser.volatility = loserAfterState.volatility;
 
-    winner.wins += 1;
-    loser.losses += 1;
+      winner.wins += 1;
+      loser.losses += 1;
 
-    const winnerAfter = Math.round(winner.rating);
-    const loserAfter = Math.round(loser.rating);
+      if (collectHistory) {
+        const winnerAfter = Math.round(winner.rating);
+        const loserAfter = Math.round(loser.rating);
 
-    history.push({
-      ...record,
-      winnerBefore,
-      winnerAfter,
-      winnerDelta: winnerAfter - winnerBefore,
-      loserBefore,
-      loserAfter,
-      loserDelta: loserAfter - loserBefore,
-    });
+        history.push({
+          ...record,
+          winnerBefore,
+          winnerAfter,
+          winnerDelta: winnerAfter - winnerBefore,
+          loserBefore,
+          loserAfter,
+          loserDelta: loserAfter - loserBefore,
+        });
+      }
+    }
+
+    return history;
+  };
+
+  // 「Ratingはシーズンごとに1500へ戻すが、RDは前シーズン終了時の値を引き継ぐ」
+  // ため、対象シーズンの前までを順番に処理してRDだけを受け渡す。
+  const getSeasonStartRds = (seasonNumber) => {
+    let rdByPlayer = new Map();
+
+    for (let s = 1; s < seasonNumber; s += 1) {
+      const players = createPlayers(rdByPlayer);
+      processRecords(players, getSeasonRecords(s));
+
+      rdByPlayer = new Map(
+        [...players.values()].map((player) => [
+          String(player.id),
+          player.rd,
+        ])
+      );
+    }
+
+    return rdByPlayer;
+  };
+
+  if (season === 'all') {
+    const players = createPlayers();
+    const history = processRecords(players, allRecords, true);
+
+    const ranking = [...players.values()]
+      .filter((player) => player.wins + player.losses > 0)
+      .map((player) => ({
+        ...player,
+        rating: Math.round(player.rating),
+        rd: Math.round(player.rd),
+        total: player.wins + player.losses,
+      }))
+      .sort(
+        (a, b) =>
+          b.rating - a.rating ||
+          a.rd - b.rd ||
+          b.total - a.total ||
+          String(a.name).localeCompare(String(b.name), 'ja')
+      );
+
+    return { ranking, history };
   }
+
+  const seasonNumber = Number(season);
+  if (!Number.isFinite(seasonNumber) || seasonNumber < 1) {
+    return { ranking: [], history: [] };
+  }
+
+  const startingRds = getSeasonStartRds(seasonNumber);
+  const players = createPlayers(startingRds);
+  const history = processRecords(
+    players,
+    getSeasonRecords(seasonNumber),
+    true
+  );
 
   const ranking = [...players.values()]
     .filter((player) => player.wins + player.losses > 0)
@@ -927,7 +999,7 @@ export default function Home() {
               </h2>
 
               <p>
-                25大会ごとにシーズンを区切り、Glicko-2でレートを算出します。各シーズンは1500から開始します。
+                25大会ごとにシーズンを区切り、Glicko-2でレートを算出します。Ratingは各シーズン1500から開始し、RDは前シーズン終了時の値を引き継ぎます。
               </p>
             </div>
 
