@@ -500,9 +500,11 @@ export default function Home() {
       )
     );
 
+    const completed = Math.floor(max / 25);
+
     return Array.from(
       {
-        length: Math.ceil(max / 25),
+        length: completed,
       },
       (_, i) => ({
         key: String(i + 1),
