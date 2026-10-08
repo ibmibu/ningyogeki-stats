@@ -242,10 +242,16 @@ function updateEloPlayer(
     opponent.rating
   );
 
-  // 相手のRDが大きいほど、対戦結果の情報量を小さくする。
-  // RD=0なら補正なし、RD=350ならGlicko-2のg(350)相当。
+  // 相手のRDが自分より大きいほど、レート変動を小さくする。
+  // RD差100なら変動は約75%（= 25%減少）になる。
+  // 自分よりRDが低い相手との対戦では、この補正はかけない。
+  const rdDifference = Math.max(
+    0,
+    opponent.rd - player.rd
+  );
+
   const rdFactor =
-    glicko2GFromRD(opponent.rd);
+    1 / (1 + rdDifference / 300);
 
   const delta =
     ELO_K *
@@ -1341,16 +1347,16 @@ export default function Home() {
                     <span className="winner">
                       <strong>{match.winner}</strong>
                       {match.winnerBefore != null && (
-                        <small className="ratingChange">
-                          {match.winnerBefore} → {match.winnerAfter}{' '}
-                          <i className={match.winnerDelta >= 0 ? 'up' : 'down'}>
-                            ({match.winnerDelta >= 0 ? '+' : ''}{match.winnerDelta})
-                          </i>
-                          {match.winnerRd != null && (
-                            <span className="rdChange">
-                              {' '}RD {match.winnerRd}
-                            </span>
-                          )}
+                        <small className="matchMeta">
+                          <span className="matchRd">
+                            RD {match.winnerRd}
+                          </span>
+                          <span className="ratingChange">
+                            {match.winnerBefore} → {match.winnerAfter}{' '}
+                            <i className={match.winnerDelta >= 0 ? 'up' : 'down'}>
+                              ({match.winnerDelta >= 0 ? '+' : ''}{match.winnerDelta})
+                            </i>
+                          </span>
                         </small>
                       )}
                     </span>
@@ -1360,16 +1366,16 @@ export default function Home() {
                     <span className="loser">
                       <strong>{match.loser}</strong>
                       {match.loserBefore != null && (
-                        <small className="ratingChange">
-                          {match.loserBefore} → {match.loserAfter}{' '}
-                          <i className={match.loserDelta >= 0 ? 'up' : 'down'}>
-                            ({match.loserDelta >= 0 ? '+' : ''}{match.loserDelta})
-                          </i>
-                          {match.loserRd != null && (
-                            <span className="rdChange">
-                              {' '}RD {match.loserRd}
-                            </span>
-                          )}
+                        <small className="matchMeta">
+                          <span className="matchRd">
+                            RD {match.loserRd}
+                          </span>
+                          <span className="ratingChange">
+                            {match.loserBefore} → {match.loserAfter}{' '}
+                            <i className={match.loserDelta >= 0 ? 'up' : 'down'}>
+                              ({match.loserDelta >= 0 ? '+' : ''}{match.loserDelta})
+                            </i>
+                          </span>
                         </small>
                       )}
                     </span>
