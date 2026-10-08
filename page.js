@@ -103,6 +103,39 @@ function getSeason(number) {
   return Math.floor((number - 1) / 25) + 1;
 }
 
+/*
+ * プレイヤー同士の直近5試合
+ *
+ * 左側が最新。
+ */
+function getRecentResults(records, playerId, opponentId) {
+  return (records || [])
+    .filter(
+      (record) =>
+        (
+          String(record.winnerId) === String(playerId) &&
+          String(record.loserId) === String(opponentId)
+        ) ||
+        (
+          String(record.winnerId) === String(opponentId) &&
+          String(record.loserId) === String(playerId)
+        )
+    )
+    .sort(
+      (a, b) =>
+        Number(b.tournamentNumber || 0) -
+        Number(a.tournamentNumber || 0)
+    )
+    .slice(0, 5)
+    .map((record) => ({
+      result:
+        String(record.winnerId) === String(playerId)
+          ? 'W'
+          : 'L',
+      tournamentNumber: record.tournamentNumber,
+    }));
+}
+
 export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -132,7 +165,10 @@ export default function Home() {
         }
       }
     } catch (e) {
-      console.error('保存データの読み込みに失敗しました', e);
+      console.error(
+        '保存データの読み込みに失敗しました',
+        e
+      );
     }
 
     setLoaded(true);
@@ -150,7 +186,10 @@ export default function Home() {
         JSON.stringify(data)
       );
     } catch (e) {
-      console.error('データ保存に失敗しました', e);
+      console.error(
+        'データ保存に失敗しました',
+        e
+      );
     }
   }, [data, loaded]);
 
@@ -165,7 +204,8 @@ export default function Home() {
     setError('');
 
     try {
-      const lastTournament = getLastTournament(data);
+      const lastTournament =
+        getLastTournament(data);
 
       const url =
         lastTournament > 0
@@ -180,7 +220,8 @@ export default function Home() {
 
       if (!response.ok) {
         throw new Error(
-          json.error || 'データの取得に失敗しました'
+          json.error ||
+            'データの取得に失敗しました'
         );
       }
 
@@ -262,7 +303,9 @@ export default function Home() {
           losses,
           total,
           rate: total
-            ? Math.round((wins / total) * 1000) / 10
+            ? Math.round(
+                (wins / total) * 1000
+              ) / 10
             : 0,
         };
       })
@@ -282,7 +325,9 @@ export default function Home() {
    * シーズン一覧
    */
   const seasons = useMemo(() => {
-    if (!data?.tournaments?.length) return [];
+    if (!data?.tournaments?.length) {
+      return [];
+    }
 
     const maxSeason = Math.max(
       ...data.tournaments.map((t) =>
@@ -398,8 +443,9 @@ export default function Home() {
         }
 
         return (
-          getSeason(record.tournamentNumber) ===
-          Number(season)
+          getSeason(
+            record.tournamentNumber
+          ) === Number(season)
         );
       })
       .sort(
@@ -468,7 +514,9 @@ export default function Home() {
             : 0,
         };
       })
-      .filter((player) => player.total > 0)
+      .filter(
+        (player) => player.total > 0
+      )
       .sort(
         (a, b) =>
           b.rate - a.rate ||
@@ -608,6 +656,7 @@ export default function Home() {
               }
             >
               Season {seasonNumber}
+
               <small>
                 #{seasonNumber * 25 - 24}
                 〜#
@@ -641,10 +690,9 @@ export default function Home() {
                         className="playerLink"
                         onClick={() => {
                           setSelected(
-                            String(
-                              player.id
-                            )
+                            String(player.id)
                           );
+
                           window.scrollTo({
                             top: 0,
                             behavior:
@@ -754,46 +802,87 @@ export default function Home() {
             </div>
 
             <div className="tableWrap">
-              <table>
+              <table className="opponentTable">
                 <thead>
                   <tr>
                     <th>対戦相手</th>
                     <th>勝率</th>
-                    <th>勝</th>
-                    <th>敗</th>
+                    <th>戦績</th>
                     <th>試合数</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {opponents.map(
-                    (opponent) => (
-                      <tr
-                        key={opponent.id}
-                      >
-                        <td>
-                          {opponent.name}
-                        </td>
+                    (opponent) => {
+                      const recentResults =
+                        getRecentResults(
+                          data.records,
+                          selectedPlayer.id,
+                          opponent.id
+                        );
 
-                        <td>
-                          <strong>
-                            {opponent.rate}%
-                          </strong>
-                        </td>
+                      return (
+                        <tr
+                          key={opponent.id}
+                        >
+                          <td className="opponentCell">
+                            {opponent.name}
+                          </td>
 
-                        <td>
-                          {opponent.wins}
-                        </td>
+                          <td className="rateCell">
+                            <strong>
+                              {opponent.rate}%
+                            </strong>
+                          </td>
 
-                        <td>
-                          {opponent.losses}
-                        </td>
+                          <td className="recordCell">
+                            <div className="recordSummary">
+                              {opponent.wins}勝
+                              {opponent.losses}敗
+                            </div>
 
-                        <td>
-                          {opponent.matches}
-                        </td>
-                      </tr>
-                    )
+                            {recentResults.length >
+                              0 && (
+                              <div
+                                className="recentResults"
+                                aria-label="直近5試合"
+                              >
+                                {recentResults.map(
+                                  (
+                                    result,
+                                    index
+                                  ) => (
+                                    <span
+                                      key={`${result.tournamentNumber}-${index}`}
+                                      className={`recentResult ${
+                                        result.result ===
+                                        'W'
+                                          ? 'win'
+                                          : 'loss'
+                                      } ${
+                                        index === 0
+                                          ? 'latest'
+                                          : ''
+                                      }`}
+                                      title={`人形劇#${result.tournamentNumber}`}
+                                    >
+                                      {
+                                        result.result
+                                      }
+                                    </span>
+                                  )
+                                )}
+                              </div>
+                            )}
+                          </td>
+
+                          <td className="matchesCell">
+                            {opponent.matches}
+                          </td>
+                        </tr>
+                      );
+                    }
                   )}
                 </tbody>
               </table>
