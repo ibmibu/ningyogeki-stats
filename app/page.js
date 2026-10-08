@@ -111,6 +111,24 @@ function glicko2F(x, delta, phi, v, a) {
   );
 }
 
+function applyHighRdWinSuppression(beforeRating, afterRating, rd) {
+  const delta = afterRating - beforeRating;
+
+  // RDが高い間は「勝ったとき」の上昇だけを抑える。
+  // 敗北時の下降はGlicko-2本来の値をそのまま使う。
+  if (delta <= 0) return afterRating;
+
+  const normalizedRd = Math.max(
+    0,
+    Math.min(GLICKO2_INITIAL_RD, rd)
+  );
+  const multiplier = 0.5 + 0.5 * (
+    1 - normalizedRd / GLICKO2_INITIAL_RD
+  );
+
+  return beforeRating + delta * multiplier;
+}
+
 function updateGlicko2Player(player, results) {
   const mu = (player.rating - GLICKO2_INITIAL_RATING) / GLICKO2_SCALE;
   const phi = player.rd / GLICKO2_SCALE;
@@ -235,6 +253,7 @@ function calculateGlicko2(data, season = 'all') {
       const winnerBefore = Math.round(winner.rating);
       const loserBefore = Math.round(loser.rating);
 
+      const winnerRdBefore = winner.rd;
       const winnerAfterState = updateGlicko2Player(winner, [
         {
           opponent: {
@@ -255,7 +274,11 @@ function calculateGlicko2(data, season = 'all') {
         },
       ]);
 
-      winner.rating = winnerAfterState.rating;
+      winner.rating = applyHighRdWinSuppression(
+        winner.rating,
+        winnerAfterState.rating,
+        winnerRdBefore
+      );
       winner.rd = winnerAfterState.rd;
       winner.volatility = winnerAfterState.volatility;
       loser.rating = loserAfterState.rating;
@@ -999,7 +1022,7 @@ export default function Home() {
               </h2>
 
               <p>
-                25大会ごとにシーズンを区切り、Glicko-2でレートを算出します。Ratingは各シーズン1500から開始し、RDは前シーズン終了時の値を引き継ぎます。
+                25大会ごとにシーズンを区切り、Glicko-2でレートを算出します。Ratingは各シーズン1500から開始し、RDは前シーズン終了時の値を引き継ぎます。RDが高い間は勝利時のレート上昇を抑え、敗北時の下降はそのまま反映します。
               </p>
             </div>
 
