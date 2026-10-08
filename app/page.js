@@ -295,7 +295,7 @@ function updateEloPlayer(
 
   const ratingFactor =
     score === 0 && ratingDifference > 0
-      ? Math.min(1, 50 / ratingDifference)
+      ? Math.min(1, 150 / ratingDifference)
       : 1;
 
   const delta =
