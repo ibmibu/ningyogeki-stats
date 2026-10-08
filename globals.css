@@ -387,7 +387,7 @@ td {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 9px;
+  margin-bottom: 7px;
   font-size: 13px;
   font-weight: 700;
 }
@@ -406,44 +406,53 @@ td {
 
 .recentResults {
   display: flex;
-  align-items: stretch;
-  gap: 6px;
-  flex-wrap: wrap;
-  min-height: 43px;
+  align-items: center;
+  gap: 4px;
+
+  width: fit-content;
+  max-width: 100%;
+
+  min-height: 32px;
 }
 
 .recentResult {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  min-width: 46px;
-  height: 43px;
+
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+
   border: 1px solid;
-  border-radius: 8px;
-  background: #17131f;
-}
+  border-radius: 4px;
 
-.recentResultValue {
-  font-size: 16px;
-  line-height: 17px;
+  font-size: 12px;
+  line-height: 1;
   font-weight: 800;
+
+  flex: 0 0 auto;
 }
 
-.recentResultTournament {
-  margin-top: 2px;
-  font-size: 9px;
-  line-height: 10px;
-  color: #82778f;
+/* 最新の1試合だけ大きく */
+.recentResult.latest {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+
+  border-radius: 5px;
+
+  font-size: 16px;
 }
 
+/* 勝ち */
 .recentResult.win {
   border-color: #347b58;
   background: #10251c;
   color: #82e0aa;
 }
 
+/* 負け */
 .recentResult.loss {
   border-color: #7b3d51;
   background: #29131d;
@@ -451,12 +460,14 @@ td {
 }
 
 .recentNoData {
-  display: flex;
-  align-items: center;
-  min-height: 43px;
   color: #655c6f;
   font-size: 11px;
+  line-height: 24px;
 }
+
+/* =========================================================
+   Matches
+========================================================= */
 
 .matchesCell {
   text-align: center;
@@ -506,6 +517,7 @@ td {
       100% - 20px,
       1180px
     );
+
     padding-top: 28px;
   }
 
@@ -551,10 +563,26 @@ td {
     padding: 11px 10px;
   }
 
+  .recentResults {
+    gap: 3px;
+  }
+
   .recentResult {
-    width: 43px;
-    min-width: 43px;
-    height: 41px;
+    width: 21px;
+    height: 21px;
+    min-width: 21px;
+
+    border-radius: 4px;
+
+    font-size: 11px;
+  }
+
+  .recentResult.latest {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+
+    font-size: 14px;
   }
 }
 
