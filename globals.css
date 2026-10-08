@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap');
 
-
 /* =========================================================
    Base
 ========================================================= */
@@ -26,113 +25,94 @@ select {
   font-family: inherit;
 }
 
-.site {
-  min-height: 100vh;
-  background:
-    radial-gradient(
-      circle at 50% -10%,
-      #3a2455 0,
-      #17131e 28%,
-      #09090d 55%
-    );
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
-
-/* =========================================================
-   Hero
-========================================================= */
-
-.hero {
-  position: relative;
-  overflow: hidden;
-  border-bottom: 1px solid #2b2732;
+a {
+  color: #b66bea;
 }
 
-.heroGlow {
-  position: absolute;
-  width: 520px;
-  height: 280px;
-  right: -120px;
-  top: -150px;
-  background: #9d5cff;
-  filter: blur(100px);
-  opacity: 0.18;
-}
-
-.heroInner {
-  position: relative;
+.container {
+  width: 100%;
   max-width: 1180px;
-  margin: auto;
-  padding: 64px 24px 54px;
-  display: flex;
-  gap: 22px;
-  align-items: center;
-}
-
-.brandMark {
-  width: 66px;
-  height: 66px;
-  border: 1px solid #7046a1;
-  background: linear-gradient(145deg, #281d38, #151219);
-  border-radius: 18px;
-  display: grid;
-  place-items: center;
-  font-size: 32px;
-  font-weight: 800;
-  box-shadow: 0 12px 50px #0008;
-}
-
-.eyebrow,
-.sectionLabel {
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  color: #a993bd;
-  font-weight: 800;
-}
-
-.hero h1 {
-  font-size: clamp(36px, 6vw, 64px);
-  line-height: 1;
-  margin: 9px 0 14px;
-  letter-spacing: -0.05em;
-}
-
-.hero h1 span {
-  color: #b783f2;
-}
-
-.hero p {
-  margin: 0;
-  color: #aaa3b2;
-  font-size: 14px;
-}
-
-
-/* =========================================================
-   Main layout
-========================================================= */
-
-.content {
-  max-width: 1180px;
-  margin: auto;
+  margin: 0 auto;
   padding: 30px 24px 60px;
-
-  /* カード間の余白はここで一括管理 */
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
 }
 
 
 /* =========================================================
-   Common card
+   Header
 ========================================================= */
 
-.card {
-  background: linear-gradient(145deg, #17151b, #111015);
-  border: 1px solid #29252e;
-  border-radius: 18px;
-  box-shadow: 0 18px 50px #0004;
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 0 28px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(28px, 5vw, 42px);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.subTitle {
+  margin: 9px 0 0;
+  color: #8f8a96;
+  font-size: 13px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+
+/* =========================================================
+   Buttons
+========================================================= */
+
+.button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid #7046a1;
+  border-radius: 10px;
+  background: #a760e8;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.button:hover:not(:disabled) {
+  background: #b06aef;
+}
+
+.button.secondary {
+  border-color: #39333f;
+  background: #17131b;
+  color: #d9d2df;
+}
+
+.button.secondary:hover:not(:disabled) {
+  border-color: #62447a;
+  background: #1d1822;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 
@@ -141,317 +121,130 @@ select {
 ========================================================= */
 
 .error {
-  padding: 15px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid #5a2b35;
+  border-radius: 10px;
+  background: #241318;
   color: #ffb1b1;
-  border-color: #5a2b35;
+  font-size: 13px;
 }
 
 
 /* =========================================================
-   Stats
+   Summary
 ========================================================= */
 
-.statsGrid {
+.summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
+  margin-bottom: 18px;
 }
 
-.stat {
+.summary > div {
   padding: 20px;
+  background: linear-gradient(145deg, #17151b, #111015);
+  border: 1px solid #29252e;
+  border-radius: 16px;
+  box-shadow: 0 18px 50px #0004;
+}
+
+.summary strong {
+  display: block;
+  font-size: 27px;
+  line-height: 1.15;
+  color: #fff;
+}
+
+.summary span {
+  display: block;
+  margin-top: 6px;
+  color: #77717e;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+
+/* =========================================================
+   Sections
+========================================================= */
+
+.section {
+  margin-top: 18px;
+  padding: 24px;
   background: linear-gradient(145deg, #17151b, #111015);
   border: 1px solid #29252e;
   border-radius: 18px;
   box-shadow: 0 18px 50px #0004;
 }
 
-.stat span {
-  display: block;
-  color: #77717e;
-  font-size: 11px;
-  letter-spacing: 0.12em;
+.section h2 {
+  margin: 0 0 18px;
+  font-size: 21px;
+  line-height: 1.3;
 }
 
-.stat strong {
-  display: block;
-  font-size: 31px;
-  margin: 7px 0 2px;
+.section h3 {
+  margin: 24px 0 12px;
+  font-size: 16px;
+  color: #eee9f0;
 }
 
-.stat small {
-  color: #8d8792;
-  font-size: 11px;
-}
-
-
-/* =========================================================
-   Standard card content
-========================================================= */
-
-.content > .card {
-  padding: 24px;
-}
-
-
-/* =========================================================
-   Control / Data acquisition
-========================================================= */
-
-.control {
-  padding: 25px;
-}
-
-.control h2,
-.sectionHead h2,
-.empty h2 {
-  margin: 7px 0 5px;
-  font-size: 20px;
-}
-
-.control p,
-.sectionHead p,
-.empty p {
-  margin: 0;
+.section p {
   color: #8f8a96;
   font-size: 13px;
+  line-height: 1.7;
 }
 
-.buttonGroup {
+
+/* =========================================================
+   Season tabs
+========================================================= */
+
+.seasonTabs {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 2px 0 15px;
+  margin-bottom: 4px;
+  scrollbar-width: thin;
 }
 
-.primary,
-.secondary {
-  height: 48px;
-  padding: 0 22px;
-  border-radius: 11px;
-  font-weight: 800;
+.seasonTabs button {
+  flex: 0 0 auto;
+  border: 1px solid #302b36;
+  background: #0e0d11;
+  color: #8f8895;
+  border-radius: 999px;
+  padding: 9px 15px;
+  font: 700 12px Inter, "Noto Sans JP", sans-serif;
   cursor: pointer;
+  white-space: nowrap;
   transition:
-    opacity 0.15s ease,
     border-color 0.15s ease,
+    color 0.15s ease,
     background 0.15s ease;
 }
 
-.primary {
-  margin-top: 22px;
-  border: 0;
-  background: #a760e8;
-  color: #fff;
-}
-
-.secondary {
-  margin-top: 22px;
-  border: 1px solid #39333f;
-  background: #17131b;
-  color: #d9d2df;
-}
-
-.primary:hover:not(:disabled) {
-  background: #b06aef;
-}
-
-.secondary:hover:not(:disabled) {
+.seasonTabs button:hover {
   border-color: #62447a;
-  background: #1d1822;
+  color: #ddd5e5;
 }
 
-.primary:disabled,
-.secondary:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
-.hint {
-  margin-top: 11px;
-  color: #6f6a74;
-  font-size: 11px;
-}
-
-
-/* =========================================================
-   Section header
-========================================================= */
-
-.sectionHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 18px;
-}
-
-.sectionHead h2 {
-  font-size: 21px;
-}
-
-.badge {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #b88be0;
-  background: #2a1b36;
-  border: 1px solid #4b3160;
-  padding: 7px 9px;
-  border-radius: 99px;
-}
-
-
-/* =========================================================
-   URL form
-========================================================= */
-
-.urlForm {
-  display: flex;
-  gap: 10px;
-  margin-top: 22px;
-}
-
-.urlForm input {
-  flex: 1;
-  min-width: 0;
-  background: #0c0b0f;
-  border: 1px solid #39333f;
-  border-radius: 11px;
-  color: #fff;
-  padding: 14px 15px;
-  font-size: 14px;
-  outline: none;
-}
-
-.urlForm input:focus {
-  border-color: #8952c5;
-  box-shadow: 0 0 0 3px #8952c522;
-}
-
-.urlForm button {
-  border: 0;
-  border-radius: 11px;
-  padding: 0 22px;
+.seasonTabs button.active {
   background: #a760e8;
+  border-color: #a760e8;
   color: #fff;
-  font-weight: 800;
-  cursor: pointer;
+  box-shadow: 0 6px 18px #a760e833;
 }
 
-.urlForm button:disabled {
-  opacity: 0.55;
-}
-
-
-/* =========================================================
-   Empty / Initial state
-========================================================= */
-
-.empty {
-  padding: 45px;
-  text-align: center;
-}
-
-.emptyIcon {
-  margin: auto;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  border: 1px solid #4b3a59;
-  color: #c487f7;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-}
-
-.featureGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 28px;
-}
-
-.featureGrid div {
-  text-align: left;
-  background: #0e0d11;
-  border: 1px solid #26232a;
-  border-radius: 12px;
-  padding: 15px;
-}
-
-.featureGrid b {
+.seasonTabs small {
   display: block;
-  color: #a762df;
-  font-size: 11px;
-  margin-bottom: 7px;
-}
-
-.featureGrid span {
-  font-size: 12px;
-  color: #c2bdc7;
-}
-
-
-/* =========================================================
-   Ranking
-========================================================= */
-
-.rankingList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.rankRow {
-  display: grid;
-  grid-template-columns:
-    34px
-    minmax(120px, 1.1fr)
-    minmax(100px, 2fr)
-    55px
-    80px;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  border-top: 1px solid #252229;
-}
-
-.rankNo {
-  color: #756e7c;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.rankName {
-  font-weight: 600;
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bar {
-  height: 5px;
-  background: #25222a;
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.bar i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #7440a1, #b76bf0);
-  border-radius: 99px;
-}
-
-.rankRate {
-  text-align: right;
-  font-weight: 800;
-}
-
-.record {
-  text-align: right;
-  color: #817b87;
-  font-size: 11px;
+  margin-top: 3px;
+  font-size: 9px;
+  font-weight: 500;
+  opacity: 0.7;
 }
 
 
@@ -470,19 +263,11 @@ select {
   border-radius: 12px;
 }
 
-.playerSelectWrap label {
-  color: #817a88;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-}
-
 .playerSelectWrap select {
   flex: 1;
   min-width: 0;
   appearance: none;
-  background: #17131b;
+  background-color: #17131b;
   color: #eee;
   border: 1px solid #39333f;
   border-radius: 9px;
@@ -513,362 +298,287 @@ select {
   color: #eee;
 }
 
+.selectedPlayer {
+  margin: 0 0 12px !important;
+  font-size: 18px !important;
+}
+
 
 /* =========================================================
-   Player tabs
+   Sort buttons
 ========================================================= */
 
-.playerTabs {
+.sortButtons {
   display: flex;
   gap: 7px;
-  overflow-x: auto;
-  padding: 3px 2px 12px;
   margin-bottom: 14px;
-  scrollbar-width: thin;
-}
-
-.playerTabs button {
-  flex: 0 0 auto;
-  border: 1px solid #302b36;
-  background: #0e0d11;
-  color: #8f8895;
-  border-radius: 999px;
-  padding: 9px 14px;
-  font: 600 12px Inter, "Noto Sans JP", sans-serif;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.playerTabs button:hover {
-  border-color: #62447a;
-  color: #ddd5e5;
-}
-
-.playerTabs button.active {
-  background: #a760e8;
-  border-color: #a760e8;
-  color: #fff;
-  box-shadow: 0 6px 18px #a760e833;
-}
-
-
-/* =========================================================
-   Season tabs
-========================================================= */
-
-.seasonTabs {
-  display: flex;
-  gap: 7px;
   overflow-x: auto;
-  padding: 2px 0 15px;
-  margin-bottom: 4px;
-  scrollbar-width: thin;
 }
 
-.seasonTabs button {
+.sortButtons button {
   flex: 0 0 auto;
   border: 1px solid #302b36;
   background: #0e0d11;
   color: #8f8895;
   border-radius: 999px;
-  padding: 9px 15px;
-  font: 700 12px Inter, "Noto Sans JP", sans-serif;
+  padding: 8px 13px;
+  font: 700 11px Inter, "Noto Sans JP", sans-serif;
   cursor: pointer;
   white-space: nowrap;
 }
 
-.seasonTabs button:hover {
+.sortButtons button:hover {
   border-color: #62447a;
   color: #ddd5e5;
 }
 
-.seasonTabs button.active {
+.sortButtons button.active {
   background: #a760e8;
   border-color: #a760e8;
   color: #fff;
-  box-shadow: 0 6px 18px #a760e833;
 }
 
 
 /* =========================================================
-   Player table
+   General table
 ========================================================= */
 
-.playerTableWrap {
-  overflow: auto;
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
   border: 1px solid #28242d;
   border-radius: 12px;
 }
 
-.playerTable {
-  border-collapse: collapse;
+.tableWrap table {
   width: 100%;
-  min-width: 560px;
-  table-layout: fixed;
+  border-collapse: collapse;
+  min-width: 520px;
 }
 
-.playerTable .opponentCol {
-  width: 34%;
-}
-
-.playerTable .rateCol {
-  width: 20%;
-}
-
-.playerTable .recordCol {
-  width: 28%;
-}
-
-.playerTable .matchesCol {
-  width: 18%;
-}
-
-.playerTable th,
-.playerTable td {
+.tableWrap th,
+.tableWrap td {
   padding: 13px 12px;
   border-bottom: 1px solid #242128;
   text-align: left;
 }
 
-.playerTable th {
+.tableWrap th {
   background: #131116;
   color: #817a88;
   font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.tableWrap td {
+  color: #b7b0bc;
+  font-size: 13px;
+}
+
+.tableWrap tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tableWrap td strong {
+  color: #fff;
+  font-size: 15px;
+}
+
+
+/* =========================================================
+   Player ranking table
+========================================================= */
+
+.tableWrap .playerLink {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #eee9f0;
+  font: 700 13px Inter, "Noto Sans JP", sans-serif;
+  cursor: pointer;
+  text-align: left;
+}
+
+.tableWrap .playerLink:hover {
+  color: #c487f7;
+  text-decoration: underline;
+}
+
+
+/* =========================================================
+   Opponent table
+========================================================= */
+
+.opponentTable {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.opponentTable th,
+.opponentTable td {
+  padding: 13px 12px;
+  border-bottom: 1px solid #242128;
+}
+
+.opponentTable th {
+  background: #131116;
+  color: #817a88;
+  font-size: 10px;
+  font-weight: 800;
   letter-spacing: 0.08em;
 }
 
-.playerTable td {
+.opponentTable td {
   font-size: 13px;
   color: #b7b0bc;
 }
 
-.playerTable td strong {
+.opponentTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+
+/* 対戦相手 */
+
+.opponentCell {
+  width: 34%;
+  color: #eee9f0 !important;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* 勝率 */
+
+.rateCell {
+  width: 20%;
+  text-align: center !important;
+}
+
+.rateCell strong {
   color: #fff;
   font-size: 16px;
 }
 
-.playerTable .opponentName {
-  font-weight: 700;
-  color: #eee9f0;
+
+/* 戦績 */
+
+.recordCell {
+  width: 28%;
+  text-align: center !important;
+  vertical-align: middle;
 }
 
-.playerTable tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.playerTable th:nth-child(2),
-.playerTable td:nth-child(2),
-.playerTable th:nth-child(3),
-.playerTable td:nth-child(3),
-.playerTable th:nth-child(4),
-.playerTable td:nth-child(4) {
-  text-align: center;
-}
-
-.sortButton {
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  padding: 0;
-  cursor: pointer;
+.recordSummary {
+  color: #f4f1f6;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
-.sortButton:hover {
-  color: #c9a5e6;
-}
-
 
 /* =========================================================
-   Matrix
+   Recent results
 ========================================================= */
 
-.matrixWrap {
-  overflow: auto;
-  border: 1px solid #28242d;
-  border-radius: 12px;
-}
-
-.matrix {
-  border-collapse: collapse;
-  min-width: max-content;
-  width: 100%;
-}
-
-.matrix th,
-.matrix td {
-  border-bottom: 1px solid #242128;
-  border-right: 1px solid #242128;
-  padding: 12px 14px;
-  text-align: center;
-  min-width: 90px;
-}
-
-.matrix thead th {
-  background: #131116;
-  color: #817a88;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  position: sticky;
-  top: 0;
-}
-
-.matrix tbody th {
-  background: #121015;
-  text-align: left;
-  color: #ddd7e2;
-  font-size: 12px;
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  max-width: 160px;
-}
-
-.matrix td {
-  background: #0f0e12;
-  color: #88818e;
-  font-size: 12px;
-}
-
-.matrix td.hasData {
-  background: #17131b;
-  color: #fff;
-}
-
-.matrix td strong {
-  display: block;
-  font-size: 15px;
-}
-
-.matrix td small {
-  display: block;
-  color: #756d7b;
-  font-size: 10px;
-  margin-top: 2px;
-}
-
-.matrix .self {
-  color: #403b44;
-  background: #0b0a0d;
-}
-
-
-/* =========================================================
-   Tournament list
-========================================================= */
-
-.tournamentList {
+.recentResults {
   display: flex;
-  flex-direction: column;
-  border-top: 1px solid #27232b;
-}
-
-.tournamentList a {
-  display: grid;
-  grid-template-columns: 1fr auto 30px;
   align-items: center;
-  gap: 14px;
-  padding: 14px 4px;
-  border-bottom: 1px solid #242128;
-  color: #eee;
-  text-decoration: none;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 7px;
+  height: 28px;
+  white-space: nowrap;
 }
 
-.tournamentList a:hover {
-  background: #141116;
-}
+.recentResult {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
 
-.tournamentList span {
-  font-size: 11px;
-  color: #817a88;
-}
+  display: grid;
+  place-items: center;
 
-.tournamentList em {
-  font-style: normal;
-  color: #a760e8;
-  text-align: right;
-}
+  border-radius: 4px;
 
-.collapse {
-  width: 100%;
-  border: 0;
-  background: none;
-  color: #ddd7e2;
-  text-align: left;
-  font: 700 13px Inter, "Noto Sans JP", sans-serif;
-  padding: 0;
-  cursor: pointer;
-}
-
-.collapse span {
-  float: right;
-  color: #77717e;
+  color: #fff;
   font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+
+  box-shadow:
+    inset 0 0 0 1px #ffffff18,
+    0 2px 5px #0004;
 }
 
-
-/* =========================================================
-   Match list
-========================================================= */
-
-.matchList {
-  border-top: 1px solid #27232b;
+.recentResult.win {
+  background: #35a66b;
 }
 
-.matchesCard .matchList {
-  margin-top: 18px;
+.recentResult.loss {
+  background: #c94d58;
 }
 
-.match {
-  display: grid;
-  grid-template-columns: 90px 1fr 44px 1fr;
-  gap: 12px;
-  align-items: center;
-  padding: 13px 0;
-  border-bottom: 1px solid #242128;
+/* 最新だけ大きく */
+
+.recentResult.latest {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+
+  border-radius: 5px;
   font-size: 13px;
 }
 
-.round {
-  font-size: 10px;
-  color: #726b79;
-}
 
-.winner {
-  text-align: right;
-  font-weight: 700;
-}
+/* =========================================================
+   Matches column
+========================================================= */
 
-.match b {
-  font-size: 9px;
-  color: #b66bea;
-  text-align: center;
-}
-
-.loser {
-  color: #8b8590;
+.matchesCell {
+  width: 18%;
+  text-align: center !important;
+  color: #d0cad4 !important;
+  font-weight: 600;
 }
 
 
 /* =========================================================
-   Loading
+   Tournament links
 ========================================================= */
 
-.spinner {
-  width: 38px;
-  height: 38px;
-  margin: 0 auto 18px;
-  border: 3px solid #312a38;
-  border-top-color: #b66bea;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+.tableWrap a {
+  color: #b66bea;
+  text-decoration: none;
+  font-weight: 600;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.tableWrap a:hover {
+  color: #cf91ff;
+  text-decoration: underline;
+}
+
+
+/* =========================================================
+   Lists
+========================================================= */
+
+.section ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #b7b0bc;
+}
+
+.section li {
+  margin: 7px 0;
+  font-size: 13px;
 }
 
 
@@ -876,16 +586,44 @@ select {
    Footer
 ========================================================= */
 
-footer {
+.footer {
+  padding: 35px 0;
   text-align: center;
   color: #4d4852;
   font-size: 9px;
   letter-spacing: 0.16em;
-  padding: 35px 0;
 }
 
-footer span {
-  margin: 0 8px;
+.footer p {
+  margin: 5px 0;
+}
+
+
+/* =========================================================
+   Empty / initial state
+========================================================= */
+
+.container > h1 {
+  margin-top: 20px;
+}
+
+.container > p {
+  color: #8f8a96;
+  font-size: 13px;
+}
+
+.container > .button {
+  margin-top: 10px;
+}
+
+
+/* =========================================================
+   Loading / disabled
+========================================================= */
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 
@@ -895,119 +633,148 @@ footer span {
 
 @media (max-width: 700px) {
 
-  .heroInner {
-    padding: 42px 18px;
+  .container {
+    padding: 18px 14px 45px;
   }
 
-  .brandMark {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    font-size: 25px;
-  }
-
-  .content {
-    padding: 20px 14px 45px;
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
     gap: 18px;
   }
 
-  .content > .card {
-    padding: 18px;
+  .header h1 {
+    font-size: 30px;
   }
 
-  .control {
-    padding: 20px;
-  }
-
-  .featureGrid,
-  .statsGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .empty {
-    padding: 32px 20px;
-  }
-
-  .urlForm {
-    flex-direction: column;
-  }
-
-  .urlForm button {
-    height: 46px;
-  }
-
-  .primary,
-  .secondary {
+  .headerActions {
     width: 100%;
-    height: 54px;
-    font-size: 15px;
+    justify-content: stretch;
   }
 
-  .rankRow {
-    grid-template-columns:
-      28px
-      minmax(95px, 1fr)
-      65px
-      60px;
-  }
-
-  .rankRow .bar {
-    display: none;
-  }
-
-  .record {
-    font-size: 10px;
-  }
-
-  .playerTable {
+  .headerActions .button {
+    flex: 1;
     min-width: 0;
   }
 
-  .playerTable .opponentCol {
-    width: 31%;
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
 
-  .playerTable .rateCol {
-    width: 20%;
+  .summary > div {
+    padding: 16px;
   }
 
-  .playerTable .recordCol {
-    width: 31%;
+  .summary strong {
+    font-size: 23px;
   }
 
-  .playerTable .matchesCol {
-    width: 18%;
+  .section {
+    margin-top: 14px;
+    padding: 18px;
+    border-radius: 15px;
   }
 
-  .playerTable th,
-  .playerTable td {
+  .section h2 {
+    font-size: 18px;
+  }
+
+  .playerSelectWrap {
+    padding: 9px;
+  }
+
+  .tableWrap {
+    border-radius: 10px;
+  }
+
+  .tableWrap table {
+    min-width: 480px;
+  }
+
+  .tableWrap th,
+  .tableWrap td {
     padding: 11px 7px;
     font-size: 11px;
   }
 
-  .playerTable td strong {
+  .tableWrap td strong {
     font-size: 14px;
   }
 
-  .playerTable .opponentName {
+  .opponentTable {
+    min-width: 0 !important;
+  }
+
+  .opponentTable th,
+  .opponentTable td {
+    padding: 10px 5px;
+  }
+
+  .opponentCell {
+    width: 31%;
+    font-size: 11px !important;
+  }
+
+  .rateCell {
+    width: 20%;
+  }
+
+  .recordCell {
+    width: 31%;
+  }
+
+  .matchesCell {
+    width: 18%;
+  }
+
+  .rateCell strong {
+    font-size: 13px;
+  }
+
+  .recordSummary {
     font-size: 11px;
   }
 
-  .match {
-    grid-template-columns:
-      65px
-      1fr
-      35px
-      1fr;
-    gap: 6px;
-    font-size: 11px;
+  .recentResults {
+    gap: 2px;
+    margin-top: 5px;
   }
 
-  .tournamentList a {
-    grid-template-columns: 1fr auto 22px;
+  .recentResult {
+    width: 18px;
+    height: 18px;
+    flex-basis: 18px;
+    border-radius: 3px;
+    font-size: 8px;
   }
 
-  .tournamentList span {
+  .recentResult.latest {
+    width: 23px;
+    height: 23px;
+    flex-basis: 23px;
+    border-radius: 4px;
     font-size: 10px;
+  }
+
+  .sortButtons {
+    margin-bottom: 10px;
+  }
+
+  .sortButtons button {
+    padding: 7px 11px;
+    font-size: 10px;
+  }
+
+  .seasonTabs {
+    margin-bottom: 0;
+  }
+
+  .seasonTabs button {
+    padding: 8px 12px;
+  }
+
+  .footer {
+    padding: 28px 0;
   }
 }
