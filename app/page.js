@@ -128,7 +128,18 @@ function applyLoserRatingBasedWinSuppression(
   }
 
   const lossMagnitude = Math.max(0, -loserDelta);
-  const multiplier = 2 / (1 + lossMagnitude / 100);
+  const baseMultiplier = 2 / (1 + lossMagnitude / 100);
+
+  // 高RDの選手は勝利時の上昇をさらに抑える。
+  // RD350で0.35倍、RD0で1倍まで線形に緩和する。
+  const normalizedRd = Math.max(
+    0,
+    Math.min(GLICKO2_INITIAL_RD, playerRd)
+  );
+  const rdMultiplier =
+    1 - 0.65 * (normalizedRd / GLICKO2_INITIAL_RD);
+
+  const multiplier = baseMultiplier * rdMultiplier;
 
   return beforeRating + winnerDelta * multiplier;
 }
