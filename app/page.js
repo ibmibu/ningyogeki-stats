@@ -97,8 +97,8 @@ const GLICKO2_INITIAL_RD = 350;
 const GLICKO2_INITIAL_VOLATILITY = 0.06;
 
 // 大会は原則週1回なので、大会番号の間隔を経過時間の代理として使う。
-// 1大会空くごとにRDが8増える。
-const RD_INACTIVITY_INCREASE_PER_TOURNAMENT = 8;
+// 1大会空くごとにRDが10増える。
+const RD_INACTIVITY_INCREASE_PER_TOURNAMENT = 10;
 
 function eloExpected(rating, opponentRating) {
   return 1 / (1 + Math.pow(10, (opponentRating - rating) / 400));
