@@ -288,12 +288,10 @@ export async function GET(request) {
     const forceFull = searchParams.get('full') === '1';
 
     const known = new Set(
-      forceFull
-        ? []
-        : (searchParams.get('known') || '')
-            .split(',')
-            .map((value) => Number(value))
-            .filter(Number.isFinite)
+      (forceFull ? '' : searchParams.get('known') || '')
+        .split(',')
+        .map((value) => Number(value))
+        .filter(Number.isFinite)
     );
 
     const allTournaments = await discoverFromUserPage();

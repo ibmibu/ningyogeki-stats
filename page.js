@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'ningyogeki-stats-v3';
 
@@ -124,40 +124,6 @@ function mergeRecords(oldRecords = [], newRecords = []) {
   );
 }
 
-function buildStatsFromRecords(records = []) {
-  const stats = {};
-
-  for (const record of records) {
-    const winnerId = getWinnerId(record);
-    const loserId = getLoserId(record);
-
-    if (winnerId == null || loserId == null) continue;
-
-    const winner = String(winnerId);
-    const loser = String(loserId);
-
-    stats[winner] ??= {};
-    stats[loser] ??= {};
-
-    stats[winner][loser] ??= { wins: 0, losses: 0 };
-    stats[loser][winner] ??= { wins: 0, losses: 0 };
-
-    stats[winner][loser].wins++;
-    stats[loser][winner].losses++;
-  }
-
-  for (const opponents of Object.values(stats)) {
-    for (const stat of Object.values(opponents)) {
-      const total = stat.wins + stat.losses;
-      stat.rate = total
-        ? Math.round((stat.wins / total) * 1000) / 10
-        : 0;
-    }
-  }
-
-  return stats;
-}
-
 function mergeData(oldData, newData) {
   if (!oldData) {
     return newData;
@@ -176,15 +142,22 @@ function mergeData(oldData, newData) {
   const tournamentMap = new Map();
 
   for (const tournament of oldData.tournaments || []) {
-    tournamentMap.set(Number(tournament.number), tournament);
+    tournamentMap.set(
+      Number(tournament.number),
+      tournament
+    );
   }
 
   for (const tournament of newData.tournaments || []) {
-    tournamentMap.set(Number(tournament.number), tournament);
+    tournamentMap.set(
+      Number(tournament.number),
+      tournament
+    );
   }
 
   const tournaments = [...tournamentMap.values()].sort(
-    (a, b) => Number(a.number) - Number(b.number)
+    (a, b) =>
+      Number(a.number) - Number(b.number)
   );
 
   const records = mergeRecords(
@@ -195,11 +168,20 @@ function mergeData(oldData, newData) {
   return {
     ...oldData,
     ...newData,
+
     players: [...playerMap.values()],
+
     tournaments,
+
     records,
-    stats: buildStatsFromRecords(records),
+
+    stats: mergeStats(
+      oldData.stats,
+      newData.stats
+    ),
+
     matches: records.length,
+
     failed: newData.failed || [],
   };
 }
@@ -270,7 +252,6 @@ export default function Home() {
   const [season, setSeason] = useState('all');
 
   const [loaded, setLoaded] = useState(false);
-  const initialLoadRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -298,6 +279,28 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!loaded) return;
+
+    const hasRecords =
+      Array.isArray(data?.records) &&
+      data.records.length > 0;
+
+    const hasStats = Object.values(
+      data?.stats || {}
+    ).some((opponents) =>
+      Object.values(opponents || {}).some(
+        (stat) =>
+          Number(stat?.wins || 0) +
+            Number(stat?.losses || 0) >
+          0
+      )
+    );
+
+    loadLatest(!!data && !hasRecords && hasStats);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
+  useEffect(() => {
     if (!loaded || !data) return;
 
     try {
@@ -318,17 +321,25 @@ export default function Home() {
     setError('');
 
     try {
+      /*
+       * API側は `known` を使う。
+       * これまでの `since` はAPI側で見ていなかったため、
+       * 毎回すべての大会を取得してしまっていた。
+       */
       const knownNumbers =
-        !forceFull
-          ? data?.tournaments
-              ?.map((tournament) => Number(tournament.number))
-              .filter(Number.isFinite) || []
-          : [];
+        data?.tournaments
+          ?.map((tournament) =>
+            Number(tournament.number)
+          )
+          .filter(Number.isFinite) || [];
 
       const params = new URLSearchParams();
 
-      if (knownNumbers.length > 0) {
-        params.set('known', knownNumbers.join(','));
+      if (!forceFull && knownNumbers.length > 0) {
+        params.set(
+          'known',
+          knownNumbers.join(',')
+        );
       }
 
       if (forceFull) {
@@ -340,18 +351,25 @@ export default function Home() {
           ? `/api/series?${params.toString()}`
           : '/api/series';
 
-      const response = await fetch(url, { cache: 'no-store' });
+      const response = await fetch(url, {
+        cache: 'no-store',
+      });
+
       const json = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          json.error || 'データの取得に失敗しました'
+          json.error ||
+            'データの取得に失敗しました'
         );
       }
 
-      setData((current) => mergeData(current, json));
+      setData((current) =>
+        forceFull ? json : mergeData(current, json)
+      );
     } catch (e) {
       console.error(e);
+
       setError(
         e instanceof Error
           ? e.message
@@ -361,21 +379,6 @@ export default function Home() {
       setLoading(false);
     }
   }
-
-  useEffect(() => {
-    if (!loaded || initialLoadRef.current) return;
-    initialLoadRef.current = true;
-
-    const savedHasRecords =
-      Array.isArray(data?.records) && data.records.length > 0;
-    const savedHasMatches = Number(data?.matches || 0) > 0;
-
-    if (data && !savedHasRecords && savedHasMatches) {
-      loadLatest(true);
-    } else {
-      loadLatest(false);
-    }
-  }, [loaded]);
 
   function resetData() {
     if (
@@ -956,16 +959,35 @@ export default function Home() {
                             </div>
 
                             <div className="recentResults">
-                              {recentResults.map((result, index) => (
-                                <div
-                                  key={`${opponent.id}-${result.tournamentNumber}-${index}`}
-                                  className={`recentResult ${
-                                    result.result === 'W' ? 'win' : 'loss'
-                                  } ${index === 0 ? 'latest' : ''}`}
-                                >
-                                  {result.result}
+                              {recentResults.length >
+                              0 ? (
+                                recentResults.map(
+                                  (
+                                    result,
+                                    index
+                                  ) => (
+                                    <div
+                                      key={`${opponent.id}-${result.tournamentNumber}-${index}`}
+                                      className={`recentResult ${
+                                        result.result ===
+                                        'W'
+                                          ? 'win'
+                                          : 'loss'
+                                      } ${
+                                        index === 0
+                                          ? 'latest'
+                                          : ''
+                                      }`}
+                                    >
+                                      {result.result}
+                                    </div>
+                                  )
+                                )
+                              ) : (
+                                <div className="recentNoData">
+                                  —
                                 </div>
-                              ))}
+                              )}
                             </div>
                           </td>
 
@@ -995,176 +1017,3 @@ export default function Home() {
                     <th>結果</th>
                   </tr>
                 </thead>
-
-                <tbody>
-                  {matchHistory.map(
-                    (record, index) => {
-                      const winnerId =
-                        getWinnerId(record);
-
-                      const loserId =
-                        getLoserId(record);
-
-                      const selectedId =
-                        String(
-                          selectedPlayer.id
-                        );
-
-                      const isWinner =
-                        String(
-                          winnerId
-                        ) === selectedId;
-
-                      const opponentId =
-                        isWinner
-                          ? loserId
-                          : winnerId;
-
-                      const opponent =
-                        players.find(
-                          (player) =>
-                            String(
-                              player.id
-                            ) ===
-                            String(
-                              opponentId
-                            )
-                        );
-
-                      return (
-                        <tr
-                          key={`${getTournamentNumber(
-                            record
-                          )}-${winnerId}-${loserId}-${index}`}
-                        >
-                          <td>
-                            人形劇#
-                            {
-                              getTournamentNumber(
-                                record
-                              )
-                            }
-                          </td>
-
-                          <td>
-                            {opponent?.name ||
-                              (isWinner
-                                ? record.loser
-                                : record.winner) ||
-                              '不明'}
-                          </td>
-
-                          <td>
-                            <strong
-                              className={
-                                isWinner
-                                  ? 'resultWin'
-                                  : 'resultLoss'
-                              }
-                            >
-                              {isWinner
-                                ? '勝ち'
-                                : '負け'}
-                            </strong>
-                          </td>
-                        </tr>
-                      );
-                    }
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </>
-        ) : (
-          <p>
-            プレイヤーを選択すると、
-            対戦相手ごとの成績を表示します。
-          </p>
-        )}
-      </section>
-
-      <section className="section">
-        <h2>大会一覧</h2>
-
-        <div className="tableWrap">
-          <table>
-            <thead>
-              <tr>
-                <th>大会</th>
-                <th>試合数</th>
-                <th>参加人数</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {[...(data.tournaments || [])]
-                .sort(
-                  (a, b) =>
-                    Number(b.number) -
-                    Number(a.number)
-                )
-                .map((tournament) => (
-                  <tr
-                    key={
-                      tournament.number
-                    }
-                  >
-                    <td>
-                      <a
-                        href={
-                          tournament.tournamentUrl
-                        }
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        人形劇#
-                        {
-                          tournament.number
-                        }
-                      </a>
-                    </td>
-
-                    <td>
-                      {tournament.matches}
-                    </td>
-
-                    <td>
-                      {tournament.players}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {data.failed?.length > 0 && (
-        <section className="section">
-          <h2>取得できなかった大会</h2>
-
-          <ul>
-            {data.failed.map((item) => (
-              <li key={item.number}>
-                人形劇#{item.number}：
-                {item.error}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <footer className="footer">
-        <p>
-          データ元：Smashmate
-        </p>
-
-        <p>
-          最終取得：
-          {new Date().toLocaleString(
-            'ja-JP'
-          )}
-        </p>
-      </footer>
-    </main>
-  );
-}
