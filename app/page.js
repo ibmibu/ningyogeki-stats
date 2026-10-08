@@ -90,6 +90,7 @@ function mergeData(oldData, newData) {
 
 const ELO_INITIAL_RATING = 1500;
 const ELO_K = 128;
+const ELO_RATING_SCALE = 200;
 
 const GLICKO2_SCALE = 173.7178;
 const GLICKO2_TAU = 0.5;
@@ -101,7 +102,13 @@ const GLICKO2_INITIAL_VOLATILITY = 0.06;
 const RD_INACTIVITY_INCREASE_PER_TOURNAMENT = 10;
 
 function eloExpected(rating, opponentRating) {
-  return 1 / (1 + Math.pow(10, (opponentRating - rating) / 400));
+  return 1 / (
+    1 +
+    Math.pow(
+      10,
+      (opponentRating - rating) / ELO_RATING_SCALE
+    )
+  );
 }
 
 // Glicko-2のg(RD)。相手のRDが大きいほど、その対戦結果から得られる
@@ -1267,7 +1274,7 @@ export default function Home() {
               </h2>
 
               <p>
-                25大会ごとにシーズンを区切り、Eloでレートを算出します。Eloは各シーズン1500から開始し、1試合ごとに更新します。K値は128で、相手のRDが大きいほどレート変動を小さくします。RDはシーズンをまたいで引き継ぎ、長期間プレイしていない場合は経過期間に応じて増加します。
+                25大会ごとにシーズンを区切り、Eloでレートを算出します。Eloは各シーズン1500から開始し、1試合ごとに更新します。K値は128で、レート差による勝利期待値を標準Eloより急にし、格上が格下に順当に勝った場合の変動を小さくしています。RDはシーズンをまたいで引き継ぎ、長期間プレイしていない場合は経過期間に応じて増加します。
               </p>
             </div>
 
