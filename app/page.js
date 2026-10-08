@@ -115,15 +115,11 @@ function applyLoserRatingBasedWinSuppression(
   beforeRating,
   afterRating,
   loserBeforeRating,
-  loserAfterRating,
-  winnerRd
+  loserAfterRating
 ) {
   const winnerDelta = afterRating - beforeRating;
   const loserDelta = loserAfterRating - loserBeforeRating;
 
-  // 勝利側の上昇幅は、敗北側のレート下落幅を基準に抑える。
-  // 相手のレートが大きく下がる試合ほど、その1勝による上昇を小さくする。
-  // 敗北側のレート変動そのものは変更しない。
   if (winnerDelta <= 0 || loserDelta >= 0) {
     return afterRating;
   }
@@ -131,18 +127,7 @@ function applyLoserRatingBasedWinSuppression(
   const lossMagnitude = Math.max(0, -loserDelta);
   const baseMultiplier = 2 / (1 + lossMagnitude / 100);
 
-  // 高RDの選手は勝利時の上昇をさらに抑える。
-  // RD350で0.35倍、RD0で1倍まで線形に緩和する。
-  const normalizedRd = Math.max(
-    0,
-    Math.min(GLICKO2_INITIAL_RD, winnerRd)
-  );
-  const rdMultiplier =
-    1 - 0.65 * (normalizedRd / GLICKO2_INITIAL_RD);
-
-  const multiplier = baseMultiplier * rdMultiplier;
-
-  return beforeRating + winnerDelta * multiplier;
+  return beforeRating + winnerDelta * baseMultiplier;
 }
 
 function updateGlicko2Player(player, results) {
@@ -295,8 +280,7 @@ function calculateGlicko2(data, season = 'all') {
         winner.rating,
         winnerAfterState.rating,
         loser.rating,
-        loserAfterState.rating,
-        winner.rd
+        loserAfterState.rating
       );
       winner.rd = winnerAfterState.rd;
       winner.volatility = winnerAfterState.volatility;
