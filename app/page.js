@@ -128,7 +128,7 @@ function applyLoserRatingBasedWinSuppression(
   }
 
   const lossMagnitude = Math.max(0, -loserDelta);
-  const multiplier = 1 / (1 + lossMagnitude / 100);
+  const multiplier = 2 / (1 + lossMagnitude / 100);
 
   return beforeRating + winnerDelta * multiplier;
 }
