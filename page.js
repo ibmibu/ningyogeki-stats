@@ -1,15 +1,49 @@
 'use client';
 
-import {
-  Fragment,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'ningyogeki-stats-v3';
 
-function getValueId(value) {
+function mergeStats(base = {}, added = {}) {
+  const result = structuredClone(base || {});
+
+  for (const [playerId, opponents] of Object.entries(added || {})) {
+    result[playerId] ??= {};
+
+    for (const [opponentId, stat] of Object.entries(opponents || {})) {
+      result[playerId][opponentId] ??= {
+        wins: 0,
+        losses: 0,
+      };
+
+      result[playerId][opponentId].wins += Number(stat.wins || 0);
+      result[playerId][opponentId].losses += Number(stat.losses || 0);
+
+      const total =
+        result[playerId][opponentId].wins +
+        result[playerId][opponentId].losses;
+
+      result[playerId][opponentId].rate = total
+        ? Math.round(
+            (result[playerId][opponentId].wins / total) * 1000
+          ) / 10
+        : 0;
+    }
+  }
+
+  return result;
+}
+
+function getTournamentNumber(record) {
+  return Number(
+    record?.tournamentNumber ??
+      record?.tournament_number ??
+      record?.tournament ??
+      0
+  );
+}
+
+function getPlayerId(value) {
   if (value == null) return null;
 
   if (typeof value === 'object') {
@@ -25,119 +59,69 @@ function getValueId(value) {
 }
 
 function getWinnerId(record) {
-  return getValueId(
+  return getPlayerId(
     record?.winnerId ??
       record?.winner_id ??
-      record?.winner ??
       record?.winnerPlayer ??
       record?.winner_player
   );
 }
 
 function getLoserId(record) {
-  return getValueId(
+  return getPlayerId(
     record?.loserId ??
       record?.loser_id ??
-      record?.loser ??
       record?.loserPlayer ??
       record?.loser_player
   );
 }
 
-function getTournamentNumber(record) {
-  return Number(
-    record?.tournamentNumber ??
-      record?.tournament_number ??
-      record?.tournament ??
-      0
+function getLastTournament(data) {
+  if (!data?.tournaments?.length) {
+    return 0;
+  }
+
+  return Math.max(
+    ...data.tournaments.map((tournament) =>
+      Number(tournament.number || 0)
+    )
   );
 }
 
-function getPlayerName(record, side) {
-  if (!record) return '';
-
-  if (side === 'winner') {
-    if (typeof record.winner === 'string') {
-      return record.winner;
-    }
-
-    if (
-      record.winner &&
-      typeof record.winner === 'object'
-    ) {
-      return (
-        record.winner.name ??
-        record.winner.playerName ??
-        ''
-      );
-    }
-
-    return (
-      record.winnerName ??
-      record.winner_name ??
-      ''
-    );
-  }
-
-  if (typeof record.loser === 'string') {
-    return record.loser;
-  }
-
-  if (
-    record.loser &&
-    typeof record.loser === 'object'
-  ) {
-    return (
-      record.loser.name ??
-      record.loser.playerName ??
-      ''
-    );
-  }
-
-  return (
-    record.loserName ??
-    record.loser_name ??
-    ''
-  );
+function getSeason(number) {
+  if (!number) return 1;
+  return Math.floor((Number(number) - 1) / 25) + 1;
 }
 
-function mergeStats(base = {}, added = {}) {
-  const result = structuredClone(base);
+function mergeRecords(oldRecords = [], newRecords = []) {
+  const map = new Map();
 
-  for (const [playerId, opponents] of Object.entries(
-    added || {}
-  )) {
-    result[playerId] ??= {};
+  const add = (record) => {
+    const winnerId = getWinnerId(record);
+    const loserId = getLoserId(record);
+    const tournamentNumber = getTournamentNumber(record);
 
-    for (const [opponentId, stat] of Object.entries(
-      opponents || {}
-    )) {
-      result[playerId][opponentId] ??= {
-        wins: 0,
-        losses: 0,
-      };
+    const key = [
+      tournamentNumber,
+      String(winnerId ?? ''),
+      String(loserId ?? ''),
+    ].join('|');
 
-      result[playerId][opponentId].wins +=
-        stat.wins || 0;
-
-      result[playerId][opponentId].losses +=
-        stat.losses || 0;
-
-      const total =
-        result[playerId][opponentId].wins +
-        result[playerId][opponentId].losses;
-
-      result[playerId][opponentId].rate = total
-        ? Math.round(
-            (result[playerId][opponentId].wins /
-              total) *
-              1000
-          ) / 10
-        : 0;
+    if (!winnerId || !loserId) {
+      return;
     }
-  }
 
-  return result;
+    map.set(key, record);
+  };
+
+  oldRecords.forEach(add);
+  newRecords.forEach(add);
+
+  return [...map.values()].sort(
+    (a, b) =>
+      getTournamentNumber(b) -
+      getTournamentNumber(a)
+  );
 }
 
 function mergeData(oldData, newData) {
@@ -158,27 +142,28 @@ function mergeData(oldData, newData) {
   const tournamentMap = new Map();
 
   for (const tournament of oldData.tournaments || []) {
-    tournamentMap.set(tournament.number, tournament);
+    tournamentMap.set(
+      Number(tournament.number),
+      tournament
+    );
   }
 
   for (const tournament of newData.tournaments || []) {
-    tournamentMap.set(tournament.number, tournament);
+    tournamentMap.set(
+      Number(tournament.number),
+      tournament
+    );
   }
 
-  const recordMap = new Map();
+  const tournaments = [...tournamentMap.values()].sort(
+    (a, b) =>
+      Number(a.number) - Number(b.number)
+  );
 
-  for (const record of [
-    ...(oldData.records || []),
-    ...(newData.records || []),
-  ]) {
-    const key = [
-      getTournamentNumber(record),
-      getWinnerId(record),
-      getLoserId(record),
-    ].join('-');
-
-    recordMap.set(key, record);
-  }
+  const records = mergeRecords(
+    oldData.records || [],
+    newData.records || []
+  );
 
   return {
     ...oldData,
@@ -186,47 +171,26 @@ function mergeData(oldData, newData) {
 
     players: [...playerMap.values()],
 
-    tournaments: [...tournamentMap.values()].sort(
-      (a, b) => a.number - b.number
-    ),
+    tournaments,
 
-    records: [...recordMap.values()],
+    records,
 
     stats: mergeStats(
       oldData.stats,
       newData.stats
     ),
 
-    matches:
-      (oldData.matches || 0) +
-      (newData.matches || 0),
+    matches: records.length,
 
     failed: newData.failed || [],
   };
 }
 
-function getLastTournament(data) {
-  if (!data?.tournaments?.length) {
-    return 0;
-  }
-
-  return Math.max(
-    ...data.tournaments.map(
-      (t) => t.number || 0
-    )
-  );
-}
-
-function getSeason(number) {
-  if (!number) return 1;
-
-  return Math.floor(
-    (number - 1) / 25
-  ) + 1;
-}
-
 /*
- * 選択プレイヤーと対戦相手の直近5戦
+ * 選択したプレイヤーと相手の
+ * 直近5試合を取得する。
+ *
+ * 左側が最新。
  */
 function getRecentResults(
   records,
@@ -245,10 +209,7 @@ function getRecentResults(
       const winnerId = getWinnerId(record);
       const loserId = getLoserId(record);
 
-      if (
-        winnerId == null ||
-        loserId == null
-      ) {
+      if (winnerId == null || loserId == null) {
         return false;
       }
 
@@ -256,10 +217,8 @@ function getRecentResults(
       const loser = String(loserId);
 
       return (
-        (winner === player &&
-          loser === opponent) ||
-        (winner === opponent &&
-          loser === player)
+        (winner === player && loser === opponent) ||
+        (winner === opponent && loser === player)
       );
     })
     .sort(
@@ -268,14 +227,19 @@ function getRecentResults(
         getTournamentNumber(a)
     )
     .slice(0, 5)
-    .map((record) => ({
-      result:
-        String(getWinnerId(record)) === player
-          ? 'W'
-          : 'L',
-      tournamentNumber:
-        getTournamentNumber(record),
-    }));
+    .map((record) => {
+      const winnerId = getWinnerId(record);
+
+      return {
+        result:
+          String(winnerId) === player
+            ? 'W'
+            : 'L',
+
+        tournamentNumber:
+          getTournamentNumber(record),
+      };
+    });
 }
 
 export default function Home() {
@@ -283,20 +247,11 @@ export default function Home() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [selected, setSelected] =
-    useState('all');
+  const [selected, setSelected] = useState('all');
+  const [sortKey, setSortKey] = useState('rate');
+  const [season, setSeason] = useState('all');
 
-  const [sortKey, setSortKey] =
-    useState('rate');
-
-  const [season, setSeason] =
-    useState('all');
-
-  const [loaded, setLoaded] =
-    useState(false);
-
-  const [expandedOpponent, setExpandedOpponent] =
-    useState(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     try {
@@ -304,8 +259,7 @@ export default function Home() {
         localStorage.getItem(STORAGE_KEY);
 
       if (saved) {
-        const parsed =
-          JSON.parse(saved);
+        const parsed = JSON.parse(saved);
 
         if (
           parsed?.players &&
@@ -345,20 +299,37 @@ export default function Home() {
     setError('');
 
     try {
-      const lastTournament =
-        getLastTournament(data);
+      /*
+       * API側は `known` を使う。
+       * これまでの `since` はAPI側で見ていなかったため、
+       * 毎回すべての大会を取得してしまっていた。
+       */
+      const knownNumbers =
+        data?.tournaments
+          ?.map((tournament) =>
+            Number(tournament.number)
+          )
+          .filter(Number.isFinite) || [];
+
+      const params = new URLSearchParams();
+
+      if (knownNumbers.length > 0) {
+        params.set(
+          'known',
+          knownNumbers.join(',')
+        );
+      }
 
       const url =
-        lastTournament > 0
-          ? `/api/series?since=${lastTournament}`
+        params.toString().length > 0
+          ? `/api/series?${params.toString()}`
           : '/api/series';
 
       const response = await fetch(url, {
         cache: 'no-store',
       });
 
-      const json =
-        await response.json();
+      const json = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -398,7 +369,6 @@ export default function Home() {
     setSelected('all');
     setSeason('all');
     setSortKey('rate');
-    setExpandedOpponent(null);
     setError('');
   }
 
@@ -420,8 +390,8 @@ export default function Home() {
     }
 
     const maxSeason = Math.max(
-      ...data.tournaments.map((t) =>
-        getSeason(t.number)
+      ...data.tournaments.map((tournament) =>
+        getSeason(tournament.number)
       )
     );
 
@@ -444,11 +414,7 @@ export default function Home() {
         String(player.id) ===
         String(selected)
     );
-  }, [
-    data,
-    players,
-    selected,
-  ]);
+  }, [data, players, selected]);
 
   const opponents = useMemo(() => {
     if (!data || !selectedPlayer) {
@@ -456,32 +422,39 @@ export default function Home() {
     }
 
     const ownStats =
-      data.stats?.[selectedPlayer.id] ||
-      {};
+      data.stats?.[selectedPlayer.id] || {};
 
     return Object.entries(ownStats)
       .map(([opponentId, stat]) => {
-        const opponent =
-          players.find(
-            (player) =>
-              String(player.id) ===
-              String(opponentId)
-          );
+        const opponent = players.find(
+          (player) =>
+            String(player.id) ===
+            String(opponentId)
+        );
 
         if (!opponent) {
           return null;
         }
 
-        const matches =
-          (stat.wins || 0) +
-          (stat.losses || 0);
+        const wins = Number(stat.wins || 0);
+        const losses = Number(
+          stat.losses || 0
+        );
+
+        const matches = wins + losses;
 
         return {
           ...opponent,
-          wins: stat.wins || 0,
-          losses: stat.losses || 0,
+          wins,
+          losses,
           matches,
-          rate: stat.rate || 0,
+          rate:
+            stat.rate ??
+            (matches
+              ? Math.round(
+                  (wins / matches) * 1000
+                ) / 10
+              : 0),
         };
       })
       .filter(Boolean)
@@ -521,17 +494,15 @@ export default function Home() {
 
     return (data.records || [])
       .filter((record) => {
-        const winnerId =
-          getWinnerId(record);
-
-        const loserId =
-          getLoserId(record);
+        const winnerId = getWinnerId(record);
+        const loserId = getLoserId(record);
+        const playerId = String(
+          selectedPlayer.id
+        );
 
         return (
-          String(winnerId) ===
-            String(selectedPlayer.id) ||
-          String(loserId) ===
-            String(selectedPlayer.id)
+          String(winnerId) === playerId ||
+          String(loserId) === playerId
         );
       })
       .filter((record) => {
@@ -572,11 +543,8 @@ export default function Home() {
     const stats = {};
 
     for (const record of targetRecords) {
-      const winnerId =
-        getWinnerId(record);
-
-      const loserId =
-        getLoserId(record);
+      const winnerId = getWinnerId(record);
+      const loserId = getLoserId(record);
 
       if (
         winnerId == null ||
@@ -585,31 +553,33 @@ export default function Home() {
         continue;
       }
 
-      stats[winnerId] ??= {
+      const winner = String(winnerId);
+      const loser = String(loserId);
+
+      stats[winner] ??= {
         wins: 0,
         losses: 0,
       };
 
-      stats[loserId] ??= {
+      stats[loser] ??= {
         wins: 0,
         losses: 0,
       };
 
-      stats[winnerId].wins++;
-      stats[loserId].losses++;
+      stats[winner].wins++;
+      stats[loser].losses++;
     }
 
     return players
       .map((player) => {
         const stat =
-          stats[player.id] || {
+          stats[String(player.id)] || {
             wins: 0,
             losses: 0,
           };
 
         const total =
-          stat.wins +
-          stat.losses;
+          stat.wins + stat.losses;
 
         return {
           ...player,
@@ -618,33 +588,25 @@ export default function Home() {
           total,
           rate: total
             ? Math.round(
-                (stat.wins / total) *
-                  1000
+                (stat.wins / total) * 1000
               ) / 10
             : 0,
         };
       })
       .filter(
-        (player) =>
-          player.total > 0
+        (player) => player.total > 0
       )
       .sort(
         (a, b) =>
           b.rate - a.rate ||
           b.total - a.total ||
           b.wins - a.wins ||
-          String(
-            a.name
-          ).localeCompare(
+          String(a.name).localeCompare(
             String(b.name),
             'ja'
           )
       );
-  }, [
-    data,
-    players,
-    season,
-  ]);
+  }, [data, players, season]);
 
   if (!data) {
     return (
@@ -676,7 +638,6 @@ export default function Home() {
 
   return (
     <main className="container">
-
       <header className="header">
         <div>
           <h1>人形劇 戦績</h1>
@@ -723,7 +684,9 @@ export default function Home() {
 
         <div>
           <strong>
-            {data.matches || 0}
+            {data.records?.length ||
+              data.matches ||
+              0}
           </strong>
           <span>試合</span>
         </div>
@@ -760,33 +723,28 @@ export default function Home() {
             全期間
           </button>
 
-          {seasons.map(
-            (seasonNumber) => (
-              <button
-                key={seasonNumber}
-                className={
-                  Number(season) ===
-                  seasonNumber
-                    ? 'active'
-                    : ''
-                }
-                onClick={() =>
-                  setSeason(
-                    seasonNumber
-                  )
-                }
-              >
-                Season {seasonNumber}
+          {seasons.map((seasonNumber) => (
+            <button
+              key={seasonNumber}
+              className={
+                Number(season) ===
+                seasonNumber
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                setSeason(seasonNumber)
+              }
+            >
+              Season {seasonNumber}
 
-                <small>
-                  #
-                  {seasonNumber * 25 - 24}
-                  〜#
-                  {seasonNumber * 25}
-                </small>
-              </button>
-            )
-          )}
+              <small>
+                #{seasonNumber * 25 - 24}
+                〜#
+                {seasonNumber * 25}
+              </small>
+            </button>
+          ))}
         </div>
 
         <div className="tableWrap">
@@ -806,22 +764,14 @@ export default function Home() {
               {seasonRanking.map(
                 (player, index) => (
                   <tr key={player.id}>
-                    <td>
-                      {index + 1}
-                    </td>
+                    <td>{index + 1}</td>
 
                     <td>
                       <button
                         className="playerLink"
                         onClick={() => {
                           setSelected(
-                            String(
-                              player.id
-                            )
-                          );
-
-                          setExpandedOpponent(
-                            null
+                            String(player.id)
                           );
 
                           window.scrollTo({
@@ -861,20 +811,14 @@ export default function Home() {
       </section>
 
       <section className="section">
-        <h2>
-          プレイヤー別対戦成績
-        </h2>
+        <h2>プレイヤー別対戦成績</h2>
 
         <div className="playerSelectWrap">
           <select
             value={selected}
-            onChange={(e) => {
+            onChange={(event) => {
               setSelected(
-                e.target.value
-              );
-
-              setExpandedOpponent(
-                null
+                event.target.value
               );
             }}
           >
@@ -940,7 +884,7 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="tableWrap opponentTableWrap">
+            <div className="tableWrap">
               <table className="opponentTable">
                 <thead>
                   <tr>
@@ -961,154 +905,79 @@ export default function Home() {
                           opponent.id
                         );
 
-                      const isExpanded =
-                        expandedOpponent ===
-                        String(
-                          opponent.id
-                        );
-
                       return (
-                        <Fragment
+                        <tr
                           key={opponent.id}
                         >
-                          <tr
-                            className={`opponentRow ${
-                              isExpanded
-                                ? 'expanded'
-                                : ''
-                            }`}
-                            onClick={() => {
-                              setExpandedOpponent(
-                                isExpanded
-                                  ? null
-                                  : String(
-                                      opponent.id
-                                    )
-                              );
-                            }}
-                          >
-                            <td className="opponentCell">
-                              <div className="opponentName">
-                                {opponent.name}
-                              </div>
+                          <td className="opponentCell">
+                            <div className="opponentName">
+                              {opponent.name}
+                            </div>
+                          </td>
 
-                              <div className="opponentTapHint">
-                                {isExpanded
-                                  ? 'タップで閉じる'
-                                  : 'タップで直近5戦'}
-                              </div>
-                            </td>
+                          <td className="rateCell">
+                            <strong>
+                              {opponent.rate}%
+                            </strong>
+                          </td>
 
-                            <td className="rateCell">
-                              <strong>
-                                {
-                                  opponent.rate
-                                }
-                                %
-                              </strong>
-                            </td>
+                          <td className="recordCell">
+                            <div className="recordSummary">
+                              <span className="recordWin">
+                                {opponent.wins}勝
+                              </span>
 
-                            <td className="recordCell">
-                              <div className="recordSummary">
-                                <span>
-                                  {
-                                    opponent.wins
-                                  }
-                                  勝
-                                </span>
+                              <span className="recordLoss">
+                                {opponent.losses}敗
+                              </span>
+                            </div>
 
-                                <span>
-                                  {
-                                    opponent.losses
-                                  }
-                                  敗
-                                </span>
-                              </div>
-                            </td>
+                            <div className="recentResults">
+                              {recentResults.length >
+                              0 ? (
+                                recentResults.map(
+                                  (
+                                    result,
+                                    index
+                                  ) => (
+                                    <div
+                                      key={`${opponent.id}-${result.tournamentNumber}-${index}`}
+                                      className={`recentResult ${
+                                        result.result ===
+                                        'W'
+                                          ? 'win'
+                                          : 'loss'
+                                      }`}
+                                    >
+                                      <span className="recentResultValue">
+                                        {
+                                          result.result
+                                        }
+                                      </span>
 
-                            <td className="matchesCell">
-                              <div className="matchesValue">
-                                {
-                                  opponent.matches
-                                }
-                              </div>
-
-                              <div className="opponentArrow">
-                                {isExpanded
-                                  ? '▲'
-                                  : '▼'}
-                              </div>
-                            </td>
-                          </tr>
-
-                          {isExpanded && (
-                            <tr className="recentDetailRow">
-                              <td
-                                colSpan="4"
-                                className="recentDetailCell"
-                              >
-                                <div className="recentDetail">
-
-                                  <div className="recentDetailTitle">
-                                    <span>
-                                      直近5戦
-                                    </span>
-
-                                    <small>
-                                      左が最新
-                                    </small>
-                                  </div>
-
-                                  {recentResults.length > 0 ? (
-                                    <div className="recentResults">
-                                      {recentResults.map(
-                                        (
-                                          result,
-                                          index
-                                        ) => (
-                                          <div
-                                            key={`${result.tournamentNumber}-${index}`}
-                                            className="recentItem"
-                                          >
-                                            <div
-                                              className={`recentResult ${
-                                                result.result ===
-                                                'W'
-                                                  ? 'win'
-                                                  : 'loss'
-                                              } ${
-                                                index ===
-                                                0
-                                                  ? 'latest'
-                                                  : ''
-                                              }`}
-                                            >
-                                              {
-                                                result.result
-                                              }
-                                            </div>
-
-                                            <span className="recentTournament">
-                                              #
-                                              {
-                                                result.tournamentNumber
-                                              }
-                                            </span>
-                                          </div>
-                                        )
-                                      )}
+                                      <span className="recentResultTournament">
+                                        #
+                                        {
+                                          result.tournamentNumber
+                                        }
+                                      </span>
                                     </div>
-                                  ) : (
-                                    <div className="recentNoData">
-                                      この対戦の試合データがありません
-                                    </div>
-                                  )}
-
+                                  )
+                                )
+                              ) : (
+                                <div className="recentNoData">
+                                  直近の試合データなし
                                 </div>
-                              </td>
-                            </tr>
-                          )}
-                        </Fragment>
+                              )}
+                            </div>
+                          </td>
+
+                          <td className="matchesCell">
+                            <div className="matchesValue">
+                              {opponent.matches}
+                            </div>
+                          </td>
+                        </tr>
                       );
                     }
                   )}
@@ -1133,30 +1002,43 @@ export default function Home() {
                 <tbody>
                   {matchHistory.map(
                     (record, index) => {
-                      const isWinner =
-                        String(
-                          getWinnerId(record)
-                        ) ===
+                      const winnerId =
+                        getWinnerId(record);
+
+                      const loserId =
+                        getLoserId(record);
+
+                      const selectedId =
                         String(
                           selectedPlayer.id
                         );
 
-                      const opponentName =
+                      const isWinner =
+                        String(
+                          winnerId
+                        ) === selectedId;
+
+                      const opponentId =
                         isWinner
-                          ? getPlayerName(
-                              record,
-                              'loser'
+                          ? loserId
+                          : winnerId;
+
+                      const opponent =
+                        players.find(
+                          (player) =>
+                            String(
+                              player.id
+                            ) ===
+                            String(
+                              opponentId
                             )
-                          : getPlayerName(
-                              record,
-                              'winner'
-                            );
+                        );
 
                       return (
                         <tr
                           key={`${getTournamentNumber(
                             record
-                          )}-${index}`}
+                          )}-${winnerId}-${loserId}-${index}`}
                         >
                           <td>
                             人形劇#
@@ -1168,11 +1050,21 @@ export default function Home() {
                           </td>
 
                           <td>
-                            {opponentName || '—'}
+                            {opponent?.name ||
+                              (isWinner
+                                ? record.loser
+                                : record.winner) ||
+                              '不明'}
                           </td>
 
                           <td>
-                            <strong>
+                            <strong
+                              className={
+                                isWinner
+                                  ? 'resultWin'
+                                  : 'resultLoss'
+                              }
+                            >
                               {isWinner
                                 ? '勝ち'
                                 : '負け'}
@@ -1211,7 +1103,8 @@ export default function Home() {
               {[...(data.tournaments || [])]
                 .sort(
                   (a, b) =>
-                    b.number - a.number
+                    Number(b.number) -
+                    Number(a.number)
                 )
                 .map((tournament) => (
                   <tr
@@ -1250,20 +1143,15 @@ export default function Home() {
 
       {data.failed?.length > 0 && (
         <section className="section">
-          <h2>
-            取得できなかった大会
-          </h2>
+          <h2>取得できなかった大会</h2>
 
           <ul>
-            {data.failed.map(
-              (item) => (
-                <li key={item.number}>
-                  人形劇#
-                  {item.number}：
-                  {item.error}
-                </li>
-              )
-            )}
+            {data.failed.map((item) => (
+              <li key={item.number}>
+                人形劇#{item.number}：
+                {item.error}
+              </li>
+            ))}
           </ul>
         </section>
       )}
