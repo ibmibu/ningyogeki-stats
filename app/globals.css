@@ -619,6 +619,66 @@ body {
   border-bottom: 0;
 }
 
+.recordCell {
+  vertical-align: middle;
+}
+
+.recordSummary {
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.recordWin {
+  color: #61e49a;
+}
+
+.recordLoss {
+  color: #ff737d;
+}
+
+.recentResults {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 5px;
+  min-height: 20px;
+  flex-wrap: nowrap;
+}
+
+.recentResult {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.recentResult.latest {
+  flex-basis: 24px;
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+
+.recentResult.win {
+  background: #183f2a;
+  color: #61e49a;
+  border: 1px solid #2e8c5a;
+}
+
+.recentResult.loss {
+  background: #4a2025;
+  color: #ff737d;
+  border: 1px solid #a4434d;
+}
+
 .sortButton {
   border: 0;
   background: none;
