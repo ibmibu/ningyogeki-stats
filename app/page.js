@@ -515,9 +515,17 @@ export default function Home() {
     );
   }, [data]);
 
-  const currentSeason = seasons.length
-    ? seasons[seasons.length - 1].key
-    : 'all';
+  const maxTournament = data?.tournaments?.length
+    ? Math.max(
+        ...data.tournaments.map(
+          (t) => Number(t.number) || 0
+        )
+      )
+    : 0;
+
+  const currentSeason = maxTournament > 0
+    ? String(Math.floor(maxTournament / 25) + 1)
+    : '1';
 
   const selectedSeason = season === 'current'
     ? currentSeason
