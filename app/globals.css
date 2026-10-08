@@ -1032,10 +1032,23 @@ footer span {
     padding: 18px;
   }
 
+  .matchHeader,
   .match {
-    grid-template-columns: 65px 1fr 35px 1fr;
-    gap: 6px;
+    grid-template-columns: 52px minmax(0, 1fr) 38px 58px 42px;
+    gap: 5px;
+  }
+
+  .matchHeader {
+    font-size: 8px;
+  }
+
+  .match {
     font-size: 11px;
+  }
+
+  .matchRd,
+  .matchRatingChange {
+    font-size: 10px;
   }
 
   .tournamentList a {
