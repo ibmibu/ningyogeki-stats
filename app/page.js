@@ -91,14 +91,166 @@ function mergeData(oldData, newData) {
 const ELO_INITIAL_RATING = 1500;
 const ELO_K = 64;
 
+const GLICKO2_SCALE = 173.7178;
+const GLICKO2_TAU = 0.5;
+const GLICKO2_INITIAL_RD = 350;
+const GLICKO2_INITIAL_VOLATILITY = 0.06;
+
 function eloExpected(rating, opponentRating) {
   return 1 / (1 + Math.pow(10, (opponentRating - rating) / 400));
 }
 
-function updateEloPlayer(player, opponentRating, score) {
-  const expected = eloExpected(player.rating, opponentRating);
-  const k = ELO_K;
-  const delta = k * (score - expected);
+// Glicko-2のg(RD)。相手のRDが大きいほど、その対戦結果から得られる
+// 情報量を小さくし、Eloの変動幅も小さくする。
+function glicko2GFromRD(rd) {
+  const phi = rd / GLICKO2_SCALE;
+  return 1 / Math.sqrt(1 + (3 * phi * phi) / (Math.PI * Math.PI));
+}
+
+function glicko2Expected(mu, opponentMu, opponentPhi) {
+  return 1 / (
+    1 +
+    Math.exp(
+      -glicko2GFromRD(opponentPhi * GLICKO2_SCALE) *
+        (mu - opponentMu)
+    )
+  );
+}
+
+function glicko2F(x, delta, phi, v, a) {
+  const ex = Math.exp(x);
+
+  return (
+    (ex * (delta * delta - phi * phi - v - ex)) /
+      (2 * Math.pow(phi * phi + v + ex, 2)) -
+    (x - a) / (GLICKO2_TAU * GLICKO2_TAU)
+  );
+}
+
+// レートはEloで更新し、RDとvolatilityだけをGlicko-2方式で更新する。
+// RDはシーズンをまたいで引き継ぐ。
+function updateRdPlayer(player, opponent, score) {
+  const mu =
+    (player.rating - ELO_INITIAL_RATING) /
+    GLICKO2_SCALE;
+  const phi = player.rd / GLICKO2_SCALE;
+  const sigma = player.volatility;
+
+  const opponentMu =
+    (opponent.rating - ELO_INITIAL_RATING) /
+    GLICKO2_SCALE;
+  const opponentPhi = opponent.rd / GLICKO2_SCALE;
+
+  const g = glicko2GFromRD(opponent.rd);
+  const expected = 1 / (
+    1 +
+    Math.exp(-g * (mu - opponentMu))
+  );
+
+  const v =
+    1 /
+    (g * g * expected * (1 - expected));
+
+  const delta =
+    v * g * (score - expected);
+
+  const a = Math.log(sigma * sigma);
+  let A = a;
+  let B;
+
+  if (delta * delta > phi * phi + v) {
+    B = Math.log(delta * delta - phi * phi - v);
+  } else {
+    let k = 1;
+
+    while (
+      glicko2F(
+        a - k * GLICKO2_TAU,
+        delta,
+        phi,
+        v,
+        a
+      ) < 0
+    ) {
+      k += 1;
+    }
+
+    B = a - k * GLICKO2_TAU;
+  }
+
+  let fA = glicko2F(A, delta, phi, v, a);
+  let fB = glicko2F(B, delta, phi, v, a);
+
+  for (
+    let i = 0;
+    i < 100 && Math.abs(B - A) > 0.000001;
+    i += 1
+  ) {
+    const C =
+      A +
+      ((A - B) * fA) /
+        (fB - fA);
+
+    const fC = glicko2F(
+      C,
+      delta,
+      phi,
+      v,
+      a
+    );
+
+    if (fC * fB < 0) {
+      A = B;
+      fA = fB;
+    } else {
+      fA /= 2;
+    }
+
+    B = C;
+    fB = fC;
+  }
+
+  const newSigma = Math.exp(A / 2);
+  const phiStar = Math.sqrt(
+    phi * phi +
+      newSigma * newSigma
+  );
+
+  const newPhi =
+    1 /
+    Math.sqrt(
+      1 / (phiStar * phiStar) +
+        1 / v
+    );
+
+  return {
+    rd: Math.min(
+      GLICKO2_INITIAL_RD,
+      GLICKO2_SCALE * newPhi
+    ),
+    volatility: newSigma,
+  };
+}
+
+function updateEloPlayer(
+  player,
+  opponent,
+  score
+) {
+  const expected = eloExpected(
+    player.rating,
+    opponent.rating
+  );
+
+  // 相手のRDが大きいほど、対戦結果の情報量を小さくする。
+  // RD=0なら補正なし、RD=350ならGlicko-2のg(350)相当。
+  const rdFactor =
+    glicko2GFromRD(opponent.rd);
+
+  const delta =
+    ELO_K *
+    rdFactor *
+    (score - expected);
 
   return {
     rating: player.rating + delta,
@@ -119,9 +271,12 @@ function calculateElo(data, season = 'all') {
 
   const getSeasonRecords = (seasonNumber) =>
     allRecords.filter((record) => {
-      const n = Number(record.tournamentNumber) || 0;
+      const n =
+        Number(record.tournamentNumber) || 0;
+
       return (
-        n >= (seasonNumber - 1) * 25 + 1 &&
+        n >=
+          (seasonNumber - 1) * 25 + 1 &&
         n <= seasonNumber * 25
       );
     });
@@ -134,6 +289,9 @@ function calculateElo(data, season = 'all') {
         id: player.id,
         name: player.name,
         rating: ELO_INITIAL_RATING,
+        rd: GLICKO2_INITIAL_RD,
+        volatility:
+          GLICKO2_INITIAL_VOLATILITY,
         wins: 0,
         losses: 0,
       });
@@ -142,13 +300,74 @@ function calculateElo(data, season = 'all') {
     return players;
   };
 
-  const processRecords = (players, records, collectHistory = false) => {
+  const updateRdOnly = (
+    players,
+    records
+  ) => {
+    for (const record of records) {
+      const winner = players.get(
+        String(record.winnerId)
+      );
+      const loser = players.get(
+        String(record.loserId)
+      );
+
+      if (!winner || !loser) continue;
+
+      const winnerBefore = {
+        rating: winner.rating,
+        rd: winner.rd,
+        volatility:
+          winner.volatility,
+      };
+
+      const loserBefore = {
+        rating: loser.rating,
+        rd: loser.rd,
+        volatility:
+          loser.volatility,
+      };
+
+      const winnerNext =
+        updateRdPlayer(
+          winnerBefore,
+          loserBefore,
+          1
+        );
+
+      const loserNext =
+        updateRdPlayer(
+          loserBefore,
+          winnerBefore,
+          0
+        );
+
+      winner.rd = winnerNext.rd;
+      winner.volatility =
+        winnerNext.volatility;
+
+      loser.rd = loserNext.rd;
+      loser.volatility =
+        loserNext.volatility;
+    }
+  };
+
+  const processRecords = (
+    players,
+    records,
+    collectHistory = false
+  ) => {
     const history = [];
 
-    // 1試合ずつ時系列に処理し、各試合が終わるたびにEloを更新する。
+    // 1試合ずつ処理。Eloはシーズン内でリセットするが、
+    // RDは全シーズンを通して同じ選手状態を引き継ぐ。
     for (const record of records) {
-      const winner = players.get(String(record.winnerId));
-      const loser = players.get(String(record.loserId));
+      const winner = players.get(
+        String(record.winnerId)
+      );
+      const loser = players.get(
+        String(record.loserId)
+      );
 
       if (!winner || !loser) {
         if (collectHistory) {
@@ -160,44 +379,98 @@ function calculateElo(data, season = 'all') {
             loserBefore: null,
             loserAfter: null,
             loserDelta: null,
+            winnerRd: null,
+            loserRd: null,
           });
         }
+
         continue;
       }
 
-      const winnerBefore = Math.round(winner.rating);
-      const loserBefore = Math.round(loser.rating);
+      const winnerBefore =
+        Math.round(winner.rating);
+      const loserBefore =
+        Math.round(loser.rating);
 
-      // 両者とも試合前のレートを使って同時に計算する。
-      const winnerAfterState = updateEloPlayer(
-        winner,
-        loser.rating,
-        1
-      );
-      const loserAfterState = updateEloPlayer(
-        loser,
-        winner.rating,
-        0
-      );
+      const winnerState = {
+        rating: winner.rating,
+        rd: winner.rd,
+        volatility:
+          winner.volatility,
+      };
 
-      winner.rating = winnerAfterState.rating;
-      loser.rating = loserAfterState.rating;
+      const loserState = {
+        rating: loser.rating,
+        rd: loser.rd,
+        volatility:
+          loser.volatility,
+      };
 
+      // 両者とも試合前のレート/RDを使って同時に計算する。
+      const winnerAfterElo =
+        updateEloPlayer(
+          winnerState,
+          loserState,
+          1
+        );
+
+      const loserAfterElo =
+        updateEloPlayer(
+          loserState,
+          winnerState,
+          0
+        );
+
+      const winnerAfterRd =
+        updateRdPlayer(
+          winnerState,
+          loserState,
+          1
+        );
+
+      const loserAfterRd =
+        updateRdPlayer(
+          loserState,
+          winnerState,
+          0
+        );
+
+      winner.rating =
+        winnerAfterElo.rating;
+      winner.rd =
+        winnerAfterRd.rd;
+      winner.volatility =
+        winnerAfterRd.volatility;
       winner.wins += 1;
+
+      loser.rating =
+        loserAfterElo.rating;
+      loser.rd =
+        loserAfterRd.rd;
+      loser.volatility =
+        loserAfterRd.volatility;
       loser.losses += 1;
 
       if (collectHistory) {
-        const winnerAfter = Math.round(winner.rating);
-        const loserAfter = Math.round(loser.rating);
+        const winnerAfter =
+          Math.round(winner.rating);
+        const loserAfter =
+          Math.round(loser.rating);
 
         history.push({
           ...record,
           winnerBefore,
           winnerAfter,
-          winnerDelta: winnerAfter - winnerBefore,
+          winnerDelta:
+            winnerAfter - winnerBefore,
           loserBefore,
           loserAfter,
-          loserDelta: loserAfter - loserBefore,
+          loserDelta:
+            loserAfter - loserBefore,
+          winnerRd:
+            Math.round(winner.rd),
+          loserRd:
+            Math.round(loser.rd),
         });
       }
     }
@@ -205,51 +478,106 @@ function calculateElo(data, season = 'all') {
     return history;
   };
 
+  const players = createPlayers();
+
   if (season === 'all') {
-    const players = createPlayers();
-    const history = processRecords(players, allRecords, true);
+    const history =
+      processRecords(
+        players,
+        allRecords,
+        true
+      );
 
     const ranking = [...players.values()]
-      .filter((player) => player.wins + player.losses > 0)
+      .filter(
+        (player) =>
+          player.wins + player.losses > 0
+      )
       .map((player) => ({
         ...player,
-        rating: Math.round(player.rating),
-        total: player.wins + player.losses,
+        rating: Math.round(
+          player.rating
+        ),
+        rd: Math.round(player.rd),
+        total:
+          player.wins +
+          player.losses,
       }))
       .sort(
         (a, b) =>
           b.rating - a.rating ||
           b.total - a.total ||
-          String(a.name).localeCompare(String(b.name), 'ja')
+          String(a.name).localeCompare(
+            String(b.name),
+            'ja'
+          )
       );
 
     return { ranking, history };
   }
 
-  const seasonNumber = Number(season);
-  if (!Number.isFinite(seasonNumber) || seasonNumber < 1) {
-    return { ranking: [], history: [] };
+  const seasonNumber =
+    Number(season);
+
+  if (
+    !Number.isFinite(
+      seasonNumber
+    ) ||
+    seasonNumber < 1
+  ) {
+    return {
+      ranking: [],
+      history: [],
+    };
   }
 
-  const players = createPlayers();
-  const history = processRecords(
+  const seasonStart =
+    (seasonNumber - 1) * 25 + 1;
+
+  // Eloだけを選択シーズン開始時に1500へリセットする。
+  // RDはそれ以前の全試合から引き継ぐ。
+  updateRdOnly(
     players,
-    getSeasonRecords(seasonNumber),
-    true
+    allRecords.filter(
+      (record) =>
+        (Number(
+          record.tournamentNumber
+        ) || 0) < seasonStart
+    )
   );
 
+  const history =
+    processRecords(
+      players,
+      getSeasonRecords(
+        seasonNumber
+      ),
+      true
+    );
+
   const ranking = [...players.values()]
-    .filter((player) => player.wins + player.losses > 0)
+    .filter(
+      (player) =>
+        player.wins + player.losses > 0
+    )
     .map((player) => ({
       ...player,
-      rating: Math.round(player.rating),
-      total: player.wins + player.losses,
+      rating: Math.round(
+        player.rating
+      ),
+      rd: Math.round(player.rd),
+      total:
+        player.wins +
+        player.losses,
     }))
     .sort(
       (a, b) =>
         b.rating - a.rating ||
         b.total - a.total ||
-        String(a.name).localeCompare(String(b.name), 'ja')
+        String(a.name).localeCompare(
+          String(b.name),
+          'ja'
+        )
     );
 
   return { ranking, history };
@@ -894,7 +1222,7 @@ export default function Home() {
               </h2>
 
               <p>
-                25大会ごとにシーズンを区切り、Eloでレートを算出します。各シーズン1500から開始し、1試合ごとにレートを更新します。K値は64です。
+                25大会ごとにシーズンを区切り、Eloでレートを算出します。Eloは各シーズン1500から開始し、1試合ごとに更新します。K値は64で、相手のRDが大きいほどレート変動を小さくします。RDはシーズンをまたいで引き継ぎます。
               </p>
             </div>
 
@@ -973,7 +1301,8 @@ export default function Home() {
                   </div>
 
                   <div className="rankRate">
-                    {player.rating}
+                    <strong>{player.rating}</strong>
+                    <small>± {player.rd}</small>
                   </div>
 
                   <div className="record">
