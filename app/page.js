@@ -89,7 +89,7 @@ function mergeData(oldData, newData) {
 }
 
 const ELO_INITIAL_RATING = 1500;
-const ELO_K = 128;
+const ELO_K = 96;
 const ELO_LOSS_K = 32;
 const ELO_RATING_SCALE = 744;
 
