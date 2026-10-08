@@ -2,14 +2,13 @@ import * as cheerio from 'cheerio';
 
 const BASE = 'https://smashmate.net';
 const USER_ID = 81727;
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
-const CONCURRENCY = 3;
+const UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
 
-// 同一人物の別アカウントをまとめたい場合、
-// 「旧アカウントUID: 現在まとめたいUID」の形で追加してください。
-// 例: { '12345': '67890' }
+const CONCURRENCY = 3;
+const NAME_CONCURRENCY = 5;
+
 const ACCOUNT_ALIASES = {
-  // 同一人物の別アカウントを統合（各グループ内で最新UID側へ寄せる）
   '99450': '145071',
   '118591': '149650',
   '148400': '164481',
@@ -22,33 +21,44 @@ const ACCOUNT_ALIASES = {
 function canonicalId(id) {
   let current = String(id);
   const seen = new Set();
+
   while (ACCOUNT_ALIASES[current] && !seen.has(current)) {
     seen.add(current);
     current = String(ACCOUNT_ALIASES[current]);
   }
+
   return current;
 }
 
-async function html(url, referer = BASE + '/') {
+async function html(url, referer = `${BASE}/`) {
   let lastError;
+
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const r = await fetch(url, {
+      const response = await fetch(url, {
         headers: {
           'User-Agent': UA,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
-          'Referer': referer
+          Referer: referer,
         },
-        cache: 'no-store'
+        cache: 'no-store',
       });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return await r.text();
-    } catch (e) {
-      lastError = e;
-      if (attempt < 2) await new Promise(r => setTimeout(r, 700));
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.text();
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 700));
+      }
     }
   }
+
   throw new Error(`${lastError?.message || '取得失敗'}: ${url}`);
 }
 
@@ -57,16 +67,18 @@ async function discoverFromUserPage() {
   const $ = cheerio.load(await html(userUrl));
   const found = new Map();
 
-  $('a[href*="/tournament/"]').each((_, e) => {
-    const href = $(e).attr('href') || '';
-    const text = $(e).text().replace(/\s+/g, ' ').trim();
+  $('a[href*="/tournament/"]').each((_, element) => {
+    const href = $(element).attr('href') || '';
+    const text = $(element).text().replace(/\s+/g, ' ').trim();
     const id = href.match(/\/tournament\/(\d+)\/?/)?.[1];
     const number = text.match(/人形劇\s*#\s*(\d+)/)?.[1];
+
     if (!id || !number) return;
+
     found.set(Number(number), {
       number: Number(number),
       tournamentId: id,
-      tournamentUrl: `${BASE}/tournament/${id}/`
+      tournamentUrl: `${BASE}/tournament/${id}/`,
     });
   });
 
@@ -74,194 +86,331 @@ async function discoverFromUserPage() {
 }
 
 async function findBracketUrl(tournament) {
-  const page = await html(tournament.tournamentUrl, `${BASE}/user_add_tournament/?user=${USER_ID}`);
+  const page = await html(
+    tournament.tournamentUrl,
+    `${BASE}/user_add_tournament/?user=${USER_ID}`
+  );
+
   const $ = cheerio.load(page);
   let href = '';
-  $('a[href*="/bracket/"]').each((_, e) => {
-    const h = $(e).attr('href') || '';
-    if (!href && /\/bracket\/\d+\/?/.test(h)) href = h;
+
+  $('a[href*="/bracket/"]').each((_, element) => {
+    const candidate = $(element).attr('href') || '';
+    if (!href && /\/bracket\/\d+\/?/.test(candidate)) {
+      href = candidate;
+    }
   });
+
   const id = href.match(/\/bracket\/(\d+)\/?/)?.[1];
-  if (!id) throw new Error('トーナメント表（bracket）のURLが見つかりません');
+
+  if (!id) {
+    throw new Error('トーナメント表（bracket）のURLが見つかりません');
+  }
+
   return `${BASE}/bracket/${id}/`;
 }
 
-function parseBracket(h, fallback) {
-  const $ = cheerio.load(h);
+function parseBracket(text, fallback) {
+  const $ = cheerio.load(text);
   const players = new Map();
   const records = [];
 
-  const title = $('title').text().replace(/のトーナメント表\s*スマメイト.*/u, '').trim();
+  const title = $('title')
+    .text()
+    .replace(/のトーナメント表\s*スマメイト.*/u, '')
+    .trim();
+
   const tournamentName = title || fallback;
 
   $('.tour_div_in').each((_, group) => {
     const boxes = $(group).find('.tour_user_box').toArray();
     if (boxes.length !== 2) return;
 
-    const pair = boxes.map((el) => ({
-      id: $(el).attr('data-uid'),
-      name: $(el).find('.tour_user_name').text().replace(/\s+/g, ' ').trim(),
-      result: Number($(el).attr('data-result'))
+    const pair = boxes.map((element) => ({
+      id: $(element).attr('data-uid'),
+      name: $(element)
+        .find('.tour_user_name')
+        .text()
+        .replace(/\s+/g, ' ')
+        .trim(),
+      result: Number($(element).attr('data-result')),
     }));
 
-    if (pair.some((p) => !p.id || !p.name || ![1, 2].includes(p.result))) return;
-    pair.forEach((p) => players.set(p.id, { id: p.id, name: p.name }));
+    if (
+      pair.some(
+        (player) =>
+          !player.id ||
+          !player.name ||
+          ![1, 2].includes(player.result)
+      )
+    ) {
+      return;
+    }
 
-    const winner = pair.find((p) => p.result === 1);
-    const loser = pair.find((p) => p.result === 2);
+    pair.forEach((player) => {
+      const id = canonicalId(player.id);
+      players.set(id, { id, name: player.name });
+    });
+
+    const winner = pair.find((player) => player.result === 1);
+    const loser = pair.find((player) => player.result === 2);
+
     if (!winner || !loser) return;
 
     records.push({
       winner: winner.name,
       loser: loser.name,
-      winnerId: winner.id,
-      loserId: loser.id,
-      round: $(group).closest('[data-round]').attr('data-round') || ''
+      winnerId: canonicalId(winner.id),
+      loserId: canonicalId(loser.id),
     });
   });
 
-  return { tournamentName, players: [...players.values()], records };
-}
-
-function normalizeRecords(records) {
-  return records.map((r) => ({
-    ...r,
-    winnerId: canonicalId(r.winnerId),
-    loserId: canonicalId(r.loserId)
-  }));
+  return {
+    tournamentName,
+    players: [...players.values()],
+    records,
+  };
 }
 
 function addStats(stats, records) {
-  for (const r of records) {
-    stats[r.winnerId] ??= {};
-    stats[r.loserId] ??= {};
-    stats[r.winnerId][r.loserId] ??= { wins: 0, losses: 0 };
-    stats[r.loserId][r.winnerId] ??= { wins: 0, losses: 0 };
-    stats[r.winnerId][r.loserId].wins++;
-    stats[r.loserId][r.winnerId].losses++;
+  for (const record of records) {
+    stats[record.winnerId] ??= {};
+    stats[record.loserId] ??= {};
+
+    stats[record.winnerId][record.loserId] ??= {
+      wins: 0,
+      losses: 0,
+    };
+
+    stats[record.loserId][record.winnerId] ??= {
+      wins: 0,
+      losses: 0,
+    };
+
+    stats[record.winnerId][record.loserId].wins++;
+    stats[record.loserId][record.winnerId].losses++;
   }
 }
 
 function finishStats(stats) {
-  for (const a of Object.keys(stats)) {
-    for (const b of Object.keys(stats[a])) {
-      const s = stats[a][b];
-      const total = s.wins + s.losses;
-      s.rate = total ? Math.round((s.wins / total) * 1000) / 10 : 0;
+  for (const opponents of Object.values(stats)) {
+    for (const stat of Object.values(opponents)) {
+      const total = stat.wins + stat.losses;
+      stat.rate = total
+        ? Math.round((stat.wins / total) * 1000) / 10
+        : 0;
     }
   }
 }
 
 async function mapWithConcurrency(items, limit, fn) {
-  const out = new Array(items.length);
+  const output = new Array(items.length);
   let next = 0;
+
   async function worker() {
     while (true) {
       const index = next++;
       if (index >= items.length) return;
-      try { out[index] = await fn(items[index], index); }
-      catch (error) { out[index] = { error: error instanceof Error ? error.message : String(error) }; }
+
+      try {
+        output[index] = await fn(items[index], index);
+      } catch (error) {
+        output[index] = {
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
     }
   }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-  return out;
-}
 
+  await Promise.all(
+    Array.from(
+      { length: Math.min(limit, items.length) },
+      worker
+    )
+  );
+
+  return output;
+}
 
 async function fetchCurrentPlayerName(player) {
   try {
     const page = await html(`${BASE}/user/${player.id}/`);
     const $ = cheerio.load(page);
-    const heading = $('h1').first().text().replace(/\s+/g, ' ').trim();
-    const m = heading.match(/^(.*?)さんのユーザーページ$/u);
-    if (m && m[1].trim()) return { id: player.id, name: m[1].trim() };
-    // Fallback: the user page has a "MATE ID" line and the name immediately
-    // before it in the user-info area. Keep the bracket name if parsing fails.
-    const bodyText = $('body').text().replace(/\s+/g, ' ').trim();
-    const beforeMate = bodyText.match(/ユーザー情報.*?\|\s*([^|]+?)\s*有線確認済み.*?MATE ID/);
-    if (beforeMate && beforeMate[1].trim()) return { id: player.id, name: beforeMate[1].trim() };
+
+    const heading = $('h1')
+      .first()
+      .text()
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const match = heading.match(/^(.*?)さんのユーザーページ$/u);
+
+    if (match?.[1]?.trim()) {
+      return { id: player.id, name: match[1].trim() };
+    }
   } catch (_) {}
-  return { id: player.id, name: player.name };
+
+  return player;
 }
 
 async function refreshCurrentPlayerNames(players) {
-  const refreshed = await mapWithConcurrency(players, 5, fetchCurrentPlayerName);
-  return refreshed.map((p, i) => p?.error ? players[i] : p);
+  const refreshed = await mapWithConcurrency(
+    players,
+    NAME_CONCURRENCY,
+    fetchCurrentPlayerName
+  );
+
+  return refreshed.map((player, index) =>
+    player?.error ? players[index] : player
+  );
 }
 
-export async function GET() {
-  try {
-    const tournaments = await discoverFromUserPage();
-    const results = await mapWithConcurrency(tournaments, CONCURRENCY, async (t) => {
-      const bracketUrl = await findBracketUrl(t);
-      const parsed = parseBracket(await html(bracketUrl, t.tournamentUrl), `人形劇#${t.number}`);
-      return { ...t, bracketUrl, ...parsed };
-    });
+async function fetchTournament(tournament) {
+  const bracketUrl = await findBracketUrl(tournament);
+  const parsed = parseBracket(
+    await html(bracketUrl, tournament.tournamentUrl),
+    `人形劇#${tournament.number}`
+  );
 
-    const allPlayers = new Map();
+  return {
+    ...tournament,
+    bracketUrl,
+    ...parsed,
+  };
+}
+
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+
+    // ブラウザが既に保存している大会番号。
+    // 大会一覧そのものは毎回1回だけ確認し、ここにない大会だけ取得する。
+    const known = new Set(
+      (searchParams.get('known') || '')
+        .split(',')
+        .map((value) => Number(value))
+        .filter(Number.isFinite)
+    );
+
+    const allTournaments = await discoverFromUserPage();
+
+    const targets = allTournaments.filter(
+      (tournament) => !known.has(tournament.number)
+    );
+
+    console.log(
+      `人形劇: 大会一覧${allTournaments.length}件 / 未取得${targets.length}件`
+    );
+
+    // 未取得大会が1件もなければ、ここで終了。
+    // tournament page / bracket / player page は一切読まない。
+    if (targets.length === 0) {
+      return Response.json({
+        seriesName: '人形劇',
+        source: `${BASE}/user_add_tournament/?user=${USER_ID}`,
+        tournaments: [],
+        players: [],
+        records: [],
+        matches: 0,
+        stats: {},
+        discoveredOnUserPage: allTournaments.length,
+        failed: [],
+        upToDate: true,
+      });
+    }
+
+    const results = await mapWithConcurrency(
+      targets,
+      CONCURRENCY,
+      fetchTournament
+    );
+
+    const players = new Map();
     const stats = {};
     const records = [];
-    const done = [];
+    const tournaments = [];
     const failed = [];
 
     results.forEach((result, index) => {
-      const source = tournaments[index];
+      const source = targets[index];
+
       if (!result || result.error) {
-        failed.push({ number: source.number, tournamentUrl: source.tournamentUrl, error: result?.error || '取得に失敗しました' });
+        failed.push({
+          number: source.number,
+          tournamentUrl: source.tournamentUrl,
+          error: result?.error || '大会データの取得に失敗しました',
+        });
         return;
       }
-      result.players.forEach((p) => {
-        const id = canonicalId(p.id);
-        if (!allPlayers.has(id) || !ACCOUNT_ALIASES[p.id]) {
-          allPlayers.set(id, { ...p, id });
-        }
+
+      result.players.forEach((player) => {
+        const id = canonicalId(player.id);
+        players.set(id, { id, name: player.name });
       });
-      const normalized = normalizeRecords(result.records);
-      addStats(stats, normalized);
-      normalized.forEach((record) => records.push({ ...record, tournamentNumber: source.number, tournament: result.tournamentName }));
-      done.push({
+
+      addStats(stats, result.records);
+
+      result.records.forEach((record) => {
+        records.push({
+          ...record,
+          tournamentNumber: source.number,
+          tournament: result.tournamentName,
+        });
+      });
+
+      tournaments.push({
         number: source.number,
         name: result.tournamentName,
         tournamentUrl: source.tournamentUrl,
-        bracketUrl: source.bracketUrl,
+        bracketUrl: result.bracketUrl,
         matches: result.records.length,
-        players: result.players.length
+        players: result.players.length,
       });
+    });
+
+    // 新しく読み込んだ大会に出てきたUIDだけ名前を最新化する。
+    // 未取得大会がない場合はこの処理自体が走らない。
+    for (const targetId of Object.values(ACCOUNT_ALIASES)) {
+      const id = canonicalId(targetId);
+      if (!players.has(id)) continue;
+    }
+
+    const currentPlayers = await refreshCurrentPlayerNames([
+      ...players.values(),
+    ]);
+
+    const names = new Map(
+      currentPlayers.map((player) => [String(player.id), player.name])
+    );
+
+    records.forEach((record) => {
+      record.winner = names.get(String(record.winnerId)) || record.winner;
+      record.loser = names.get(String(record.loserId)) || record.loser;
     });
 
     finishStats(stats);
 
-    // 統合先UIDだけが存在するケースでも現在名を取得できるようにする。
-    for (const targetId of Object.values(ACCOUNT_ALIASES)) {
-      const id = canonicalId(targetId);
-      if (!allPlayers.has(id)) allPlayers.set(id, { id, name: id });
-    }
-
-    // Bracket pages preserve historical names. For display, refresh every UID
-    // from the player's current Smashmate user page.
-    const currentPlayers = await refreshCurrentPlayerNames([...allPlayers.values()]);
-    const currentNameById = new Map(currentPlayers.map(p => [String(p.id), p.name]));
-    for (const record of records) {
-      record.winner = currentNameById.get(String(record.winnerId)) || record.winner;
-      record.loser = currentNameById.get(String(record.loserId)) || record.loser;
-    }
-    for (const p of done) { /* tournament names are intentionally historical */ }
-
     return Response.json({
       seriesName: '人形劇',
       source: `${BASE}/user_add_tournament/?user=${USER_ID}`,
-      tournaments: done.sort((a, b) => a.number - b.number),
+      tournaments: tournaments.sort((a, b) => a.number - b.number),
       players: currentPlayers,
       records,
       matches: records.length,
       stats,
-      discoveredOnUserPage: tournaments.length,
-      failed
+      discoveredOnUserPage: allTournaments.length,
+      failed,
+      upToDate: false,
     });
   } catch (error) {
-    return Response.json({
-      error: '人形劇シリーズの取得に失敗しました。',
-      detail: error instanceof Error ? error.message : String(error)
-    }, { status: 502 });
+    console.error('人形劇シリーズ取得エラー', error);
+
+    return Response.json(
+      {
+        error: '人形劇シリーズの取得に失敗しました。',
+        detail: error instanceof Error ? error.message : String(error),
+      },
+      { status: 502 }
+    );
   }
 }
