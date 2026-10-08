@@ -205,6 +205,82 @@ function calculateGlicko2Ranking(data, season) {
   return [...players.values()].filter((p) => p.wins + p.losses > 0).map((p) => ({ ...p, rating: Math.round(p.rating), rd: Math.round(p.rd), total: p.wins + p.losses })).sort((a, b) => b.rating - a.rating || a.rd - b.rd || b.total - a.total || String(a.name).localeCompare(String(b.name), 'ja'));
 }
 
+
+function calculateMatchRatingChanges(data) {
+  if (!data?.records?.length) return [];
+
+  const playerStates = new Map();
+
+  for (const player of data.players || []) {
+    playerStates.set(String(player.id), {
+      rating: GLICKO2_INITIAL_RATING,
+      rd: GLICKO2_INITIAL_RD,
+      volatility: GLICKO2_INITIAL_VOLATILITY,
+    });
+  }
+
+  const sortedRecords = [...data.records].sort(
+    (a, b) =>
+      (Number(a.tournamentNumber) || 0) -
+      (Number(b.tournamentNumber) || 0)
+  );
+
+  return sortedRecords.map((record) => {
+    const winner = playerStates.get(String(record.winnerId));
+    const loser = playerStates.get(String(record.loserId));
+
+    if (!winner || !loser) {
+      return {
+        ...record,
+        winnerBefore: null,
+        winnerAfter: null,
+        winnerDelta: null,
+        loserBefore: null,
+        loserAfter: null,
+        loserDelta: null,
+      };
+    }
+
+    const winnerBefore = Math.round(winner.rating);
+    const loserBefore = Math.round(loser.rating);
+
+    const winnerAfterState = updateGlicko2Player(winner, [
+      {
+        opponent: { rating: loser.rating, rd: loser.rd },
+        score: 1,
+      },
+    ]);
+
+    const loserAfterState = updateGlicko2Player(loser, [
+      {
+        opponent: { rating: winner.rating, rd: winner.rd },
+        score: 0,
+      },
+    ]);
+
+    winner.rating = winnerAfterState.rating;
+    winner.rd = winnerAfterState.rd;
+    winner.volatility = winnerAfterState.volatility;
+
+    loser.rating = loserAfterState.rating;
+    loser.rd = loserAfterState.rd;
+    loser.volatility = loserAfterState.volatility;
+
+    const winnerAfter = Math.round(winner.rating);
+    const loserAfter = Math.round(loser.rating);
+
+    return {
+      ...record,
+      winnerBefore,
+      winnerAfter,
+      winnerDelta: winnerAfter - winnerBefore,
+      loserBefore,
+      loserAfter,
+      loserDelta: loserAfter - loserBefore,
+    };
+  });
+}
+
 function getRecentResults(records, playerId, opponentId) {
   if (!Array.isArray(records)) return [];
 
@@ -1000,7 +1076,7 @@ export default function Home() {
 
           {show && (
             <div className="matchList">
-              {data.records.map(
+              {calculateMatchRatingChanges(data).slice().reverse().map(
                 (match, index) => (
                   <div
                     className="match"
@@ -1011,13 +1087,29 @@ export default function Home() {
                     </span>
 
                     <span className="winner">
-                      {match.winner}
+                      <strong>{match.winner}</strong>
+                      {match.winnerBefore != null && (
+                        <small className="ratingChange">
+                          {match.winnerBefore} → {match.winnerAfter}{' '}
+                          <i className={match.winnerDelta >= 0 ? 'up' : 'down'}>
+                            ({match.winnerDelta >= 0 ? '+' : ''}{match.winnerDelta})
+                          </i>
+                        </small>
+                      )}
                     </span>
 
                     <b>WIN</b>
 
                     <span className="loser">
-                      {match.loser}
+                      <strong>{match.loser}</strong>
+                      {match.loserBefore != null && (
+                        <small className="ratingChange">
+                          {match.loserBefore} → {match.loserAfter}{' '}
+                          <i className={match.loserDelta >= 0 ? 'up' : 'down'}>
+                            ({match.loserDelta >= 0 ? '+' : ''}{match.loserDelta})
+                          </i>
+                        </small>
+                      )}
                     </span>
                   </div>
                 )
