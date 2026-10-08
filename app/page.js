@@ -90,6 +90,7 @@ function mergeData(oldData, newData) {
 
 const ELO_INITIAL_RATING = 1500;
 const ELO_K = 128;
+const ELO_LOSS_K = 32;
 const ELO_RATING_SCALE = 744;
 
 const GLICKO2_SCALE = 173.7178;
@@ -298,8 +299,10 @@ function updateEloPlayer(
       ? Math.min(1, 200 / ratingDifference)
       : 1;
 
+  const kValue = score === 1 ? ELO_K : ELO_LOSS_K;
+
   const delta =
-    ELO_K *
+    kValue *
     rdFactor *
     ratingFactor *
     (score - expected);
