@@ -131,20 +131,20 @@ function getRecentResults(records, playerId, opponentId) {
   const getWinnerId = (record) => {
     return getId(
       record.winnerId ??
-      record.winner_id ??
-      record.winner ??
-      record.winnerPlayer ??
-      record.winner_player
+        record.winner_id ??
+        record.winner ??
+        record.winnerPlayer ??
+        record.winner_player
     );
   };
 
   const getLoserId = (record) => {
     return getId(
       record.loserId ??
-      record.loser_id ??
-      record.loser ??
-      record.loserPlayer ??
-      record.loser_player
+        record.loser_id ??
+        record.loser ??
+        record.loserPlayer ??
+        record.loser_player
     );
   };
 
@@ -172,15 +172,15 @@ function getRecentResults(records, playerId, opponentId) {
       return (
         Number(
           b.tournamentNumber ??
-          b.tournament_number ??
-          b.tournament ??
-          0
+            b.tournament_number ??
+            b.tournament ??
+            0
         ) -
         Number(
           a.tournamentNumber ??
-          a.tournament_number ??
-          a.tournament ??
-          0
+            a.tournament_number ??
+            a.tournament ??
+            0
         )
       );
     })
@@ -204,6 +204,7 @@ function getRecentResults(records, playerId, opponentId) {
       };
     });
 }
+
 export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -214,6 +215,14 @@ export default function Home() {
   const [season, setSeason] = useState('all');
 
   const [loaded, setLoaded] = useState(false);
+
+  /*
+   * 今開いている対戦相手
+   *
+   * null なら全部閉じている。
+   */
+  const [expandedOpponent, setExpandedOpponent] =
+    useState(null);
 
   /*
    * 初回表示
@@ -328,6 +337,7 @@ export default function Home() {
     setSelected('all');
     setSeason('all');
     setSortKey('rate');
+    setExpandedOpponent(null);
     setError('');
   }
 
@@ -597,6 +607,9 @@ export default function Home() {
       );
   }, [data, players, season]);
 
+  /*
+   * データがまだない場合
+   */
   if (!data) {
     return (
       <main className="container">
@@ -761,6 +774,8 @@ export default function Home() {
                             String(player.id)
                           );
 
+                          setExpandedOpponent(null);
+
                           window.scrollTo({
                             top: 0,
                             behavior:
@@ -803,9 +818,10 @@ export default function Home() {
         <div className="playerSelectWrap">
           <select
             value={selected}
-            onChange={(e) =>
-              setSelected(e.target.value)
-            }
+            onChange={(e) => {
+              setSelected(e.target.value);
+              setExpandedOpponent(null);
+            }}
           >
             <option value="all">
               プレイヤーを選択
@@ -881,77 +897,131 @@ export default function Home() {
                 </thead>
 
                 <tbody>
-                  {opponents.map(
-                    (opponent) => {
-                      const recentResults =
-                        getRecentResults(
-                          data.records,
-                          selectedPlayer.id,
-                          opponent.id
-                        );
+                  {opponents.map((opponent) => {
+                    const recentResults =
+                      getRecentResults(
+                        data.records,
+                        selectedPlayer.id,
+                        opponent.id
+                      );
 
-                      return (
-                        <tr
-                          key={opponent.id}
-                        >
-                          <td className="opponentCell">
+                    const isExpanded =
+                      expandedOpponent ===
+                      String(opponent.id);
+
+                    return (
+                      <tr
+                        key={opponent.id}
+                        className={`opponentRow ${
+                          isExpanded
+                            ? 'expanded'
+                            : ''
+                        }`}
+                        onClick={() => {
+                          setExpandedOpponent(
+                            isExpanded
+                              ? null
+                              : String(
+                                  opponent.id
+                                )
+                          );
+                        }}
+                      >
+                        <td className="opponentCell">
+                          <div className="opponentName">
                             {opponent.name}
-                          </td>
+                          </div>
 
-                          <td className="rateCell">
-                            <strong>
-                              {opponent.rate}%
-                            </strong>
-                          </td>
+                          <div className="opponentTapHint">
+                            {isExpanded
+                              ? 'タップで閉じる'
+                              : 'タップで詳細'}
+                          </div>
+                        </td>
 
-                          <td className="recordCell">
-                            <div className="recordSummary">
+                        <td className="rateCell">
+                          <strong>
+                            {opponent.rate}%
+                          </strong>
+                        </td>
+
+                        <td className="recordCell">
+                          <div className="recordSummary">
+                            <span>
                               {opponent.wins}勝
-                              {opponent.losses}敗
-                            </div>
+                            </span>
 
-                            {recentResults.length >
-                              0 && (
-                              <div
-                                className="recentResults"
-                                aria-label="直近5試合"
-                              >
-                                {recentResults.map(
+                            <span>
+                              {opponent.losses}敗
+                            </span>
+                          </div>
+
+                          {isExpanded && (
+                            <div
+                              className="recentResults"
+                              aria-label="直近5試合"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                              }}
+                            >
+                              {recentResults.length >
+                              0 ? (
+                                recentResults.map(
                                   (
                                     result,
                                     index
                                   ) => (
                                     <span
                                       key={`${result.tournamentNumber}-${index}`}
-                                      className={`recentResult ${
+                                      className={[
+                                        'recentResult',
                                         result.result ===
                                         'W'
                                           ? 'win'
-                                          : 'loss'
-                                      } ${
+                                          : 'loss',
                                         index === 0
                                           ? 'latest'
-                                          : ''
-                                      }`}
-                                      title={`人形劇#${result.tournamentNumber}`}
+                                          : '',
+                                      ]
+                                        .filter(
+                                          Boolean
+                                        )
+                                        .join(' ')}
+                                      title={
+                                        result.tournamentNumber
+                                          ? `人形劇#${result.tournamentNumber}`
+                                          : '対戦結果'
+                                      }
                                     >
                                       {
                                         result.result
                                       }
                                     </span>
                                   )
-                                )}
-                              </div>
-                            )}
-                          </td>
+                                )
+                              ) : (
+                                <span className="recentNoData">
+                                  データなし
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
 
-                          <td className="matchesCell">
+                        <td className="matchesCell">
+                          <div className="matchesValue">
                             {opponent.matches}
-                          </td>
-                        </tr>
-                      );
-                    }
-                  )}
+                          </div>
+
+                          <div className="opponentArrow">
+                            {isExpanded
+                              ? '▲'
+                              : '▼'}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1107,83 +1177,4 @@ export default function Home() {
       </footer>
     </main>
   );
-}
-.opponentTable .recordCell {
-  width: 32% !important;
-  min-width: 0 !important;
-  overflow: visible !important;
-}
-
-.opponentTable .recentResults {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 3px !important;
-  width: 100% !important;
-  margin-top: 7px !important;
-  min-height: 25px !important;
-  height: auto !important;
-  white-space: nowrap !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  scrollbar-width: none;
-}
-
-.opponentTable .recentResults::-webkit-scrollbar {
-  display: none;
-}
-
-.opponentTable .recentResult {
-  display: grid !important;
-  place-items: center !important;
-  width: 20px !important;
-  height: 20px !important;
-  min-width: 20px !important;
-  flex: 0 0 20px !important;
-  border-radius: 4px !important;
-  color: #fff !important;
-  font-size: 9px !important;
-  font-weight: 900 !important;
-}
-
-.opponentTable .recentResult.win {
-  background: #35a66b !important;
-}
-
-.opponentTable .recentResult.loss {
-  background: #c94d58 !important;
-}
-
-.opponentTable .recentResult.latest {
-  width: 25px !important;
-  height: 25px !important;
-  min-width: 25px !important;
-  flex-basis: 25px !important;
-  font-size: 11px !important;
-}
-
-@media (max-width: 700px) {
-  .opponentTable .recordCell {
-    width: 35% !important;
-  }
-
-  .opponentTable .recentResults {
-    justify-content: flex-start !important;
-  }
-
-  .opponentTable .recentResult {
-    width: 18px !important;
-    height: 18px !important;
-    min-width: 18px !important;
-    flex-basis: 18px !important;
-    font-size: 8px !important;
-  }
-
-  .opponentTable .recentResult.latest {
-    width: 23px !important;
-    height: 23px !important;
-    min-width: 23px !important;
-    flex-basis: 23px !important;
-    font-size: 10px !important;
-  }
 }
