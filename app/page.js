@@ -103,7 +103,7 @@ function glicko2Expected(mu, opponentMu, opponentPhi) {
 }
 
 function glicko2F(x, delta, phi, v, a) {
-  const ex = Math.exp(x);
+  const ex = Math.exp(Math.max(-50, Math.min(50, x)));
   return (
     (ex * (delta * delta - phi * phi - v - ex)) /
       (2 * Math.pow(phi * phi + v + ex, 2)) -
@@ -142,7 +142,12 @@ function updateGlicko2Player(player, results) {
     B = Math.log(delta * delta - phi * phi - v);
   } else {
     let k = 1;
-    while (glicko2F(a - k * GLICKO2_TAU, delta, phi, v, a) < 0) k += 1;
+    while (
+      k < 100 &&
+      glicko2F(a - k * GLICKO2_TAU, delta, phi, v, a) < 0
+    ) {
+      k += 1;
+    }
     B = a - k * GLICKO2_TAU;
   }
 
