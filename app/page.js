@@ -90,7 +90,6 @@ function mergeData(oldData, newData) {
 
 const ELO_INITIAL_RATING = 1500;
 const ELO_K = 64;
-const ELO_EARLY_MATCH_SCALE = 0.2;
 
 function eloExpected(rating, opponentRating) {
   return 1 / (1 + Math.pow(10, (opponentRating - rating) / 400));
@@ -98,8 +97,7 @@ function eloExpected(rating, opponentRating) {
 
 function updateEloPlayer(player, opponentRating, score) {
   const expected = eloExpected(player.rating, opponentRating);
-  const games = player.wins + player.losses;
-  const k = games < 5 ? ELO_K * ELO_EARLY_MATCH_SCALE : ELO_K;
+  const k = ELO_K;
   const delta = k * (score - expected);
 
   return {
@@ -896,7 +894,7 @@ export default function Home() {
               </h2>
 
               <p>
-                25大会ごとにシーズンを区切り、Eloでレートを算出します。各シーズン1500から開始し、1試合ごとにレートを更新します。K値は64で、各選手のシーズン最初の5試合は20%に抑えます。
+                25大会ごとにシーズンを区切り、Eloでレートを算出します。各シーズン1500から開始し、1試合ごとにレートを更新します。K値は64です。
               </p>
             </div>
 
