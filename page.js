@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-const STORAGE_KEY = 'ningyogeki-stats-v3';
+const STORAGE_KEY = 'ningyogeki-stats-v4';
+
+/* =========================================================
+   Data helpers
+========================================================= */
 
 function mergeStats(base = {}, added = {}) {
   const result = structuredClone(base || {});
@@ -16,8 +20,13 @@ function mergeStats(base = {}, added = {}) {
         losses: 0,
       };
 
-      result[playerId][opponentId].wins += Number(stat.wins || 0);
-      result[playerId][opponentId].losses += Number(stat.losses || 0);
+      result[playerId][opponentId].wins += Number(
+        stat.wins || 0
+      );
+
+      result[playerId][opponentId].losses += Number(
+        stat.losses || 0
+      );
 
       const total =
         result[playerId][opponentId].wins +
@@ -25,7 +34,8 @@ function mergeStats(base = {}, added = {}) {
 
       result[playerId][opponentId].rate = total
         ? Math.round(
-            (result[playerId][opponentId].wins / total) * 1000
+            (result[playerId][opponentId].wins / total) *
+              1000
           ) / 10
         : 0;
     }
@@ -44,7 +54,9 @@ function getTournamentNumber(record) {
 }
 
 function getPlayerId(value) {
-  if (value == null) return null;
+  if (value == null) {
+    return null;
+  }
 
   if (typeof value === 'object') {
     return (
@@ -89,29 +101,61 @@ function getLastTournament(data) {
 }
 
 function getSeason(number) {
-  if (!number) return 1;
+  if (!number) {
+    return 1;
+  }
+
   return Math.floor((Number(number) - 1) / 25) + 1;
 }
 
-function mergeRecords(oldRecords = [], newRecords = []) {
+/* =========================================================
+   Records
+========================================================= */
+
+function mergeRecords(
+  oldRecords = [],
+  newRecords = []
+) {
   const map = new Map();
 
-  const add = (record) => {
+  const add = (record, index) => {
     const winnerId = getWinnerId(record);
     const loserId = getLoserId(record);
-    const tournamentNumber = getTournamentNumber(record);
+    const tournamentNumber =
+      getTournamentNumber(record);
 
-    const key = [
-      tournamentNumber,
-      String(winnerId ?? ''),
-      String(loserId ?? ''),
-    ].join('|');
-
-    if (!winnerId || !loserId) {
+    if (
+      winnerId == null ||
+      loserId == null ||
+      !tournamentNumber
+    ) {
       return;
     }
 
-    map.set(key, record);
+    /*
+     * 同じ大会・同じ勝敗の記録が重複していた場合だけ
+     * まとめる。
+     *
+     * matchIndex がAPI側にあれば、それもキーに使う。
+     */
+    const matchIndex =
+      record?.matchIndex ??
+      record?.match_index ??
+      index;
+
+    const key = [
+      tournamentNumber,
+      String(winnerId),
+      String(loserId),
+      String(matchIndex),
+    ].join('|');
+
+    map.set(key, {
+      ...record,
+      tournamentNumber,
+      winnerId,
+      loserId,
+    });
   };
 
   oldRecords.forEach(add);
@@ -124,9 +168,23 @@ function mergeRecords(oldRecords = [], newRecords = []) {
   );
 }
 
+/* =========================================================
+   Merge whole dataset
+========================================================= */
+
 function mergeData(oldData, newData) {
   if (!oldData) {
-    return newData;
+    return {
+      ...newData,
+      records: mergeRecords(
+        [],
+        newData?.records || []
+      ),
+      matches:
+        newData?.records?.length ||
+        newData?.matches ||
+        0,
+    };
   }
 
   const playerMap = new Map();
@@ -155,7 +213,9 @@ function mergeData(oldData, newData) {
     );
   }
 
-  const tournaments = [...tournamentMap.values()].sort(
+  const tournaments = [
+    ...tournamentMap.values(),
+  ].sort(
     (a, b) =>
       Number(a.number) - Number(b.number)
   );
@@ -186,12 +246,10 @@ function mergeData(oldData, newData) {
   };
 }
 
-/*
- * 選択したプレイヤーと相手の
- * 直近5試合を取得する。
- *
- * 左側が最新。
- */
+/* =========================================================
+   Recent 5 results
+========================================================= */
+
 function getRecentResults(
   records,
   playerId,
@@ -205,11 +263,18 @@ function getRecentResults(
   const opponent = String(opponentId);
 
   return records
-    .filter((record) => {
+    .map((record, index) => ({
+      record,
+      index,
+    }))
+    .filter(({ record }) => {
       const winnerId = getWinnerId(record);
       const loserId = getLoserId(record);
 
-      if (winnerId == null || loserId == null) {
+      if (
+        winnerId == null ||
+        loserId == null
+      ) {
         return false;
       }
 
@@ -217,17 +282,29 @@ function getRecentResults(
       const loser = String(loserId);
 
       return (
-        (winner === player && loser === opponent) ||
-        (winner === opponent && loser === player)
+        (winner === player &&
+          loser === opponent) ||
+        (winner === opponent &&
+          loser === player)
       );
     })
-    .sort(
-      (a, b) =>
-        getTournamentNumber(b) -
-        getTournamentNumber(a)
-    )
+    .sort((a, b) => {
+      const tournamentDiff =
+        getTournamentNumber(b.record) -
+        getTournamentNumber(a.record);
+
+      if (tournamentDiff !== 0) {
+        return tournamentDiff;
+      }
+
+      /*
+       * 同じ大会内なら、recordsに入っている
+       * 後ろ側を新しいものとして扱う。
+       */
+      return b.index - a.index;
+    })
     .slice(0, 5)
-    .map((record) => {
+    .map(({ record }) => {
       const winnerId = getWinnerId(record);
 
       return {
@@ -242,16 +319,31 @@ function getRecentResults(
     });
 }
 
+/* =========================================================
+   Component
+========================================================= */
+
 export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [selected, setSelected] = useState('all');
-  const [sortKey, setSortKey] = useState('rate');
-  const [season, setSeason] = useState('all');
+  const [selected, setSelected] =
+    useState('all');
 
-  const [loaded, setLoaded] = useState(false);
+  const [sortKey, setSortKey] =
+    useState('rate');
+
+  const [season, setSeason] =
+    useState('all');
+
+  const [loaded, setLoaded] =
+    useState(false);
+
+  /* =======================================================
+     Load localStorage
+  ======================================================= */
 
   useEffect(() => {
     try {
@@ -259,7 +351,8 @@ export default function Home() {
         localStorage.getItem(STORAGE_KEY);
 
       if (saved) {
-        const parsed = JSON.parse(saved);
+        const parsed =
+          JSON.parse(saved);
 
         if (
           parsed?.players &&
@@ -278,8 +371,14 @@ export default function Home() {
     setLoaded(true);
   }, []);
 
+  /* =======================================================
+     Save localStorage
+  ======================================================= */
+
   useEffect(() => {
-    if (!loaded || !data) return;
+    if (!loaded || !data) {
+      return;
+    }
 
     try {
       localStorage.setItem(
@@ -294,24 +393,30 @@ export default function Home() {
     }
   }, [data, loaded]);
 
-  async function loadLatest() {
+  /* =======================================================
+     Fetch latest data
+  ======================================================= */
+
+  async function loadLatest(
+    baseData = data
+  ) {
+    if (loading) {
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      /*
-       * API側は `known` を使う。
-       * これまでの `since` はAPI側で見ていなかったため、
-       * 毎回すべての大会を取得してしまっていた。
-       */
       const knownNumbers =
-        data?.tournaments
+        baseData?.tournaments
           ?.map((tournament) =>
             Number(tournament.number)
           )
           .filter(Number.isFinite) || [];
 
-      const params = new URLSearchParams();
+      const params =
+        new URLSearchParams();
 
       if (knownNumbers.length > 0) {
         params.set(
@@ -329,7 +434,8 @@ export default function Home() {
         cache: 'no-store',
       });
 
-      const json = await response.json();
+      const json =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -339,7 +445,10 @@ export default function Home() {
       }
 
       setData((current) =>
-        mergeData(current, json)
+        mergeData(
+          current || baseData,
+          json
+        )
       );
     } catch (e) {
       console.error(e);
@@ -354,6 +463,64 @@ export default function Home() {
     }
   }
 
+  /* =======================================================
+     Initial latest check
+  ======================================================= */
+
+  useEffect(() => {
+    if (!loaded) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function initialLoad() {
+      try {
+        const saved =
+          localStorage.getItem(
+            STORAGE_KEY
+          );
+
+        let savedData = null;
+
+        if (saved) {
+          const parsed =
+            JSON.parse(saved);
+
+          if (
+            parsed?.players &&
+            parsed?.stats
+          ) {
+            savedData = parsed;
+          }
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        await loadLatest(savedData);
+      } catch (e) {
+        console.error(
+          '初回データ確認に失敗しました',
+          e
+        );
+      }
+    }
+
+    initialLoad();
+
+    return () => {
+      cancelled = true;
+    };
+    // 初回だけ実行
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
+  /* =======================================================
+     Reset
+  ======================================================= */
+
   function resetData() {
     if (
       !window.confirm(
@@ -363,7 +530,9 @@ export default function Home() {
       return;
     }
 
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(
+      STORAGE_KEY
+    );
 
     setData(null);
     setSelected('all');
@@ -372,8 +541,14 @@ export default function Home() {
     setError('');
   }
 
+  /* =======================================================
+     Players
+  ======================================================= */
+
   const players = useMemo(() => {
-    if (!data) return [];
+    if (!data) {
+      return [];
+    }
 
     return [...(data.players || [])].sort(
       (a, b) =>
@@ -384,14 +559,19 @@ export default function Home() {
     );
   }, [data]);
 
+  /* =======================================================
+     Seasons
+  ======================================================= */
+
   const seasons = useMemo(() => {
     if (!data?.tournaments?.length) {
       return [];
     }
 
     const maxSeason = Math.max(
-      ...data.tournaments.map((tournament) =>
-        getSeason(tournament.number)
+      ...data.tournaments.map(
+        (tournament) =>
+          getSeason(tournament.number)
       )
     );
 
@@ -401,62 +581,95 @@ export default function Home() {
     );
   }, [data]);
 
-  const selectedPlayer = useMemo(() => {
-    if (
-      !data ||
-      selected === 'all'
-    ) {
-      return null;
-    }
+  /* =======================================================
+     Selected player
+  ======================================================= */
 
-    return players.find(
-      (player) =>
-        String(player.id) ===
-        String(selected)
-    );
-  }, [data, players, selected]);
+  const selectedPlayer =
+    useMemo(() => {
+      if (
+        !data ||
+        selected === 'all'
+      ) {
+        return null;
+      }
+
+      return players.find(
+        (player) =>
+          String(player.id) ===
+          String(selected)
+      );
+    }, [
+      data,
+      players,
+      selected,
+    ]);
+
+  /* =======================================================
+     Opponents
+  ======================================================= */
 
   const opponents = useMemo(() => {
-    if (!data || !selectedPlayer) {
+    if (
+      !data ||
+      !selectedPlayer
+    ) {
       return [];
     }
 
     const ownStats =
-      data.stats?.[selectedPlayer.id] || {};
+      data.stats?.[
+        selectedPlayer.id
+      ] || {};
 
-    return Object.entries(ownStats)
-      .map(([opponentId, stat]) => {
-        const opponent = players.find(
-          (player) =>
-            String(player.id) ===
-            String(opponentId)
-        );
+    return Object.entries(
+      ownStats
+    )
+      .map(
+        ([opponentId, stat]) => {
+          const opponent =
+            players.find(
+              (player) =>
+                String(player.id) ===
+                String(opponentId)
+            );
 
-        if (!opponent) {
-          return null;
+          if (!opponent) {
+            return null;
+          }
+
+          const wins =
+            Number(stat.wins || 0);
+
+          const losses =
+            Number(
+              stat.losses || 0
+            );
+
+          const matches =
+            wins + losses;
+
+          return {
+            ...opponent,
+
+            wins,
+
+            losses,
+
+            matches,
+
+            rate:
+              stat.rate ??
+              (matches
+                ? Math.round(
+                    (wins /
+                      matches) *
+                      1000
+                  ) / 10
+                : 0),
+          };
         }
-
-        const wins = Number(stat.wins || 0);
-        const losses = Number(
-          stat.losses || 0
-        );
-
-        const matches = wins + losses;
-
-        return {
-          ...opponent,
-          wins,
-          losses,
-          matches,
-          rate:
-            stat.rate ??
-            (matches
-              ? Math.round(
-                  (wins / matches) * 1000
-                ) / 10
-              : 0),
-        };
-      })
+      )
       .filter(Boolean)
       .sort((a, b) => {
         if (sortKey === 'name') {
@@ -468,16 +681,20 @@ export default function Home() {
           );
         }
 
-        if (sortKey === 'matches') {
+        if (
+          sortKey === 'matches'
+        ) {
           return (
-            b.matches - a.matches ||
+            b.matches -
+              a.matches ||
             b.rate - a.rate
           );
         }
 
         return (
           b.rate - a.rate ||
-          b.matches - a.matches
+          b.matches -
+            a.matches
         );
       });
   }, [
@@ -487,126 +704,189 @@ export default function Home() {
     sortKey,
   ]);
 
-  const matchHistory = useMemo(() => {
-    if (!data || !selectedPlayer) {
-      return [];
-    }
+  /* =======================================================
+     Match history
+  ======================================================= */
 
-    return (data.records || [])
-      .filter((record) => {
-        const winnerId = getWinnerId(record);
-        const loserId = getLoserId(record);
-        const playerId = String(
-          selectedPlayer.id
-        );
-
-        return (
-          String(winnerId) === playerId ||
-          String(loserId) === playerId
-        );
-      })
-      .filter((record) => {
-        if (season === 'all') {
-          return true;
-        }
-
-        return (
-          getSeason(
-            getTournamentNumber(record)
-          ) === Number(season)
-        );
-      })
-      .sort(
-        (a, b) =>
-          getTournamentNumber(b) -
-          getTournamentNumber(a)
-      );
-  }, [
-    data,
-    selectedPlayer,
-    season,
-  ]);
-
-  const seasonRanking = useMemo(() => {
-    if (!data) return [];
-
-    const targetRecords =
-      season === 'all'
-        ? data.records || []
-        : (data.records || []).filter(
-            (record) =>
-              getSeason(
-                getTournamentNumber(record)
-              ) === Number(season)
-          );
-
-    const stats = {};
-
-    for (const record of targetRecords) {
-      const winnerId = getWinnerId(record);
-      const loserId = getLoserId(record);
-
+  const matchHistory =
+    useMemo(() => {
       if (
-        winnerId == null ||
-        loserId == null
+        !data ||
+        !selectedPlayer
       ) {
-        continue;
+        return [];
       }
 
-      const winner = String(winnerId);
-      const loser = String(loserId);
+      return (data.records || [])
+        .filter((record) => {
+          const winnerId =
+            getWinnerId(record);
 
-      stats[winner] ??= {
-        wins: 0,
-        losses: 0,
-      };
+          const loserId =
+            getLoserId(record);
 
-      stats[loser] ??= {
-        wins: 0,
-        losses: 0,
-      };
+          const playerId =
+            String(
+              selectedPlayer.id
+            );
 
-      stats[winner].wins++;
-      stats[loser].losses++;
-    }
+          return (
+            String(winnerId) ===
+              playerId ||
+            String(loserId) ===
+              playerId
+          );
+        })
+        .filter((record) => {
+          if (season === 'all') {
+            return true;
+          }
 
-    return players
-      .map((player) => {
-        const stat =
-          stats[String(player.id)] || {
-            wins: 0,
-            losses: 0,
-          };
+          return (
+            getSeason(
+              getTournamentNumber(
+                record
+              )
+            ) ===
+            Number(season)
+          );
+        })
+        .sort(
+          (a, b) =>
+            getTournamentNumber(
+              b
+            ) -
+            getTournamentNumber(
+              a
+            )
+        );
+    }, [
+      data,
+      selectedPlayer,
+      season,
+    ]);
 
-        const total =
-          stat.wins + stat.losses;
+  /* =======================================================
+     Season ranking
+  ======================================================= */
 
-        return {
-          ...player,
-          wins: stat.wins,
-          losses: stat.losses,
-          total,
-          rate: total
-            ? Math.round(
-                (stat.wins / total) * 1000
-              ) / 10
-            : 0,
+  const seasonRanking =
+    useMemo(() => {
+      if (!data) {
+        return [];
+      }
+
+      const targetRecords =
+        season === 'all'
+          ? data.records || []
+          : (
+              data.records || []
+            ).filter(
+              (record) =>
+                getSeason(
+                  getTournamentNumber(
+                    record
+                  )
+                ) ===
+                Number(season)
+            );
+
+      const stats = {};
+
+      for (const record of targetRecords) {
+        const winnerId =
+          getWinnerId(record);
+
+        const loserId =
+          getLoserId(record);
+
+        if (
+          winnerId == null ||
+          loserId == null
+        ) {
+          continue;
+        }
+
+        const winner =
+          String(winnerId);
+
+        const loser =
+          String(loserId);
+
+        stats[winner] ??= {
+          wins: 0,
+          losses: 0,
         };
-      })
-      .filter(
-        (player) => player.total > 0
-      )
-      .sort(
-        (a, b) =>
-          b.rate - a.rate ||
-          b.total - a.total ||
-          b.wins - a.wins ||
-          String(a.name).localeCompare(
-            String(b.name),
-            'ja'
-          )
-      );
-  }, [data, players, season]);
+
+        stats[loser] ??= {
+          wins: 0,
+          losses: 0,
+        };
+
+        stats[winner].wins++;
+
+        stats[loser].losses++;
+      }
+
+      return players
+        .map((player) => {
+          const stat =
+            stats[
+              String(player.id)
+            ] || {
+              wins: 0,
+              losses: 0,
+            };
+
+          const total =
+            stat.wins +
+            stat.losses;
+
+          return {
+            ...player,
+
+            wins: stat.wins,
+
+            losses: stat.losses,
+
+            total,
+
+            rate: total
+              ? Math.round(
+                  (stat.wins /
+                    total) *
+                    1000
+                ) / 10
+              : 0,
+          };
+        })
+        .filter(
+          (player) =>
+            player.total > 0
+        )
+        .sort(
+          (a, b) =>
+            b.rate - a.rate ||
+            b.total -
+              a.total ||
+            b.wins -
+              a.wins ||
+            String(
+              a.name
+            ).localeCompare(
+              String(b.name),
+              'ja'
+            )
+        );
+    }, [
+      data,
+      players,
+      season,
+    ]);
+
+  /* =======================================================
+     No data
+  ======================================================= */
 
   if (!data) {
     return (
@@ -619,7 +899,9 @@ export default function Home() {
 
         <button
           className="button"
-          onClick={loadLatest}
+          onClick={() =>
+            loadLatest(null)
+          }
           disabled={loading}
         >
           {loading
@@ -636,6 +918,10 @@ export default function Home() {
     );
   }
 
+  /* =======================================================
+     Main UI
+  ======================================================= */
+
   return (
     <main className="container">
       <header className="header">
@@ -650,7 +936,9 @@ export default function Home() {
         <div className="headerActions">
           <button
             className="button"
-            onClick={loadLatest}
+            onClick={() =>
+              loadLatest(data)
+            }
             disabled={loading}
           >
             {loading
@@ -674,11 +962,17 @@ export default function Home() {
         </div>
       )}
 
+      {/* ===================================================
+          Summary
+      =================================================== */}
+
       <section className="summary">
         <div>
           <strong>
-            {data.tournaments?.length || 0}
+            {data.tournaments?.length ||
+              0}
           </strong>
+
           <span>大会</span>
         </div>
 
@@ -688,6 +982,7 @@ export default function Home() {
               data.matches ||
               0}
           </strong>
+
           <span>試合</span>
         </div>
 
@@ -695,16 +990,24 @@ export default function Home() {
           <strong>
             {players.length}
           </strong>
+
           <span>選手</span>
         </div>
 
         <div>
           <strong>
-            #{getLastTournament(data)}
+            #{getLastTournament(
+              data
+            )}
           </strong>
+
           <span>最新大会</span>
         </div>
       </section>
+
+      {/* ===================================================
+          Overall ranking
+      =================================================== */}
 
       <section className="section">
         <h2>総合ランキング</h2>
@@ -723,28 +1026,39 @@ export default function Home() {
             全期間
           </button>
 
-          {seasons.map((seasonNumber) => (
-            <button
-              key={seasonNumber}
-              className={
-                Number(season) ===
-                seasonNumber
-                  ? 'active'
-                  : ''
-              }
-              onClick={() =>
-                setSeason(seasonNumber)
-              }
-            >
-              Season {seasonNumber}
+          {seasons.map(
+            (seasonNumber) => (
+              <button
+                key={seasonNumber}
+                className={
+                  Number(
+                    season
+                  ) ===
+                  seasonNumber
+                    ? 'active'
+                    : ''
+                }
+                onClick={() =>
+                  setSeason(
+                    seasonNumber
+                  )
+                }
+              >
+                Season{' '}
+                {seasonNumber}
 
-              <small>
-                #{seasonNumber * 25 - 24}
-                〜#
-                {seasonNumber * 25}
-              </small>
-            </button>
-          ))}
+                <small>
+                  #
+                  {seasonNumber *
+                    25 -
+                    24}
+                  〜#
+                  {seasonNumber *
+                    25}
+                </small>
+              </button>
+            )
+          )}
         </div>
 
         <div className="tableWrap">
@@ -762,45 +1076,69 @@ export default function Home() {
 
             <tbody>
               {seasonRanking.map(
-                (player, index) => (
-                  <tr key={player.id}>
-                    <td>{index + 1}</td>
+                (
+                  player,
+                  index
+                ) => (
+                  <tr
+                    key={
+                      player.id
+                    }
+                  >
+                    <td>
+                      {index + 1}
+                    </td>
 
                     <td>
                       <button
                         className="playerLink"
                         onClick={() => {
                           setSelected(
-                            String(player.id)
+                            String(
+                              player.id
+                            )
                           );
 
-                          window.scrollTo({
-                            top: 0,
-                            behavior:
-                              'smooth',
-                          });
+                          window.scrollTo(
+                            {
+                              top: 0,
+                              behavior:
+                                'smooth',
+                            }
+                          );
                         }}
                       >
-                        {player.name}
+                        {
+                          player.name
+                        }
                       </button>
                     </td>
 
                     <td>
                       <strong>
-                        {player.rate}%
+                        {
+                          player.rate
+                        }
+                        %
                       </strong>
                     </td>
 
                     <td>
-                      {player.wins}
+                      {
+                        player.wins
+                      }
                     </td>
 
                     <td>
-                      {player.losses}
+                      {
+                        player.losses
+                      }
                     </td>
 
                     <td>
-                      {player.total}
+                      {
+                        player.total
+                      }
                     </td>
                   </tr>
                 )
@@ -810,37 +1148,49 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ===================================================
+          Player matchup
+      =================================================== */}
+
       <section className="section">
-        <h2>プレイヤー別対戦成績</h2>
+        <h2>
+          プレイヤー別対戦成績
+        </h2>
 
         <div className="playerSelectWrap">
           <select
             value={selected}
-            onChange={(event) => {
+            onChange={(event) =>
               setSelected(
                 event.target.value
-              );
-            }}
+              )
+            }
           >
             <option value="all">
               プレイヤーを選択
             </option>
 
-            {players.map((player) => (
-              <option
-                key={player.id}
-                value={player.id}
-              >
-                {player.name}
-              </option>
-            ))}
+            {players.map(
+              (player) => (
+                <option
+                  key={player.id}
+                  value={
+                    player.id
+                  }
+                >
+                  {player.name}
+                </option>
+              )
+            )}
           </select>
         </div>
 
         {selectedPlayer ? (
           <>
             <h3 className="selectedPlayer">
-              {selectedPlayer.name}
+              {
+                selectedPlayer.name
+              }
             </h3>
 
             <div className="sortButtons">
@@ -859,12 +1209,15 @@ export default function Home() {
 
               <button
                 className={
-                  sortKey === 'matches'
+                  sortKey ===
+                  'matches'
                     ? 'active'
                     : ''
                 }
                 onClick={() =>
-                  setSortKey('matches')
+                  setSortKey(
+                    'matches'
+                  )
                 }
               >
                 対戦数順
@@ -888,10 +1241,21 @@ export default function Home() {
               <table className="opponentTable">
                 <thead>
                   <tr>
-                    <th>対戦相手</th>
-                    <th>勝率</th>
-                    <th>戦績</th>
-                    <th>試合数</th>
+                    <th>
+                      対戦相手
+                    </th>
+
+                    <th>
+                      勝率
+                    </th>
+
+                    <th>
+                      戦績
+                    </th>
+
+                    <th>
+                      試合数
+                    </th>
                   </tr>
                 </thead>
 
@@ -907,28 +1271,41 @@ export default function Home() {
 
                       return (
                         <tr
-                          key={opponent.id}
+                          key={
+                            opponent.id
+                          }
                         >
                           <td className="opponentCell">
                             <div className="opponentName">
-                              {opponent.name}
+                              {
+                                opponent.name
+                              }
                             </div>
                           </td>
 
                           <td className="rateCell">
                             <strong>
-                              {opponent.rate}%
+                              {
+                                opponent.rate
+                              }
+                              %
                             </strong>
                           </td>
 
                           <td className="recordCell">
                             <div className="recordSummary">
                               <span className="recordWin">
-                                {opponent.wins}勝
+                                {
+                                  opponent.wins
+                                }
+                                勝
                               </span>
 
                               <span className="recordLoss">
-                                {opponent.losses}敗
+                                {
+                                  opponent.losses
+                                }
+                                敗
                               </span>
                             </div>
 
@@ -947,20 +1324,22 @@ export default function Home() {
                                         'W'
                                           ? 'win'
                                           : 'loss'
+                                      } ${
+                                        index ===
+                                        0
+                                          ? 'latest'
+                                          : ''
                                       }`}
+                                      title={
+                                        index ===
+                                        0
+                                          ? '最新'
+                                          : undefined
+                                      }
                                     >
-                                      <span className="recentResultValue">
-                                        {
-                                          result.result
-                                        }
-                                      </span>
-
-                                      <span className="recentResultTournament">
-                                        #
-                                        {
-                                          result.tournamentNumber
-                                        }
-                                      </span>
+                                      {
+                                        result.result
+                                      }
                                     </div>
                                   )
                                 )
@@ -974,7 +1353,9 @@ export default function Home() {
 
                           <td className="matchesCell">
                             <div className="matchesValue">
-                              {opponent.matches}
+                              {
+                                opponent.matches
+                              }
                             </div>
                           </td>
                         </tr>
@@ -985,6 +1366,10 @@ export default function Home() {
               </table>
             </div>
 
+            {/* =================================================
+                Match history
+            ================================================= */}
+
             <h3>
               対戦履歴
             </h3>
@@ -993,20 +1378,35 @@ export default function Home() {
               <table>
                 <thead>
                   <tr>
-                    <th>大会</th>
-                    <th>対戦相手</th>
-                    <th>結果</th>
+                    <th>
+                      大会
+                    </th>
+
+                    <th>
+                      対戦相手
+                    </th>
+
+                    <th>
+                      結果
+                    </th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {matchHistory.map(
-                    (record, index) => {
+                    (
+                      record,
+                      index
+                    ) => {
                       const winnerId =
-                        getWinnerId(record);
+                        getWinnerId(
+                          record
+                        );
 
                       const loserId =
-                        getLoserId(record);
+                        getLoserId(
+                          record
+                        );
 
                       const selectedId =
                         String(
@@ -1016,7 +1416,8 @@ export default function Home() {
                       const isWinner =
                         String(
                           winnerId
-                        ) === selectedId;
+                        ) ===
+                        selectedId;
 
                       const opponentId =
                         isWinner
@@ -1050,7 +1451,8 @@ export default function Home() {
                           </td>
 
                           <td>
-                            {opponent?.name ||
+                            {opponent
+                              ?.name ||
                               (isWinner
                                 ? record.loser
                                 : record.winner) ||
@@ -1086,6 +1488,10 @@ export default function Home() {
         )}
       </section>
 
+      {/* ===================================================
+          Tournament list
+      =================================================== */}
+
       <section className="section">
         <h2>大会一覧</h2>
 
@@ -1093,68 +1499,105 @@ export default function Home() {
           <table>
             <thead>
               <tr>
-                <th>大会</th>
-                <th>試合数</th>
-                <th>参加人数</th>
+                <th>
+                  大会
+                </th>
+
+                <th>
+                  試合数
+                </th>
+
+                <th>
+                  参加人数
+                </th>
               </tr>
             </thead>
 
             <tbody>
-              {[...(data.tournaments || [])]
+              {[
+                ...(data.tournaments ||
+                  []),
+              ]
                 .sort(
                   (a, b) =>
-                    Number(b.number) -
-                    Number(a.number)
+                    Number(
+                      b.number
+                    ) -
+                    Number(
+                      a.number
+                    )
                 )
-                .map((tournament) => (
-                  <tr
-                    key={
-                      tournament.number
-                    }
-                  >
-                    <td>
-                      <a
-                        href={
-                          tournament.tournamentUrl
-                        }
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        人形劇#
+                .map(
+                  (tournament) => (
+                    <tr
+                      key={
+                        tournament.number
+                      }
+                    >
+                      <td>
+                        <a
+                          href={
+                            tournament.tournamentUrl
+                          }
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          人形劇#
+                          {
+                            tournament.number
+                          }
+                        </a>
+                      </td>
+
+                      <td>
                         {
-                          tournament.number
+                          tournament.matches
                         }
-                      </a>
-                    </td>
+                      </td>
 
-                    <td>
-                      {tournament.matches}
-                    </td>
-
-                    <td>
-                      {tournament.players}
-                    </td>
-                  </tr>
-                ))}
+                      <td>
+                        {
+                          tournament.players
+                        }
+                      </td>
+                    </tr>
+                  )
+                )}
             </tbody>
           </table>
         </div>
       </section>
 
-      {data.failed?.length > 0 && (
+      {/* ===================================================
+          Failed tournaments
+      =================================================== */}
+
+      {data.failed?.length >
+        0 && (
         <section className="section">
-          <h2>取得できなかった大会</h2>
+          <h2>
+            取得できなかった大会
+          </h2>
 
           <ul>
-            {data.failed.map((item) => (
-              <li key={item.number}>
-                人形劇#{item.number}：
-                {item.error}
-              </li>
-            ))}
+            {data.failed.map(
+              (item) => (
+                <li
+                  key={item.number}
+                >
+                  人形劇#
+                  {item.number}：
+                  {item.error}
+                </li>
+              )
+            )}
           </ul>
         </section>
       )}
+
+      {/* ===================================================
+          Footer
+      =================================================== */}
 
       <footer className="footer">
         <p>
