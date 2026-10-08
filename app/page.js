@@ -96,6 +96,10 @@ const GLICKO2_TAU = 0.5;
 const GLICKO2_INITIAL_RD = 350;
 const GLICKO2_INITIAL_VOLATILITY = 0.06;
 
+// 大会は原則週1回なので、大会番号の間隔を経過時間の代理として使う。
+// 30日（約4.3大会）でRDが約25増えるペース。
+const RD_INACTIVITY_INCREASE_PER_TOURNAMENT = 25 / (30 / 7);
+
 function eloExpected(rating, opponentRating) {
   return 1 / (1 + Math.pow(10, (opponentRating - rating) / 400));
 }
@@ -232,6 +236,25 @@ function updateRdPlayer(player, opponent, score) {
   };
 }
 
+function applyInactivityRd(player, tournamentNumber) {
+  const currentTournament = Number(tournamentNumber) || 0;
+  const lastTournament = Number(player.lastPlayedTournamentNumber) || 0;
+
+  if (!currentTournament || !lastTournament) {
+    return;
+  }
+
+  const gap = Math.max(0, currentTournament - lastTournament - 1);
+
+  if (gap > 0) {
+    player.rd = Math.min(
+      GLICKO2_INITIAL_RD,
+      player.rd +
+        gap * RD_INACTIVITY_INCREASE_PER_TOURNAMENT
+    );
+  }
+}
+
 function updateEloPlayer(
   player,
   opponent,
@@ -301,6 +324,7 @@ function calculateElo(data, season = 'all') {
         rd: GLICKO2_INITIAL_RD,
         volatility:
           GLICKO2_INITIAL_VOLATILITY,
+        lastPlayedTournamentNumber: null,
         wins: 0,
         losses: 0,
       });
@@ -322,6 +346,10 @@ function calculateElo(data, season = 'all') {
       );
 
       if (!winner || !loser) continue;
+
+      const tournamentNumber = Number(record.tournamentNumber) || 0;
+      applyInactivityRd(winner, tournamentNumber);
+      applyInactivityRd(loser, tournamentNumber);
 
       const winnerBefore = {
         rating: winner.rating,
@@ -358,6 +386,8 @@ function calculateElo(data, season = 'all') {
       loser.rd = loserNext.rd;
       loser.volatility =
         loserNext.volatility;
+      winner.lastPlayedTournamentNumber = tournamentNumber;
+      loser.lastPlayedTournamentNumber = tournamentNumber;
     }
   };
 
@@ -395,6 +425,10 @@ function calculateElo(data, season = 'all') {
 
         continue;
       }
+
+      const tournamentNumber = Number(record.tournamentNumber) || 0;
+      applyInactivityRd(winner, tournamentNumber);
+      applyInactivityRd(loser, tournamentNumber);
 
       const winnerBefore =
         Math.round(winner.rating);
@@ -459,6 +493,8 @@ function calculateElo(data, season = 'all') {
       loser.volatility =
         loserAfterRd.volatility;
       loser.losses += 1;
+      winner.lastPlayedTournamentNumber = tournamentNumber;
+      loser.lastPlayedTournamentNumber = tournamentNumber;
 
       if (collectHistory) {
         const winnerAfter =
@@ -1231,7 +1267,7 @@ export default function Home() {
               </h2>
 
               <p>
-                25大会ごとにシーズンを区切り、Eloでレートを算出します。Eloは各シーズン1500から開始し、1試合ごとに更新します。K値は64で、相手のRDが大きいほどレート変動を小さくします。RDはシーズンをまたいで引き継ぎます。
+                25大会ごとにシーズンを区切り、Eloでレートを算出します。Eloは各シーズン1500から開始し、1試合ごとに更新します。K値は64で、相手のRDが大きいほどレート変動を小さくします。RDはシーズンをまたいで引き継ぎ、長期間プレイしていない場合は経過期間に応じて増加します。
               </p>
             </div>
 
