@@ -628,12 +628,9 @@ body {
   white-space: nowrap;
 }
 
-.recordWin {
-  color: #61e49a;
-}
-
+.recordWin,
 .recordLoss {
-  color: #ff737d;
+  color: #fff;
 }
 
 .recentResults {
