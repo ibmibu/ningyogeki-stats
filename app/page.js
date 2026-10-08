@@ -1301,8 +1301,7 @@ export default function Home() {
                   </div>
 
                   <div className="rankRate">
-                    <strong>{player.rating}</strong>
-                    <small>± {player.rd}</small>
+                    {player.rating}
                   </div>
 
                   <div className="record">
@@ -1347,6 +1346,11 @@ export default function Home() {
                           <i className={match.winnerDelta >= 0 ? 'up' : 'down'}>
                             ({match.winnerDelta >= 0 ? '+' : ''}{match.winnerDelta})
                           </i>
+                          {match.winnerRd != null && (
+                            <span className="rdChange">
+                              {' '}RD {match.winnerRd}
+                            </span>
+                          )}
                         </small>
                       )}
                     </span>
@@ -1361,6 +1365,11 @@ export default function Home() {
                           <i className={match.loserDelta >= 0 ? 'up' : 'down'}>
                             ({match.loserDelta >= 0 ? '+' : ''}{match.loserDelta})
                           </i>
+                          {match.loserRd != null && (
+                            <span className="rdChange">
+                              {' '}RD {match.loserRd}
+                            </span>
+                          )}
                         </small>
                       )}
                     </span>
