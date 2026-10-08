@@ -775,7 +775,7 @@ export default function Home() {
         </section>
 
         {/* シーズン勝率ランキングの下 */}
-        <section className="control card"　style={{ marginTop: '24px' }}>
+        <section className="control card">
           <div>
             <h2>人形劇全体を集計</h2>
 
