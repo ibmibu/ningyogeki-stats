@@ -131,7 +131,10 @@ export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState('all');
+  const [selected, setSelected] = useState(() => {
+    if (typeof window === 'undefined') return 'all';
+    return localStorage.getItem('ningyogeki-selected-player') || 'all';
+  });
   const [show, setShow] = useState(false);
   const [sortKey, setSortKey] = useState('opponent');
   const [sortDir, setSortDir] = useState('asc');
@@ -215,6 +218,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    try {
+      localStorage.setItem('ningyogeki-selected-player', selected);
+    } catch (e) {
+      console.error('選択中の選手の保存に失敗しました', e);
+    }
+  }, [selected]);
+
+  useEffect(() => {
     if (!data) return;
 
     try {
@@ -261,6 +272,7 @@ export default function Home() {
     }
 
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('ningyogeki-selected-player');
     setData(null);
     setSelected('all');
     setSeason('all');
