@@ -393,10 +393,7 @@ export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState(() => {
-    if (typeof window === 'undefined') return 'all';
-    return localStorage.getItem('ningyogeki-selected-player') || 'all';
-  });
+  const [selected, setSelected] = useState('all');
   const [show, setShow] = useState(false);
   const [sortKey, setSortKey] = useState('opponent');
   const [sortDir, setSortDir] = useState('asc');
@@ -477,6 +474,17 @@ export default function Home() {
     loadLatest(savedData);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    try {
+      const savedSelected = localStorage.getItem('ningyogeki-selected-player');
+      if (savedSelected) {
+        setSelected(savedSelected);
+      }
+    } catch (e) {
+      console.error('選択中の選手の読み込みに失敗しました', e);
+    }
   }, []);
 
   useEffect(() => {
