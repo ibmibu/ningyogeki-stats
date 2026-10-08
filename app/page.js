@@ -111,22 +111,26 @@ function glicko2F(x, delta, phi, v, a) {
   );
 }
 
-function applyHighRdWinSuppression(beforeRating, afterRating, rd) {
-  const delta = afterRating - beforeRating;
+function applyLoserRatingBasedWinSuppression(
+  beforeRating,
+  afterRating,
+  loserBeforeRating,
+  loserAfterRating
+) {
+  const winnerDelta = afterRating - beforeRating;
+  const loserDelta = loserAfterRating - loserBeforeRating;
 
-  // RDが高い間は「勝ったとき」の上昇だけを抑える。
-  // 敗北時の下降はGlicko-2本来の値をそのまま使う。
-  if (delta <= 0) return afterRating;
+  // 勝利側の上昇幅は、敗北側のレート下落幅を基準に抑える。
+  // 相手のレートが大きく下がる試合ほど、その1勝による上昇を小さくする。
+  // 敗北側のレート変動そのものは変更しない。
+  if (winnerDelta <= 0 || loserDelta >= 0) {
+    return afterRating;
+  }
 
-  const normalizedRd = Math.max(
-    0,
-    Math.min(GLICKO2_INITIAL_RD, rd)
-  );
-  const multiplier = 0.5 + 0.5 * (
-    1 - normalizedRd / GLICKO2_INITIAL_RD
-  );
+  const lossMagnitude = Math.max(0, -loserDelta);
+  const multiplier = 1 / (1 + lossMagnitude / 100);
 
-  return beforeRating + delta * multiplier;
+  return beforeRating + winnerDelta * multiplier;
 }
 
 function updateGlicko2Player(player, results) {
@@ -253,7 +257,6 @@ function calculateGlicko2(data, season = 'all') {
       const winnerBefore = Math.round(winner.rating);
       const loserBefore = Math.round(loser.rating);
 
-      const winnerRdBefore = winner.rd;
       const winnerAfterState = updateGlicko2Player(winner, [
         {
           opponent: {
@@ -274,10 +277,11 @@ function calculateGlicko2(data, season = 'all') {
         },
       ]);
 
-      winner.rating = applyHighRdWinSuppression(
+      winner.rating = applyLoserRatingBasedWinSuppression(
         winner.rating,
         winnerAfterState.rating,
-        winnerRdBefore
+        loser.rating,
+        loserAfterState.rating
       );
       winner.rd = winnerAfterState.rd;
       winner.volatility = winnerAfterState.volatility;
@@ -1022,7 +1026,7 @@ export default function Home() {
               </h2>
 
               <p>
-                25大会ごとにシーズンを区切り、Glicko-2でレートを算出します。Ratingは各シーズン1500から開始し、RDは前シーズン終了時の値を引き継ぎます。RDが高い間は勝利時のレート上昇を抑え、敗北時の下降はそのまま反映します。
+                25大会ごとにシーズンを区切り、Glicko-2でレートを算出します。Ratingは各シーズン1500から開始し、RDは前シーズン終了時の値を引き継ぎます。相手のレート下落が大きい勝利ほど上昇を抑え、敗北時の下降はそのまま反映します。
               </p>
             </div>
 
