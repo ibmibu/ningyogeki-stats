@@ -882,9 +882,26 @@ body {
 }
 
 
+.matchMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: inherit;
+  gap: 2px;
+  margin-top: 4px;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.matchRd {
+  color: #8c8494;
+  font-size: 9px;
+  font-weight: 700;
+}
+
 .ratingChange {
   display: block;
-  margin-top: 3px;
   color: #77717e;
   font-size: 9px;
   font-style: normal;
@@ -903,6 +920,14 @@ body {
 
 .ratingChange i.down {
   color: #ff737d;
+}
+
+.winner .matchMeta {
+  align-items: flex-end;
+}
+
+.loser .matchMeta {
+  align-items: flex-start;
 }
 
 /* =========================
