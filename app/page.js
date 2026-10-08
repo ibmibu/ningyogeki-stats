@@ -103,7 +103,7 @@ function glicko2Expected(mu, opponentMu, opponentPhi) {
 }
 
 function glicko2F(x, delta, phi, v, a) {
-  const ex = Math.exp(Math.max(-50, Math.min(50, x)));
+  const ex = Math.exp(x);
   return (
     (ex * (delta * delta - phi * phi - v - ex)) /
       (2 * Math.pow(phi * phi + v + ex, 2)) -
@@ -142,12 +142,7 @@ function updateGlicko2Player(player, results) {
     B = Math.log(delta * delta - phi * phi - v);
   } else {
     let k = 1;
-    while (
-      k < 100 &&
-      glicko2F(a - k * GLICKO2_TAU, delta, phi, v, a) < 0
-    ) {
-      k += 1;
-    }
+    while (glicko2F(a - k * GLICKO2_TAU, delta, phi, v, a) < 0) k += 1;
     B = a - k * GLICKO2_TAU;
   }
 
@@ -398,7 +393,10 @@ export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState('all');
+  const [selected, setSelected] = useState(() => {
+    if (typeof window === 'undefined') return 'all';
+    return localStorage.getItem('ningyogeki-selected-player') || 'all';
+  });
   const [show, setShow] = useState(false);
   const [sortKey, setSortKey] = useState('opponent');
   const [sortDir, setSortDir] = useState('asc');
@@ -479,17 +477,6 @@ export default function Home() {
     loadLatest(savedData);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    try {
-      const savedSelected = localStorage.getItem('ningyogeki-selected-player');
-      if (savedSelected) {
-        setSelected(savedSelected);
-      }
-    } catch (e) {
-      console.error('選択中の選手の読み込みに失敗しました', e);
-    }
   }, []);
 
   useEffect(() => {
