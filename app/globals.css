@@ -702,7 +702,7 @@ body {
 
 .rankRow {
   display: grid;
-  grid-template-columns: 34px minmax(120px, 1.1fr) minmax(100px, 2fr) 55px 80px;
+  grid-template-columns: 34px minmax(120px, 1.1fr) minmax(100px, 2fr) 55px 105px;
   align-items: center;
   gap: 12px;
   padding: 10px 0;
@@ -746,6 +746,7 @@ body {
   text-align: right;
   color: #817b87;
   font-size: 11px;
+  white-space: nowrap;
 }
 
 /* =========================
@@ -974,7 +975,7 @@ footer span {
   }
 
   .rankRow {
-    grid-template-columns: 28px minmax(95px, 1fr) 65px 60px;
+    grid-template-columns: 28px minmax(95px, 1fr) 65px 90px;
   }
 
   .rankRow .bar {
