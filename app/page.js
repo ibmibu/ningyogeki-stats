@@ -991,9 +991,7 @@ export default function Home() {
                   </div>
 
                   <div className="record">
-                    ±{player.rd} / {player.wins}勝{' '}
-                    {player.losses}敗 /{' '}
-                    {player.total}戦
+                    {player.wins}勝 {player.losses}敗 / {player.total}戦
                   </div>
                 </div>
               )
