@@ -88,86 +88,27 @@ function mergeData(oldData, newData) {
   };
 }
 
-const GLICKO2_SCALE = 173.7178;
-const GLICKO2_TAU = 0.5;
-const GLICKO2_INITIAL_RATING = 1500;
-const GLICKO2_INITIAL_RD = 350;
-const GLICKO2_INITIAL_VOLATILITY = 0.06;
+const ELO_INITIAL_RATING = 1500;
+const ELO_K = 64;
+const ELO_EARLY_MATCH_SCALE = 0.2;
 
-function glicko2G(phi) {
-  return 1 / Math.sqrt(1 + (3 * phi * phi) / (Math.PI * Math.PI));
+function eloExpected(rating, opponentRating) {
+  return 1 / (1 + Math.pow(10, (opponentRating - rating) / 400));
 }
 
-function glicko2Expected(mu, opponentMu, opponentPhi) {
-  return 1 / (1 + Math.exp(-glicko2G(opponentPhi) * (mu - opponentMu)));
-}
+function updateEloPlayer(player, opponentRating, score) {
+  const expected = eloExpected(player.rating, opponentRating);
+  const games = player.wins + player.losses;
+  const k = games < 5 ? ELO_K * ELO_EARLY_MATCH_SCALE : ELO_K;
+  const delta = k * (score - expected);
 
-function glicko2F(x, delta, phi, v, a) {
-  const ex = Math.exp(x);
-  return (
-    (ex * (delta * delta - phi * phi - v - ex)) /
-      (2 * Math.pow(phi * phi + v + ex, 2)) -
-    (x - a) / (GLICKO2_TAU * GLICKO2_TAU)
-  );
-}
-
-function updateGlicko2Player(player, results) {
-  const mu = (player.rating - GLICKO2_INITIAL_RATING) / GLICKO2_SCALE;
-  const phi = player.rd / GLICKO2_SCALE;
-  const sigma = player.volatility;
-
-  if (!results.length) {
-    const phiPrime = Math.sqrt(phi * phi + sigma * sigma);
-    return { rating: player.rating, rd: Math.min(GLICKO2_INITIAL_RD, GLICKO2_SCALE * phiPrime), volatility: sigma };
-  }
-
-  let sumG2E1E = 0;
-  let sumGScoreMinusE = 0;
-  for (const result of results) {
-    const opponentMu = (result.opponent.rating - GLICKO2_INITIAL_RATING) / GLICKO2_SCALE;
-    const opponentPhi = result.opponent.rd / GLICKO2_SCALE;
-    const g = glicko2G(opponentPhi);
-    const e = glicko2Expected(mu, opponentMu, opponentPhi);
-    sumG2E1E += g * g * e * (1 - e);
-    sumGScoreMinusE += g * (result.score - e);
-  }
-
-  const v = 1 / sumG2E1E;
-  const delta = v * sumGScoreMinusE;
-  const a = Math.log(sigma * sigma);
-  let A = a;
-  let B;
-
-  if (delta * delta > phi * phi + v) {
-    B = Math.log(delta * delta - phi * phi - v);
-  } else {
-    let k = 1;
-    while (glicko2F(a - k * GLICKO2_TAU, delta, phi, v, a) < 0) k += 1;
-    B = a - k * GLICKO2_TAU;
-  }
-
-  let fA = glicko2F(A, delta, phi, v, a);
-  let fB = glicko2F(B, delta, phi, v, a);
-  for (let i = 0; i < 100 && Math.abs(B - A) > 0.000001; i++) {
-    const C = A + ((A - B) * fA) / (fB - fA);
-    const fC = glicko2F(C, delta, phi, v, a);
-    if (fC * fB < 0) { A = B; fA = fB; } else { fA /= 2; }
-    B = C;
-    fB = fC;
-  }
-
-  const newSigma = Math.exp(A / 2);
-  const phiStar = Math.sqrt(phi * phi + newSigma * newSigma);
-  const newPhi = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);
-  const newMu = mu + newPhi * newPhi * sumGScoreMinusE;
   return {
-    rating: GLICKO2_INITIAL_RATING + GLICKO2_SCALE * newMu,
-    rd: Math.min(GLICKO2_INITIAL_RD, GLICKO2_SCALE * newPhi),
-    volatility: newSigma,
+    rating: player.rating + delta,
+    delta,
   };
 }
 
-function calculateGlicko2(data, season = 'all') {
+function calculateElo(data, season = 'all') {
   if (!data?.records?.length) {
     return { ranking: [], history: [] };
   }
@@ -187,20 +128,14 @@ function calculateGlicko2(data, season = 'all') {
       );
     });
 
-  const createPlayers = (rdByPlayer = new Map()) => {
+  const createPlayers = () => {
     const players = new Map();
 
     for (const player of data.players || []) {
-      const previousRd = rdByPlayer.get(String(player.id));
-
       players.set(String(player.id), {
         id: player.id,
         name: player.name,
-        rating: GLICKO2_INITIAL_RATING,
-        rd: Number.isFinite(previousRd)
-          ? previousRd
-          : GLICKO2_INITIAL_RD,
-        volatility: GLICKO2_INITIAL_VOLATILITY,
+        rating: ELO_INITIAL_RATING,
         wins: 0,
         losses: 0,
       });
@@ -212,7 +147,7 @@ function calculateGlicko2(data, season = 'all') {
   const processRecords = (players, records, collectHistory = false) => {
     const history = [];
 
-    // 1試合ずつ時系列に処理し、各試合が終わるたびにGlicko-2を更新する。
+    // 1試合ずつ時系列に処理し、各試合が終わるたびにEloを更新する。
     for (const record of records) {
       const winner = players.get(String(record.winnerId));
       const loser = players.get(String(record.loserId));
@@ -227,8 +162,6 @@ function calculateGlicko2(data, season = 'all') {
             loserBefore: null,
             loserAfter: null,
             loserDelta: null,
-            winnerRd: null,
-            loserRd: null,
           });
         }
         continue;
@@ -237,37 +170,20 @@ function calculateGlicko2(data, season = 'all') {
       const winnerBefore = Math.round(winner.rating);
       const loserBefore = Math.round(loser.rating);
 
-      const winnerAfterState = updateGlicko2Player(winner, [
-        {
-          opponent: {
-            rating: loser.rating,
-            rd: loser.rd,
-          },
-          score: 1,
-        },
-      ]);
+      // 両者とも試合前のレートを使って同時に計算する。
+      const winnerAfterState = updateEloPlayer(
+        winner,
+        loser.rating,
+        1
+      );
+      const loserAfterState = updateEloPlayer(
+        loser,
+        winner.rating,
+        0
+      );
 
-      const loserAfterState = updateGlicko2Player(loser, [
-        {
-          opponent: {
-            rating: winner.rating,
-            rd: winner.rd,
-          },
-          score: 0,
-        },
-      ]);
-
-      const winnerGames = winner.wins + winner.losses;
-      const loserGames = loser.wins + loser.losses;
-      const winnerScale = winnerGames < 5 ? 0.2 : 1;
-      const loserScale = loserGames < 5 ? 0.2 : 1;
-
-      winner.rating = winner.rating + (winnerAfterState.rating - winner.rating) * winnerScale;
-      winner.rd = winnerAfterState.rd;
-      winner.volatility = winnerAfterState.volatility;
-      loser.rating = loser.rating + (loserAfterState.rating - loser.rating) * loserScale;
-      loser.rd = loserAfterState.rd;
-      loser.volatility = loserAfterState.volatility;
+      winner.rating = winnerAfterState.rating;
+      loser.rating = loserAfterState.rating;
 
       winner.wins += 1;
       loser.losses += 1;
@@ -284,33 +200,11 @@ function calculateGlicko2(data, season = 'all') {
           loserBefore,
           loserAfter,
           loserDelta: loserAfter - loserBefore,
-          winnerRd: Math.round(winner.rd),
-          loserRd: Math.round(loser.rd),
         });
       }
     }
 
     return history;
-  };
-
-  // 「Ratingはシーズンごとに1500へ戻すが、RDは前シーズン終了時の値を引き継ぐ」
-  // ため、対象シーズンの前までを順番に処理してRDだけを受け渡す。
-  const getSeasonStartRds = (seasonNumber) => {
-    let rdByPlayer = new Map();
-
-    for (let s = 1; s < seasonNumber; s += 1) {
-      const players = createPlayers(rdByPlayer);
-      processRecords(players, getSeasonRecords(s));
-
-      rdByPlayer = new Map(
-        [...players.values()].map((player) => [
-          String(player.id),
-          player.rd,
-        ])
-      );
-    }
-
-    return rdByPlayer;
   };
 
   if (season === 'all') {
@@ -322,13 +216,11 @@ function calculateGlicko2(data, season = 'all') {
       .map((player) => ({
         ...player,
         rating: Math.round(player.rating),
-        rd: Math.round(player.rd),
         total: player.wins + player.losses,
       }))
       .sort(
         (a, b) =>
           b.rating - a.rating ||
-          a.rd - b.rd ||
           b.total - a.total ||
           String(a.name).localeCompare(String(b.name), 'ja')
       );
@@ -341,8 +233,7 @@ function calculateGlicko2(data, season = 'all') {
     return { ranking: [], history: [] };
   }
 
-  const startingRds = getSeasonStartRds(seasonNumber);
-  const players = createPlayers(startingRds);
+  const players = createPlayers();
   const history = processRecords(
     players,
     getSeasonRecords(seasonNumber),
@@ -354,20 +245,17 @@ function calculateGlicko2(data, season = 'all') {
     .map((player) => ({
       ...player,
       rating: Math.round(player.rating),
-      rd: Math.round(player.rd),
       total: player.wins + player.losses,
     }))
     .sort(
       (a, b) =>
         b.rating - a.rating ||
-        a.rd - b.rd ||
         b.total - a.total ||
         String(a.name).localeCompare(String(b.name), 'ja')
     );
 
   return { ranking, history };
 }
-
 
 function getRecentResults(records, playerId, opponentId) {
   if (!Array.isArray(records)) return [];
@@ -613,15 +501,15 @@ export default function Home() {
     ? currentSeason
     : season;
 
-  const glicko2Result = useMemo(
-    () => calculateGlicko2(data, selectedSeason),
+  const eloResult = useMemo(
+    () => calculateElo(data, selectedSeason),
     [data, selectedSeason]
   );
 
-  // Glicko-2はここで1回だけ計算し、
+  // Eloはここで1回だけ計算し、
   // ランキングはその最終結果を並べるだけにする。
-  const ranking = glicko2Result.ranking;
-  const matchHistory = glicko2Result.history;
+  const ranking = eloResult.ranking;
+  const matchHistory = eloResult.history;
 
   const selectedPlayer = data?.players.find(
     (player) =>
@@ -1000,15 +888,15 @@ export default function Home() {
           <div className="sectionHead">
             <div>
               <div className="sectionLabel">
-                SEASON GLICKO-2
+                SEASON ELO
               </div>
 
               <h2>
-                シーズンGlicko-2ランキング
+                シーズンEloランキング
               </h2>
 
               <p>
-                25大会ごとにシーズンを区切り、Glicko-2でレートを算出します。Ratingは各シーズン1500から開始し、RDは前シーズン終了時の値を引き継ぎます。相手のレート下落が大きい勝利ほど上昇を抑え、敗北時の下降はそのまま反映します。
+                25大会ごとにシーズンを区切り、Eloでレートを算出します。各シーズン1500から開始し、1試合ごとにレートを更新します。K値は64で、各選手のシーズン最初の5試合は20%に抑えます。
               </p>
             </div>
 
