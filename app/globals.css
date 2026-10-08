@@ -880,6 +880,30 @@ body {
   font-size: 10px;
 }
 
+
+.ratingChange {
+  display: block;
+  margin-top: 3px;
+  color: #77717e;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ratingChange i {
+  font-style: normal;
+  font-weight: 800;
+}
+
+.ratingChange i.up {
+  color: #61e49a;
+}
+
+.ratingChange i.down {
+  color: #ff737d;
+}
+
 /* =========================
    Footer
 ========================= */
