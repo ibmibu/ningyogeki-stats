@@ -10,308 +10,334 @@ html {
 
 body {
   margin: 0;
-  background: #09090d;
-  color: #f4f4f6;
-  font-family: Inter, "Noto Sans JP", system-ui, sans-serif;
+  background:
+    radial-gradient(
+      circle at top,
+      #25133f 0,
+      #100b1b 38%,
+      #09090d 75%
+    );
+  color: #f5f3ff;
+  font-family:
+    Inter,
+    'Noto Sans JP',
+    sans-serif;
+  min-height: 100vh;
 }
 
 button,
-input,
 select {
-  font-family: inherit;
+  font: inherit;
 }
 
 button {
-  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
 }
 
 a {
-  color: #b66bea;
+  color: #b994ff;
+  text-decoration: none;
 }
 
+a:hover {
+  text-decoration: underline;
+}
+
+/* =========================================================
+   Layout
+========================================================= */
+
 .container {
-  width: 100%;
-  max-width: 1180px;
+  width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 30px 24px 60px;
+  padding: 48px 0 80px;
 }
 
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
-  padding: 20px 0 28px;
+  margin-bottom: 32px;
 }
 
 .header h1 {
   margin: 0;
-  font-size: clamp(28px, 5vw, 42px);
-  line-height: 1.1;
+  font-size: 36px;
+  font-weight: 800;
   letter-spacing: -0.04em;
 }
 
 .subTitle {
-  margin: 9px 0 0;
-  color: #8f8a96;
-  font-size: 13px;
+  margin: 8px 0 0;
+  color: #aaa2bd;
+  font-size: 14px;
 }
 
 .headerActions {
   display: flex;
-  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
+/* =========================================================
+   Buttons
+========================================================= */
+
 .button {
-  min-height: 44px;
-  padding: 0 18px;
-  border: 1px solid #7046a1;
+  border: 1px solid #8f55e8;
   border-radius: 10px;
-  background: #a760e8;
+  padding: 10px 16px;
+  background: #7c3aed;
   color: #fff;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
+  font-weight: 700;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .button:hover:not(:disabled) {
-  background: #b06aef;
-}
-
-.button.secondary {
-  border-color: #39333f;
-  background: #17131b;
-  color: #d9d2df;
-}
-
-.button.secondary:hover:not(:disabled) {
-  border-color: #62447a;
-  background: #1d1822;
+  background: #8b5cf6;
+  border-color: #a78bfa;
+  transform: translateY(-1px);
 }
 
 .button:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: default;
 }
 
-.error {
-  margin: 0 0 18px;
-  padding: 14px 16px;
-  border: 1px solid #5a2b35;
-  border-radius: 10px;
-  background: #241318;
-  color: #ffb1b1;
-  font-size: 13px;
+.button.secondary {
+  background: #17131f;
+  border-color: #3c3349;
+  color: #cfc6dd;
 }
+
+.button.secondary:hover:not(:disabled) {
+  background: #211a2b;
+  border-color: #5a4a69;
+}
+
+/* =========================================================
+   Error
+========================================================= */
+
+.error {
+  margin: 16px 0;
+  padding: 12px 14px;
+  border: 1px solid #713d52;
+  border-radius: 10px;
+  background: #29131f;
+  color: #ff9fbd;
+}
+
+/* =========================================================
+   Summary
+========================================================= */
 
 .summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 18px;
+  gap: 12px;
+  margin-bottom: 36px;
 }
 
 .summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
   padding: 20px;
-  background: linear-gradient(145deg, #17151b, #111015);
-  border: 1px solid #29252e;
-  border-radius: 16px;
-  box-shadow: 0 18px 50px #0004;
+  border: 1px solid #2e2540;
+  border-radius: 14px;
+  background: rgba(18, 14, 27, 0.82);
 }
 
 .summary strong {
-  display: block;
-  font-size: 27px;
-  line-height: 1.15;
-  color: #fff;
+  font-size: 28px;
+  font-weight: 800;
 }
 
 .summary span {
-  display: block;
-  margin-top: 6px;
-  color: #77717e;
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  color: #968ca8;
+  font-size: 13px;
 }
 
+/* =========================================================
+   Section
+========================================================= */
+
 .section {
-  margin-top: 18px;
-  padding: 24px;
-  background: linear-gradient(145deg, #17151b, #111015);
-  border: 1px solid #29252e;
-  border-radius: 18px;
-  box-shadow: 0 18px 50px #0004;
+  margin-top: 42px;
 }
 
 .section h2 {
   margin: 0 0 18px;
-  font-size: 21px;
-  line-height: 1.3;
+  font-size: 22px;
+  font-weight: 800;
 }
 
 .section h3 {
-  margin: 24px 0 12px;
-  font-size: 16px;
-  color: #eee9f0;
+  margin: 32px 0 14px;
+  font-size: 18px;
 }
 
-.section p {
-  color: #8f8a96;
-  font-size: 13px;
-  line-height: 1.7;
+.selectedPlayer {
+  margin-top: 24px !important;
+  font-size: 24px !important;
 }
+
+/* =========================================================
+   Season tabs
+========================================================= */
 
 .seasonTabs {
   display: flex;
-  gap: 7px;
-  overflow-x: auto;
-  padding: 2px 0 15px;
-  margin-bottom: 4px;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
 .seasonTabs button {
-  flex: 0 0 auto;
-  border: 1px solid #302b36;
-  background: #0e0d11;
-  color: #8f8895;
-  border-radius: 999px;
-  padding: 9px 15px;
-  font: 700 12px Inter, "Noto Sans JP", sans-serif;
-  cursor: pointer;
-  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 14px;
+  border: 1px solid #352b46;
+  border-radius: 9px;
+  background: #15111d;
+  color: #a9a0b8;
+}
+
+.seasonTabs button:hover {
+  border-color: #60488a;
+  color: #e9ddff;
 }
 
 .seasonTabs button.active {
-  background: #a760e8;
-  border-color: #a760e8;
+  border-color: #8b5cf6;
+  background: #3b2061;
   color: #fff;
 }
 
 .seasonTabs small {
-  display: block;
-  margin-top: 3px;
-  font-size: 9px;
-  font-weight: 500;
-  opacity: 0.7;
+  color: #81768e;
+  font-size: 10px;
 }
 
+.seasonTabs button.active small {
+  color: #cdb9ed;
+}
+
+/* =========================================================
+   Player select
+========================================================= */
+
 .playerSelectWrap {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 0 16px;
-  padding: 12px;
-  background: #0e0d11;
-  border: 1px solid #28242d;
-  border-radius: 12px;
+  margin-bottom: 18px;
 }
 
 .playerSelectWrap select {
-  flex: 1;
-  min-width: 0;
-  appearance: none;
-  background-color: #17131b;
-  color: #eee;
-  border: 1px solid #39333f;
-  border-radius: 9px;
-  padding: 11px 38px 11px 13px;
-  font: 600 13px Inter, "Noto Sans JP", sans-serif;
+  width: 100%;
+  max-width: 420px;
+  padding: 12px 14px;
+  border: 1px solid #3a3048;
+  border-radius: 10px;
   outline: none;
+  background: #15111d;
+  color: #fff;
 }
 
-.playerSelectWrap select option {
-  background: #17131b;
-  color: #eee;
+.playerSelectWrap select:focus {
+  border-color: #8b5cf6;
 }
 
-.selectedPlayer {
-  margin: 0 0 12px !important;
-  font-size: 18px !important;
-}
+/* =========================================================
+   Sort
+========================================================= */
 
 .sortButtons {
   display: flex;
-  gap: 7px;
+  gap: 8px;
   margin-bottom: 14px;
-  overflow-x: auto;
+  flex-wrap: wrap;
 }
 
 .sortButtons button {
-  flex: 0 0 auto;
-  border: 1px solid #302b36;
-  background: #0e0d11;
-  color: #8f8895;
-  border-radius: 999px;
   padding: 8px 13px;
-  font: 700 11px Inter, "Noto Sans JP", sans-serif;
-  cursor: pointer;
-  white-space: nowrap;
+  border: 1px solid #352b46;
+  border-radius: 8px;
+  background: #15111d;
+  color: #aaa0b7;
 }
 
 .sortButtons button.active {
-  background: #a760e8;
-  border-color: #a760e8;
+  border-color: #8b5cf6;
+  background: #3b2061;
   color: #fff;
 }
+
+/* =========================================================
+   Table
+========================================================= */
 
 .tableWrap {
   width: 100%;
   overflow-x: auto;
-  border: 1px solid #28242d;
-  border-radius: 12px;
+  border: 1px solid #2d253a;
+  border-radius: 13px;
+  background: rgba(14, 11, 21, 0.82);
 }
 
-.tableWrap table {
+table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 520px;
+  min-width: 600px;
 }
 
-.tableWrap th,
-.tableWrap td {
-  padding: 13px 12px;
-  border-bottom: 1px solid #242128;
+th,
+td {
+  padding: 13px 14px;
+  border-bottom: 1px solid #211b2b;
   text-align: left;
 }
 
-.tableWrap th {
-  background: #131116;
-  color: #817a88;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+thead th {
+  background: #15111d;
+  color: #8f849d;
+  font-size: 12px;
+  font-weight: 700;
   white-space: nowrap;
 }
 
-.tableWrap td {
-  color: #b7b0bc;
-  font-size: 13px;
-}
-
-.tableWrap tbody tr:last-child td {
+tbody tr:last-child td {
   border-bottom: 0;
 }
 
-.tableWrap td strong {
-  color: #fff;
-  font-size: 15px;
+tbody tr:hover {
+  background: rgba(139, 92, 246, 0.055);
 }
 
-.tableWrap .playerLink {
-  border: 0;
+td {
+  color: #ded8e7;
+  font-size: 14px;
+}
+
+/* =========================================================
+   Player link
+========================================================= */
+
+.playerLink {
   padding: 0;
+  border: 0;
   background: none;
-  color: #eee9f0;
-  font: 700 13px Inter, "Noto Sans JP", sans-serif;
+  color: #c39aff;
+  font-weight: 700;
   cursor: pointer;
-  text-align: left;
 }
 
-.tableWrap .playerLink:hover {
-  color: #c487f7;
+.playerLink:hover {
+  color: #e2ceff;
   text-decoration: underline;
 }
 
@@ -319,302 +345,193 @@ a {
    Opponent table
 ========================================================= */
 
-.opponentTableWrap {
-  overflow-x: hidden;
-}
-
 .opponentTable {
-  width: 100% !important;
-  min-width: 0 !important;
-  table-layout: fixed !important;
-  border-collapse: collapse;
+  min-width: 760px;
 }
 
-.opponentTable th,
-.opponentTable td {
-  padding: 13px 12px;
+.opponentTable th:nth-child(1) {
+  width: 24%;
 }
 
-.opponentTable th {
-  background: #131116;
-  color: #817a88;
-  font-size: 10px;
-  font-weight: 800;
+.opponentTable th:nth-child(2) {
+  width: 14%;
 }
 
-.opponentTable td {
-  font-size: 13px;
-  color: #b7b0bc;
+.opponentTable th:nth-child(3) {
+  width: 46%;
 }
 
-.opponentRow {
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.opponentRow:hover {
-  background: rgba(167, 96, 232, 0.05);
-}
-
-.opponentRow:active {
-  background: rgba(167, 96, 232, 0.1);
-}
-
-.opponentRow.expanded {
-  background: rgba(167, 96, 232, 0.08);
+.opponentTable th:nth-child(4) {
+  width: 16%;
 }
 
 .opponentCell {
-  width: 31% !important;
-  color: #eee9f0 !important;
-  font-weight: 700;
-  overflow: hidden;
+  vertical-align: middle;
 }
 
 .opponentName {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.opponentTapHint {
-  margin-top: 4px;
-  color: #68616e;
-  font-size: 8px;
-  font-weight: 500;
-  line-height: 1;
-}
-
-.rateCell {
-  width: 19% !important;
-  text-align: center !important;
+  font-weight: 700;
+  color: #f4effc;
 }
 
 .rateCell strong {
-  color: #fff;
-  font-size: 16px;
+  font-size: 17px;
+  color: #d4b8ff;
 }
 
 .recordCell {
-  width: 32% !important;
-  text-align: center !important;
+  vertical-align: middle;
 }
 
 .recordSummary {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
-  color: #f4f1f6;
+  gap: 10px;
+  margin-bottom: 9px;
   font-size: 13px;
-  font-weight: 800;
-  white-space: nowrap;
+  font-weight: 700;
 }
 
-.matchesCell {
-  width: 18% !important;
-  text-align: center !important;
-  color: #d0cad4 !important;
-  font-weight: 600;
+.recordWin {
+  color: #8ee0b2;
 }
 
-.matchesValue {
-  color: #d0cad4;
-}
-
-.opponentArrow {
-  margin-top: 4px;
-  color: #68616e;
-  font-size: 8px;
-  line-height: 1;
-}
-
-.opponentRow.expanded .opponentArrow {
-  color: #b66bea;
+.recordLoss {
+  color: #ff91ad;
 }
 
 /* =========================================================
-   Recent result detail
+   Recent W/L
 ========================================================= */
-
-.recentDetailRow {
-  background: #100e13;
-}
-
-.recentDetailCell {
-  padding: 0 !important;
-  text-align: left !important;
-}
-
-.recentDetail {
-  padding: 14px 16px 16px;
-  border-top: 1px solid #2b2531;
-  background: linear-gradient(
-    180deg,
-    rgba(167, 96, 232, 0.055),
-    rgba(167, 96, 232, 0.015)
-  );
-}
-
-.recentDetailTitle {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 11px;
-}
-
-.recentDetailTitle span {
-  color: #ddd5e5;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.recentDetailTitle small {
-  color: #68616e;
-  font-size: 9px;
-}
 
 .recentResults {
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 10px;
-  width: 100%;
-  overflow-x: auto;
-  padding: 2px 0 4px;
-  scrollbar-width: none;
-}
-
-.recentResults::-webkit-scrollbar {
-  display: none;
-}
-
-.recentItem {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-height: 43px;
 }
 
 .recentResult {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  border-radius: 6px;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 900;
-  box-shadow:
-    inset 0 0 0 1px #ffffff18,
-    0 2px 6px #0005;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  min-width: 46px;
+  height: 43px;
+  border: 1px solid;
+  border-radius: 8px;
+  background: #17131f;
+}
+
+.recentResultValue {
+  font-size: 16px;
+  line-height: 17px;
+  font-weight: 800;
+}
+
+.recentResultTournament {
+  margin-top: 2px;
+  font-size: 9px;
+  line-height: 10px;
+  color: #82778f;
 }
 
 .recentResult.win {
-  background: #35a66b;
+  border-color: #347b58;
+  background: #10251c;
+  color: #82e0aa;
 }
 
 .recentResult.loss {
-  background: #c94d58;
-}
-
-.recentResult.latest {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  border-radius: 7px;
-  font-size: 12px;
-  box-shadow:
-    inset 0 0 0 2px #ffffff22,
-    0 3px 8px #0006;
-}
-
-.recentTournament {
-  color: #68616e;
-  font-size: 8px;
-  font-weight: 600;
-  white-space: nowrap;
+  border-color: #7b3d51;
+  background: #29131d;
+  color: #ff91ac;
 }
 
 .recentNoData {
-  color: #77717e;
-  font-size: 10px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  min-height: 43px;
+  color: #655c6f;
+  font-size: 11px;
 }
 
-.tableWrap a {
-  color: #b66bea;
-  text-decoration: none;
-  font-weight: 600;
+.matchesCell {
+  text-align: center;
 }
 
-.tableWrap a:hover {
-  color: #cf91ff;
-  text-decoration: underline;
+.matchesValue {
+  font-size: 17px;
+  font-weight: 700;
+  color: #eee8f6;
 }
 
-.section ul {
-  margin: 0;
-  padding-left: 20px;
-  color: #b7b0bc;
+/* =========================================================
+   Match result
+========================================================= */
+
+.resultWin {
+  color: #80dfa9;
 }
 
-.section li {
-  margin: 7px 0;
-  font-size: 13px;
+.resultLoss {
+  color: #ff8eaa;
 }
+
+/* =========================================================
+   Footer
+========================================================= */
 
 .footer {
-  padding: 35px 0;
-  text-align: center;
-  color: #4d4852;
-  font-size: 9px;
-  letter-spacing: 0.16em;
+  margin-top: 60px;
+  padding-top: 20px;
+  border-top: 1px solid #241e2e;
+  color: #62596b;
+  font-size: 11px;
 }
 
 .footer p {
   margin: 5px 0;
 }
 
-button:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
+/* =========================================================
+   Mobile
+========================================================= */
 
 @media (max-width: 700px) {
   .container {
-    padding: 18px 14px 45px;
+    width: min(
+      100% - 20px,
+      1180px
+    );
+    padding-top: 28px;
   }
 
   .header {
-    align-items: flex-start;
     flex-direction: column;
     gap: 18px;
   }
 
   .header h1 {
-    font-size: 30px;
+    font-size: 29px;
   }
 
   .headerActions {
     width: 100%;
-    justify-content: stretch;
   }
 
   .headerActions .button {
     flex: 1;
-    min-width: 0;
   }
 
   .summary {
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
   }
 
   .summary > div {
-    padding: 16px;
+    padding: 15px;
   }
 
   .summary strong {
@@ -622,122 +539,43 @@ button:disabled {
   }
 
   .section {
-    margin-top: 14px;
-    padding: 18px;
-    border-radius: 15px;
-  }
-
-  .section h2 {
-    font-size: 18px;
-  }
-
-  .playerSelectWrap {
-    padding: 9px;
-  }
-
-  .tableWrap {
-    border-radius: 10px;
-  }
-
-  .tableWrap th,
-  .tableWrap td {
-    padding: 11px 7px;
-    font-size: 11px;
-  }
-
-  .opponentTableWrap {
-    overflow-x: hidden;
+    margin-top: 32px;
   }
 
   .opponentTable {
-    width: 100% !important;
-    min-width: 0 !important;
+    min-width: 700px;
   }
 
-  .opponentTable th,
-  .opponentTable td {
-    padding: 10px 5px;
-  }
-
-  .opponentCell {
-    width: 28% !important;
-    font-size: 11px !important;
-  }
-
-  .rateCell {
-    width: 19% !important;
-  }
-
-  .recordCell {
-    width: 35% !important;
-  }
-
-  .matchesCell {
-    width: 18% !important;
-  }
-
-  .rateCell strong {
-    font-size: 13px;
-  }
-
-  .recordSummary {
-    font-size: 11px;
-  }
-
-  .opponentTapHint {
-    font-size: 7px;
-  }
-
-  .opponentArrow {
-    font-size: 7px;
-  }
-
-  .recentDetail {
-    padding: 12px 10px 14px;
-  }
-
-  .recentDetailTitle {
-    margin-bottom: 9px;
-  }
-
-  .recentResults {
-    gap: 8px;
+  th,
+  td {
+    padding: 11px 10px;
   }
 
   .recentResult {
-    width: 25px;
-    height: 25px;
-    min-width: 25px;
-    border-radius: 5px;
-    font-size: 10px;
+    width: 43px;
+    min-width: 43px;
+    height: 41px;
+  }
+}
+
+@media (max-width: 430px) {
+  .summary {
+    gap: 8px;
   }
 
-  .recentResult.latest {
-    width: 29px;
-    height: 29px;
-    min-width: 29px;
-    border-radius: 6px;
-    font-size: 11px;
+  .summary > div {
+    padding: 13px;
   }
 
-  .recentTournament {
-    font-size: 7px;
+  .summary strong {
+    font-size: 21px;
   }
 
-  .sortButtons {
-    margin-bottom: 10px;
+  .headerActions {
+    flex-direction: column;
   }
 
-  .sortButtons button {
-    padding: 7px 11px;
-    font-size: 10px;
-  }
-
-  .seasonTabs button {
-    padding: 8px 12px;
-  }
-
-  .footer {
-    padding: 28px 0;
+  .headerActions .button {
+    width: 100%;
   }
 }
