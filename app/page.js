@@ -1014,11 +1014,6 @@ export default function Home() {
 
                     <span className="winner">
                       <strong>{match.winner}</strong>
-                      {match.winnerRd != null && (
-                        <small className="ratingChange">
-                          RD {match.winnerRd}
-                        </small>
-                      )}
                       {match.winnerBefore != null && (
                         <small className="ratingChange">
                           {match.winnerBefore} → {match.winnerAfter}{' '}
@@ -1033,11 +1028,6 @@ export default function Home() {
 
                     <span className="loser">
                       <strong>{match.loser}</strong>
-                      {match.loserRd != null && (
-                        <small className="ratingChange">
-                          RD {match.loserRd}
-                        </small>
-                      )}
                       {match.loserBefore != null && (
                         <small className="ratingChange">
                           {match.loserBefore} → {match.loserAfter}{' '}
