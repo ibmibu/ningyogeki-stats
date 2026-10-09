@@ -701,7 +701,7 @@ export default function Home() {
   const [sortKey, setSortKey] = useState('opponent');
   const [sortDir, setSortDir] = useState('asc');
   const [season, setSeason] = useState('current');
-  const [rateChartPlayer, setRateChartPlayer] = useState(null);
+  const [rateChartPlayers, setRateChartPlayers] = useState([]);
 
   async function loadLatest(savedData = data, forceFull = false) {
     setLoading(true);
@@ -964,8 +964,9 @@ export default function Home() {
     sortDir,
   ]);
 
-  const ratingTrend = useMemo(() => {
-    if (!rateChartPlayer) return null;
+  const ratingTrends = useMemo(() => {
+    if (!rateChartPlayers.length) return [];
+    return rateChartPlayers.map((rateChartPlayer, playerIndex) => {
 
     const startTournament =
       selectedSeason === 'all'
@@ -1070,9 +1071,18 @@ export default function Home() {
     const yMin = 1100;
     const yMax = 2100;
     const xDomainMin = selectedSeason === 'all' ? 1 : 0;
+    const sharedSeasonMatchCount = selectedSeason === 'all'
+      ? 0
+      : Math.max(0, ...rateChartPlayers.map((id) =>
+          matchHistory.filter((match) =>
+            (String(match.winnerId) === String(id) || String(match.loserId) === String(id)) &&
+            (Number(match.tournamentNumber) || 0) >= xMin &&
+            (Number(match.tournamentNumber) || 0) < xMin + 25
+          ).length
+        ));
     const xMax = selectedSeason === 'all'
       ? Math.max(2, ...points.map((point) => point.xMatch))
-      : Math.max(1, matchCount);
+      : Math.max(1, sharedSeasonMatchCount);
     const width = 700;
     const height = 260;
     const margin = { top: 18, right: 18, bottom: 38, left: 58 };
@@ -1100,11 +1110,24 @@ export default function Home() {
       matchCount,
       matchesInSeason,
       tickStep: selectedSeason === 'all' ? 25 : 5,
+      color: ['#b76bf0', '#35c9a5', '#ffb547', '#5da9ff', '#ff6b81'][playerIndex],
       player: data?.players.find(
         (player) => String(player.id) === String(rateChartPlayer)
       ),
     };
-  }, [matchHistory, rateChartPlayer, selectedSeason, data]);
+    });
+  }, [matchHistory, rateChartPlayers, selectedSeason, data]);
+
+  const ratingTrend = ratingTrends[0] || null;
+
+  function toggleRateChartPlayer(playerId) {
+    const id = String(playerId);
+    setRateChartPlayers((current) => {
+      if (current.includes(id)) return current.filter((value) => value !== id);
+      if (current.length >= 5) return current;
+      return [...current, id];
+    });
+  }
 
   if (!data) {
     return (
@@ -1478,33 +1501,40 @@ export default function Home() {
             ))}
           </div>
 
-          {ratingTrend && (
+          {ratingTrends.length > 0 && (
             <section className="ratingTrend" aria-label="選手のレート推移">
               <div className="ratingTrendHead">
                 <div>
                   <div className="sectionLabel">RATING HISTORY</div>
-                  <h3>{ratingTrend.player?.name || '選手'}のレート推移</h3>
+                  <h3>選手のレート推移（{ratingTrends.length}/5人）</h3>
                   <p>
-                    {selectedSeason === 'all'
-                      ? '全期間'
-                      : `シーズン${selectedSeason}`}
+                    {selectedSeason === 'all' ? '全期間' : `シーズン${selectedSeason}`}
                     {' '}・{selectedSeason === 'all' ? '大会ごとの最終レート' : '対戦ごとのレート推移'}
                   </p>
                 </div>
                 <button
                   type="button"
                   className="trendClose"
-                  onClick={() => setRateChartPlayer(null)}
+                  onClick={() => setRateChartPlayers([])}
                   aria-label="レート推移を閉じる"
                 >
-                  閉じる ×
+                  すべて閉じる ×
                 </button>
+              </div>
+              <div className="trendLegend">
+                {ratingTrends.map((trend) => (
+                  <span key={trend.player?.id} className="trendLegendItem" style={{ color: trend.color }}>
+                    <i style={{ backgroundColor: trend.color }} />
+                    {trend.player?.name || '選手'}
+                    <button type="button" onClick={() => toggleRateChartPlayer(trend.player?.id)} aria-label={`${trend.player?.name}をグラフから外す`}>×</button>
+                  </span>
+                ))}
               </div>
               <div className="ratingTrendChart">
                 <svg
                   viewBox={`0 0 ${ratingTrend.width} ${ratingTrend.height}`}
                   role="img"
-                  aria-label={`${ratingTrend.player?.name || '選手'}の大会ごとのレート推移グラフ`}
+                  aria-label={`選択した${ratingTrends.length}人のレート推移グラフ`}
                 >
                   {[0, 1, 2, 3, 4, 5].map((tick) => {
                     const rating = ratingTrend.yMax -
@@ -1538,12 +1568,16 @@ export default function Home() {
                     y2={ratingTrend.height - ratingTrend.margin.bottom}
                     className="trendAxisLine"
                   />
-                  {ratingTrend.hasSeasonParticipation && (
+                  {ratingTrends.map((trend) => trend.hasSeasonParticipation && (
                     <polyline
-                      points={ratingTrend.points.map((point) => `${point.x},${point.y}`).join(' ')}
-                      className="trendLine"
+                      key={trend.player?.id}
+                      points={trend.points.map((point) => `${point.x},${point.y}`).join(' ')}
+                      fill="none"
+                      stroke={trend.color}
+                      strokeWidth="3"
+                      strokeLinejoin="round"
                     />
-                  )}
+                  ))}
                   {(() => {
                     const ticks = [];
                     const tickStep = ratingTrend.tickStep;
@@ -1570,13 +1604,9 @@ export default function Home() {
                     if (selectedSeason !== 'all') {
                       ticks.push({
                         tournamentNumber: ratingTrend.xMin + 24,
-                        xMatch: ratingTrend.hasSeasonParticipation
-                          ? ratingTrend.matchCount
-                          : ratingTrend.xMax,
+                        xMatch: ratingTrend.xMax,
                       });
                     }
-
-                    // シーズン別は同じ対戦数位置に複数の大会番号が重なる場合、最後のラベルだけ残す。
                     const distinctTicks = new Map();
                     for (const tick of ticks) distinctTicks.set(tick.xMatch, tick);
                     return [...distinctTicks.values()].map(({ tournamentNumber, xMatch }) => {
@@ -1617,10 +1647,10 @@ export default function Home() {
 
                   <button
                     type="button"
-                    className={`rankName rankNameButton ${String(rateChartPlayer) === String(player.id) ? 'selected' : ''}`}
-                    onClick={() => setRateChartPlayer(String(player.id))}
-                    aria-pressed={String(rateChartPlayer) === String(player.id)}
-                    title={`${player.name}のレート推移を表示`}
+                    className={`rankName rankNameButton ${rateChartPlayers.includes(String(player.id)) ? 'selected' : ''}`}
+                    onClick={() => toggleRateChartPlayer(player.id)}
+                    aria-pressed={rateChartPlayers.includes(String(player.id))}
+                    title={rateChartPlayers.includes(String(player.id)) ? `${player.name}をグラフから外す` : rateChartPlayers.length >= 5 ? '最大5人まで選択できます' : `${player.name}のレート推移を追加`}
                   >
                     {player.name}
                   </button>
