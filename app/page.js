@@ -1032,7 +1032,7 @@ export default function Home() {
           currentRating = point.rating;
           points.push({
             tournamentNumber,
-            xTournament: tournamentNumber + fraction,
+            xTournament: tournamentNumber - 1 + fraction,
             rating: currentRating,
           });
         }
