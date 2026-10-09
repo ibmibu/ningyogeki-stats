@@ -1008,12 +1008,15 @@ export default function Home() {
     const lastRecordedTournament = seasonRatings.length
       ? seasonRatings[seasonRatings.length - 1].tournamentNumber
       : xMin;
+    const seasonEndTournament = selectedSeason === 'all'
+      ? lastRecordedTournament
+      : xMin + 24;
     const points = [];
     let currentRating = previousRating ?? ELO_INITIAL_RATING;
 
     for (
       let tournamentNumber = xMin;
-      tournamentNumber <= lastRecordedTournament;
+      tournamentNumber <= seasonEndTournament;
       tournamentNumber += 1
     ) {
       const tournamentRating = endOfTournament.get(tournamentNumber);
