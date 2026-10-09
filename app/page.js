@@ -267,7 +267,8 @@ function updateEloPlayer(
   player,
   opponent,
   score,
-  kOverride = null
+  kOverride = null,
+  disableRatingLossFactor = false
 ) {
   const expected = eloExpected(
     player.rating,
@@ -296,7 +297,9 @@ function updateEloPlayer(
   );
 
   const ratingFactor =
-    score === 0 && ratingDifference > 0
+    !disableRatingLossFactor &&
+    score === 0 &&
+    ratingDifference > 0
       ? Math.min(1, 200 / ratingDifference)
       : 1;
 
@@ -483,7 +486,8 @@ function calculateElo(data, season = 'all') {
           winnerState,
           loserState,
           1,
-          kOverride
+          kOverride,
+          season === 'all'
         );
 
       const loserAfterElo =
@@ -491,7 +495,8 @@ function calculateElo(data, season = 'all') {
           loserState,
           winnerState,
           0,
-          kOverride
+          kOverride,
+          season === 'all'
         );
 
       const winnerAfterRd =
