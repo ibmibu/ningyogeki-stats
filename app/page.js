@@ -362,6 +362,7 @@ function calculateElo(data, season = 'all', collectTournamentStartRatings = fals
 
       if (!winner || !loser) continue;
 
+      const tournamentNumber = Number(record.tournamentNumber) || 0;
       applyInactivityRd(winner, tournamentNumber);
       applyInactivityRd(loser, tournamentNumber);
 
@@ -458,7 +459,6 @@ function calculateElo(data, season = 'all', collectTournamentStartRatings = fals
         continue;
       }
 
-      const tournamentNumber = Number(record.tournamentNumber) || 0;
       applyInactivityRd(winner, tournamentNumber);
       applyInactivityRd(loser, tournamentNumber);
 
