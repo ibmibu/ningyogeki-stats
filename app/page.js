@@ -1488,7 +1488,7 @@ export default function Home() {
                     {selectedSeason === 'all'
                       ? '全期間'
                       : `シーズン${selectedSeason}`}
-                    {' '}・大会ごとの最終レート
+                    {' '}・{selectedSeason === 'all' ? '大会ごとの最終レート' : '対戦ごとのレート推移'}
                   </p>
                 </div>
                 <button
@@ -1548,7 +1548,7 @@ export default function Home() {
                     const ticks = [];
                     const tickStep = ratingTrend.tickStep;
                     const lastTournament = selectedSeason === 'all'
-                      ? Math.max(ratingTrend.xMin, ...ratingTrend.matchesInSeason.map((point) => point.tournamentNumber))
+                      ? ratingTrend.xMax
                       : ratingTrend.xMin + 24;
                     for (
                       let tournamentNumber = selectedSeason === 'all' ? 1 : ratingTrend.xMin;
