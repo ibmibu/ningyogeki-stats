@@ -993,21 +993,19 @@ export default function Home() {
       });
     }
 
+    const xMin = selectedSeason === 'all'
+      ? 1
+      : (Number(selectedSeason) - 1) * 25 + 1;
     const points = [
-      { tournamentNumber: startTournament, rating: ELO_INITIAL_RATING },
+      { tournamentNumber: xMin, rating: ELO_INITIAL_RATING },
       ...[...endOfTournament.values()].sort(
         (a, b) => a.tournamentNumber - b.tournamentNumber
       ),
     ];
 
-    const minRating = Math.min(...points.map((point) => point.rating));
-    const maxRating = Math.max(...points.map((point) => point.rating));
-    const yMin = Math.floor((minRating - 50) / 50) * 50;
-    const yMax = Math.max(
-      yMin + 100,
-      Math.ceil((maxRating + 50) / 50) * 50
-    );
-    const xMin = points[0].tournamentNumber;
+    // 全選手・全期間で同じ縦軸スケールを使う。
+    const yMin = 1000;
+    const yMax = 2200;
     const xMax = Math.max(
       xMin + 1,
       points[points.length - 1].tournamentNumber
@@ -1476,35 +1474,26 @@ export default function Home() {
                     points={ratingTrend.points.map((point) => `${point.x},${point.y}`).join(' ')}
                     className="trendLine"
                   />
-                  {ratingTrend.points.map((point, index) => (
-                    <circle
-                      key={`${point.tournamentNumber}-${index}`}
-                      cx={point.x}
-                      cy={point.y}
-                      r={index === ratingTrend.points.length - 1 ? 4 : 2.5}
-                      className="trendPoint"
-                    >
-                      <title>
-                        大会{point.tournamentNumber}：レート{point.rating}
-                      </title>
-                    </circle>
-                  ))}
-                  {[0, 0.5, 1].map((fraction) => {
-                    const tournamentNumber = Math.round(
-                      ratingTrend.xMin +
-                      (ratingTrend.xMax - ratingTrend.xMin) * fraction
-                    );
+                  {Array.from(
+                    {
+                      length: Math.floor((ratingTrend.xMax - 1) / 25) -
+                        Math.ceil((ratingTrend.xMin - 1) / 25) + 1,
+                    },
+                    (_, index) => Math.ceil((ratingTrend.xMin - 1) / 25) * 25 + 1 + index * 25
+                  ).map((tournamentNumber) => {
                     const x = ratingTrend.margin.left +
-                      ratingTrend.plotWidth * fraction;
+                      ((tournamentNumber - ratingTrend.xMin) /
+                        (ratingTrend.xMax - ratingTrend.xMin)) *
+                        ratingTrend.plotWidth;
                     return (
                       <text
-                        key={fraction}
+                        key={tournamentNumber}
                         x={x}
                         y={ratingTrend.height - 12}
-                        textAnchor={fraction === 0 ? 'start' : fraction === 1 ? 'end' : 'middle'}
+                        textAnchor={tournamentNumber === ratingTrend.xMin ? 'start' : 'middle'}
                         className="trendAxisLabel"
                       >
-                        {tournamentNumber === 0 ? '開始' : `大会${tournamentNumber}`}
+                        {tournamentNumber}
                       </text>
                     );
                   })}
