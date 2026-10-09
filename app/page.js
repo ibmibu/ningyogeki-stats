@@ -420,18 +420,18 @@ function calculateElo(data, season = 'all', collectTournamentStartRatings = fals
     // 1試合ずつ処理。Eloはシーズン内でリセットするが、
     // RDは全シーズンを通して同じ選手状態を引き継ぐ。
     for (const record of records) {
-      const tournamentNumber = Number(record.tournamentNumber) || 0;
+      const recordTournamentNumber = Number(record.tournamentNumber) || 0;
       if (
         collectTournamentRatings &&
-        tournamentNumber !== lastTournamentNumber
+        recordTournamentNumber !== lastTournamentNumber
       ) {
-        tournamentStartRatings[tournamentNumber] = Object.fromEntries(
+        tournamentStartRatings[recordTournamentNumber] = Object.fromEntries(
           [...players.entries()].map(([id, player]) => [
             id,
             Math.round(player.rating),
           ])
         );
-        lastTournamentNumber = tournamentNumber;
+        lastTournamentNumber = recordTournamentNumber;
       }
 
       const winner = players.get(
@@ -459,8 +459,8 @@ function calculateElo(data, season = 'all', collectTournamentStartRatings = fals
         continue;
       }
 
-      applyInactivityRd(winner, tournamentNumber);
-      applyInactivityRd(loser, tournamentNumber);
+      applyInactivityRd(winner, recordTournamentNumber);
+      applyInactivityRd(loser, recordTournamentNumber);
 
       const winnerBefore =
         Math.round(winner.rating);
@@ -532,8 +532,8 @@ function calculateElo(data, season = 'all', collectTournamentStartRatings = fals
       loser.volatility =
         loserAfterRd.volatility;
       loser.losses += 1;
-      winner.lastPlayedTournamentNumber = tournamentNumber;
-      loser.lastPlayedTournamentNumber = tournamentNumber;
+      winner.lastPlayedTournamentNumber = recordTournamentNumber;
+      loser.lastPlayedTournamentNumber = recordTournamentNumber;
 
       if (collectHistory) {
         const winnerAfter =
