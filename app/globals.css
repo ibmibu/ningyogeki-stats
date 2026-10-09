@@ -1161,3 +1161,48 @@ footer span {
     font-size: 11px;
   }
 }
+
+
+.trendLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 12px 0 8px;
+}
+
+.trendLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.trendLegendItem > i {
+  display: inline-block;
+  width: 18px;
+  height: 3px;
+  border-radius: 99px;
+}
+
+.trendLegendItem button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 3px;
+  opacity: .8;
+}
+
+.trendLegendItem button:hover {
+  opacity: 1;
+}
+
+.trendLegendItem button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
