@@ -1003,8 +1003,11 @@ export default function Home() {
       .filter((point) => point.tournamentNumber < xMin)
       .at(-1)?.rating;
     const seasonRatings = sortedRatings.filter(
-      (point) => point.tournamentNumber >= xMin
+      (point) =>
+        point.tournamentNumber >= xMin &&
+        (selectedSeason === 'all' || point.tournamentNumber < xMin + 25)
     );
+    if (selectedSeason !== 'all' && seasonRatings.length === 0) return null;
     const lastRecordedTournament = seasonRatings.length
       ? seasonRatings[seasonRatings.length - 1].tournamentNumber
       : xMin;
@@ -1494,19 +1497,20 @@ export default function Home() {
                     points={ratingTrend.points.map((point) => `${point.x},${point.y}`).join(' ')}
                     className="trendLine"
                   />
-                  {Array.from(
-                    {
-                      length: Math.floor(
-                        (ratingTrend.xMax - (selectedSeason === 'all' ? 1 : (Number(selectedSeason) - 1) * 25 + 1)) /
-                          (selectedSeason === 'all' ? 25 : 5)
-                      ) + 1,
-                    },
-                    (_, index) =>
-                      (selectedSeason === 'all'
-                        ? 1
-                        : (Number(selectedSeason) - 1) * 25 + 1) +
-                      index * (selectedSeason === 'all' ? 25 : 5)
-                  ).map((tournamentNumber) => {
+                  {[...new Set([
+                    ...Array.from(
+                      {
+                        length: Math.floor(
+                          (ratingTrend.xMax - ratingTrend.xMin) /
+                            (selectedSeason === 'all' ? 25 : 5)
+                        ) + 1,
+                      },
+                      (_, index) =>
+                        ratingTrend.xMin +
+                        index * (selectedSeason === 'all' ? 25 : 5)
+                    ),
+                    ...(selectedSeason === 'all' ? [] : [ratingTrend.xMax]),
+                  ])].map((tournamentNumber) => {
                     const x = ratingTrend.margin.left +
                       ((tournamentNumber - ratingTrend.xMin) /
                         (ratingTrend.xMax - ratingTrend.xMin)) *
