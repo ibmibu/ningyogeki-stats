@@ -971,66 +971,87 @@ export default function Home() {
       selectedSeason === 'all'
         ? 0
         : (Number(selectedSeason) - 1) * 25;
-    const endOfTournament = new Map();
+    const playerId = String(rateChartPlayer);
+    const matchesByTournament = new Map();
+    const playerMatches = [];
 
     for (const match of matchHistory) {
-      if (match.winnerAfter == null || match.loserAfter == null) continue;
-
-      const playerId = String(rateChartPlayer);
-      let rating = null;
-
-      if (String(match.winnerId) === playerId) {
-        rating = match.winnerAfter;
-      } else if (String(match.loserId) === playerId) {
-        rating = match.loserAfter;
-      }
-
-      if (rating == null) continue;
       const tournamentNumber = Number(match.tournamentNumber) || 0;
-      endOfTournament.set(tournamentNumber, {
-        tournamentNumber,
-        rating,
-      });
+      if (!matchesByTournament.has(tournamentNumber)) {
+        matchesByTournament.set(tournamentNumber, []);
+      }
+      matchesByTournament.get(tournamentNumber).push(match);
+
+      const isWinner = String(match.winnerId) === playerId;
+      const isLoser = String(match.loserId) === playerId;
+      if (!isWinner && !isLoser) continue;
+
+      const rating = isWinner ? match.winnerAfter : match.loserAfter;
+      if (rating == null) continue;
+      playerMatches.push({ tournamentNumber, rating, match });
     }
 
     const xMin = selectedSeason === 'all'
       ? 1
       : (Number(selectedSeason) - 1) * 25 + 1;
-    const sortedRatings = [...endOfTournament.values()].sort(
-      (a, b) => a.tournamentNumber - b.tournamentNumber
+    const seasonRatings = playerMatches.filter(
+      (point) =>
+        selectedSeason === 'all' ||
+        (point.tournamentNumber >= xMin && point.tournamentNumber < xMin + 25)
     );
-    const previousRating = sortedRatings
+    const hasSeasonParticipation = selectedSeason === 'all' || seasonRatings.length > 0;
+    const previousRating = playerMatches
       .filter((point) => point.tournamentNumber < xMin)
       .at(-1)?.rating;
-    const seasonRatings = sortedRatings.filter(
-      (point) =>
-        point.tournamentNumber >= xMin &&
-        (selectedSeason === 'all' || point.tournamentNumber < xMin + 25)
-    );
-    const lastRecordedTournament = seasonRatings.length
-      ? seasonRatings[seasonRatings.length - 1].tournamentNumber
-      : xMin;
     const seasonEndTournament = selectedSeason === 'all'
-      ? lastRecordedTournament
+      ? Math.max(xMin + 1, seasonRatings.at(-1)?.tournamentNumber ?? xMin)
       : xMin + 24;
     const points = [];
     let currentRating = previousRating ?? ELO_INITIAL_RATING;
+    points.push({ tournamentNumber: xMin, xTournament: xMin, rating: currentRating });
 
-    for (
-      let tournamentNumber = xMin;
-      tournamentNumber <= seasonEndTournament;
-      tournamentNumber += 1
-    ) {
-      const tournamentRating = endOfTournament.get(tournamentNumber);
-      if (tournamentRating) currentRating = tournamentRating.rating;
-      points.push({ tournamentNumber, rating: currentRating });
+    if (hasSeasonParticipation) {
+      const matchesInSeason = selectedSeason === 'all'
+        ? playerMatches
+        : seasonRatings;
+      const groupedPlayerMatches = new Map();
+      for (const point of matchesInSeason) {
+        if (!groupedPlayerMatches.has(point.tournamentNumber)) {
+          groupedPlayerMatches.set(point.tournamentNumber, []);
+        }
+        groupedPlayerMatches.get(point.tournamentNumber).push(point);
+      }
+
+      for (const [tournamentNumber, matches] of groupedPlayerMatches) {
+        const tournamentMatches = matchesByTournament.get(tournamentNumber) || [];
+        let lastFraction = 0;
+        for (const point of matches) {
+          const matchIndex = tournamentMatches.indexOf(point.match);
+          const fraction = (matchIndex + 1) / (tournamentMatches.length + 1);
+          lastFraction = Math.max(lastFraction, fraction);
+          currentRating = point.rating;
+          points.push({
+            tournamentNumber,
+            xTournament: tournamentNumber + fraction,
+            rating: currentRating,
+          });
+        }
+      }
+
+      if (selectedSeason !== 'all') {
+        points.push({
+          tournamentNumber: seasonEndTournament,
+          xTournament: seasonEndTournament,
+          rating: currentRating,
+        });
+      }
     }
 
     // 全選手・全期間で同じ縦軸スケールを使う。
     const yMin = 1100;
     const yMax = 2100;
     const xMax = selectedSeason === 'all'
-      ? Math.max(xMin + 1, points[points.length - 1].tournamentNumber)
+      ? Math.max(xMin + 1, points[points.length - 1].xTournament)
       : xMin + 24;
     const width = 700;
     const height = 260;
@@ -1039,13 +1060,13 @@ export default function Home() {
     const plotHeight = height - margin.top - margin.bottom;
     const plottedPoints = points.map((point) => ({
       ...point,
-      x: margin.left + ((point.tournamentNumber - xMin) / (xMax - xMin)) * plotWidth,
+      x: margin.left + ((point.xTournament - xMin) / (xMax - xMin)) * plotWidth,
       y: margin.top + ((yMax - point.rating) / (yMax - yMin)) * plotHeight,
     }));
 
     return {
       points: plottedPoints,
-      hasSeasonParticipation: selectedSeason === 'all' || seasonRatings.length > 0,
+      hasSeasonParticipation,
       width,
       height,
       margin,
