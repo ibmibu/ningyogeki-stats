@@ -1631,6 +1631,7 @@ export default function Home() {
             </section>
           )}
 
+          <p className="chartSelectHint">ランキングの選手名をタップしてグラフに追加（最大5人）。もう一度タップすると解除できます。</p>
           <div className="rankingList">
             {ranking.map(
               (player, index) => (
