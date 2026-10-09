@@ -1048,8 +1048,12 @@ export default function Home() {
     // 全選手・全期間で同じ縦軸スケールを使う。
     const yMin = 1100;
     const yMax = 2100;
+    // 試合位置は「大会番号 - 1」から「大会番号」までに配置するため、
+    // 描画領域の左端は表示上の最初の大会番号より1つ前にする。
+    // これにより第1大会・各シーズン初大会の試合が左端にはみ出さない。
+    const xDomainMin = xMin - 1;
     const xMax = selectedSeason === 'all'
-      ? Math.max(xMin + 1, points[points.length - 1].xTournament)
+      ? Math.max(xDomainMin + 1, points[points.length - 1].xTournament)
       : xMin + 24;
     const width = 700;
     const height = 260;
@@ -1058,7 +1062,7 @@ export default function Home() {
     const plotHeight = height - margin.top - margin.bottom;
     const plottedPoints = points.map((point) => ({
       ...point,
-      x: margin.left + ((point.xTournament - xMin) / (xMax - xMin)) * plotWidth,
+      x: margin.left + ((point.xTournament - xDomainMin) / (xMax - xDomainMin)) * plotWidth,
       y: margin.top + ((yMax - point.rating) / (yMax - yMin)) * plotHeight,
     }));
 
@@ -1073,6 +1077,7 @@ export default function Home() {
       yMin,
       yMax,
       xMin,
+      xDomainMin,
       xMax,
       player: data?.players.find(
         (player) => String(player.id) === String(rateChartPlayer)
@@ -1533,8 +1538,8 @@ export default function Home() {
                     ...(selectedSeason === 'all' ? [] : [ratingTrend.xMax]),
                   ])].map((tournamentNumber) => {
                     const x = ratingTrend.margin.left +
-                      ((tournamentNumber - ratingTrend.xMin) /
-                        (ratingTrend.xMax - ratingTrend.xMin)) *
+                      ((tournamentNumber - ratingTrend.xDomainMin) /
+                        (ratingTrend.xMax - ratingTrend.xDomainMin)) *
                         ratingTrend.plotWidth;
                     return (
                       <text
