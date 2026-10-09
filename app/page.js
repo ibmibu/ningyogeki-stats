@@ -1005,11 +1005,10 @@ export default function Home() {
 
     // 全選手・全期間で同じ縦軸スケールを使う。
     const yMin = 1100;
-    const yMax = 2300;
-    const xMax = Math.max(
-      xMin + 1,
-      points[points.length - 1].tournamentNumber
-    );
+    const yMax = 2100;
+    const xMax = selectedSeason === 'all'
+      ? Math.max(xMin + 1, points[points.length - 1].tournamentNumber)
+      : xMin + 24;
     const width = 700;
     const height = 260;
     const margin = { top: 18, right: 18, bottom: 38, left: 58 };
@@ -1438,11 +1437,11 @@ export default function Home() {
                   role="img"
                   aria-label={`${ratingTrend.player?.name || '選手'}の大会ごとのレート推移グラフ`}
                 >
-                  {[0, 1, 2, 3, 4, 5, 6].map((tick) => {
+                  {[0, 1, 2, 3, 4, 5].map((tick) => {
                     const rating = ratingTrend.yMax -
-                      ((ratingTrend.yMax - ratingTrend.yMin) * tick) / 6;
+                      ((ratingTrend.yMax - ratingTrend.yMin) * tick) / 5;
                     const y = ratingTrend.margin.top +
-                      (ratingTrend.plotHeight * tick) / 6;
+                      (ratingTrend.plotHeight * tick) / 5;
                     return (
                       <g key={tick}>
                         <line
