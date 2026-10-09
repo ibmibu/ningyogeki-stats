@@ -964,9 +964,11 @@ export default function Home() {
     sortDir,
   ]);
 
+  const chartPlayerIds = selectedSeason === 'all' ? rateChartPlayers : rateChartPlayers.slice(-1);
+
   const ratingTrends = useMemo(() => {
-    if (!rateChartPlayers.length) return [];
-    return rateChartPlayers.map((rateChartPlayer, playerIndex) => {
+    if (!chartPlayerIds.length) return [];
+    return chartPlayerIds.map((rateChartPlayer, playerIndex) => {
 
     const startTournament =
       selectedSeason === 'all'
@@ -1116,7 +1118,7 @@ export default function Home() {
       ),
     };
     });
-  }, [matchHistory, rateChartPlayers, selectedSeason, data]);
+  }, [matchHistory, chartPlayerIds, selectedSeason, data]);
 
   const ratingTrend = ratingTrends[0] || null;
 
@@ -1124,6 +1126,7 @@ export default function Home() {
     const id = String(playerId);
     setRateChartPlayers((current) => {
       if (current.includes(id)) return current.filter((value) => value !== id);
+      if (selectedSeason !== 'all') return [id];
       if (current.length >= 5) return current;
       return [...current, id];
     });
@@ -1506,7 +1509,7 @@ export default function Home() {
               <div className="ratingTrendHead">
                 <div>
                   <div className="sectionLabel">RATING HISTORY</div>
-                  <h3>選手のレート推移（{ratingTrends.length}/5人）</h3>
+                  <h3>{selectedSeason === 'all' ? `選手のレート推移（${ratingTrends.length}/5人）` : `${ratingTrend.player?.name || '選手'}のレート推移`}</h3>
                   <p>
                     {selectedSeason === 'all' ? '全期間' : `シーズン${selectedSeason}`}
                     {' '}・{selectedSeason === 'all' ? '大会ごとの最終レート' : '対戦ごとのレート推移'}
@@ -1631,7 +1634,7 @@ export default function Home() {
             </section>
           )}
 
-          <p className="chartSelectHint">ランキングの選手名をタップしてグラフに追加（最大5人）。もう一度タップすると解除できます。</p>
+          {selectedSeason === 'all' && <p className="chartSelectHint">ランキングの選手名をタップしてグラフに追加（最大5人）。もう一度タップすると解除できます。</p>}
           <div className="rankingList">
             {ranking.map(
               (player, index) => (
