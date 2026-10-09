@@ -1031,7 +1031,15 @@ export default function Home() {
           ...((data?.tournaments || []).map((t) => Number(t.number) || 0)),
           ...finalRatingByTournament.keys()
         );
-        currentRating = finalRatingByTournament.get(firstPlayedTournament);
+
+        // 初参加の1大会前はレート1500。#1参加の場合は横軸0.5に仮の始点を置く。
+        points.push({
+          tournamentNumber: firstPlayedTournament - 1,
+          xMatch: Math.max(0.5, firstPlayedTournament - 1),
+          rating: ELO_INITIAL_RATING,
+        });
+
+        currentRating = ELO_INITIAL_RATING;
         for (
           let tournamentNumber = firstPlayedTournament;
           tournamentNumber <= lastTournament;
@@ -1072,10 +1080,10 @@ export default function Home() {
     // 「すべて」は大会番号、「シーズン別」は対戦数を横軸の内部値にする。
     const yMin = 1100;
     const yMax = 2100;
-    const xDomainMin = selectedSeason === 'all' ? 1 : 0;
+    const xDomainMin = selectedSeason === 'all' ? 0.5 : 0;
     const sharedSeasonMatchCount = selectedSeason === 'all'
       ? 0
-      : Math.max(0, ...rateChartPlayers.map((id) =>
+      : Math.max(0, ...chartPlayerIds.map((id) =>
           matchHistory.filter((match) =>
             (String(match.winnerId) === String(id) || String(match.loserId) === String(id)) &&
             (Number(match.tournamentNumber) || 0) >= xMin &&
