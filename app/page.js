@@ -964,7 +964,7 @@ export default function Home() {
     sortDir,
   ]);
 
-  const chartPlayerIds = selectedSeason === 'all' ? rateChartPlayers : rateChartPlayers.slice(-1);
+  const chartPlayerIds = selectedSeason === 'all' ? rateChartPlayers : rateChartPlayers.slice(0, 1);
 
   const ratingTrends = useMemo(() => {
     if (!chartPlayerIds.length) return [];
@@ -1532,10 +1532,10 @@ export default function Home() {
                   onClick={() => setRateChartPlayers([])}
                   aria-label="レート推移を閉じる"
                 >
-                  すべて閉じる ×
+                  グラフを閉じる ×
                 </button>
               </div>
-              <div className="trendLegend">
+              {selectedSeason === 'all' && <div className="trendLegend">
                 {ratingTrends.map((trend) => (
                   <span key={trend.player?.id} className="trendLegendItem" style={{ color: trend.color }}>
                     <i style={{ backgroundColor: trend.color }} />
@@ -1543,7 +1543,7 @@ export default function Home() {
                     <button type="button" onClick={() => toggleRateChartPlayer(trend.player?.id)} aria-label={`${trend.player?.name}をグラフから外す`}>×</button>
                   </span>
                 ))}
-              </div>
+              </div>}
               <div className="ratingTrendChart">
                 <svg
                   viewBox={`0 0 ${ratingTrend.width} ${ratingTrend.height}`}
