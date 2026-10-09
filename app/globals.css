@@ -723,6 +723,109 @@ body {
   white-space: nowrap;
 }
 
+.rankNameButton {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 4px 0;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.rankNameButton:hover,
+.rankNameButton.selected {
+  color: #c9a5e6;
+}
+
+.rankNameButton:focus-visible,
+.trendClose:focus-visible {
+  outline: 2px solid #b76bf0;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.ratingTrend {
+  margin: 18px 0 22px;
+  padding: 18px;
+  border: 1px solid #302b36;
+  border-radius: 14px;
+  background: #17151b;
+}
+
+.ratingTrendHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.ratingTrendHead h3 {
+  margin: 4px 0 5px;
+  font-size: 17px;
+}
+
+.ratingTrendHead p {
+  margin: 0;
+  color: #8f8798;
+  font-size: 12px;
+}
+
+.trendClose {
+  border: 1px solid #403747;
+  background: #211d26;
+  color: #d8cde2;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ratingTrendChart {
+  width: 100%;
+  overflow: hidden;
+}
+
+.ratingTrendChart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.trendGridLine {
+  stroke: #302b36;
+  stroke-width: 1;
+}
+
+.trendAxisLine {
+  stroke: #5c5364;
+  stroke-width: 1;
+}
+
+.trendAxisLabel {
+  fill: #92899c;
+  font-size: 11px;
+}
+
+.trendLine {
+  fill: none;
+  stroke: #b76bf0;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.trendPoint {
+  fill: #d8a9ff;
+  stroke: #17151b;
+  stroke-width: 1.5;
+}
+
 .bar {
   height: 5px;
   background: #25222a;
