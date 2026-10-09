@@ -1004,8 +1004,8 @@ export default function Home() {
     ];
 
     // 全選手・全期間で同じ縦軸スケールを使う。
-    const yMin = 1000;
-    const yMax = 2200;
+    const yMin = 1100;
+    const yMax = 2300;
     const xMax = Math.max(
       xMin + 1,
       points[points.length - 1].tournamentNumber
@@ -1476,10 +1476,16 @@ export default function Home() {
                   />
                   {Array.from(
                     {
-                      length: Math.floor((ratingTrend.xMax - 1) / 25) -
-                        Math.ceil((ratingTrend.xMin - 1) / 25) + 1,
+                      length: Math.floor(
+                        (ratingTrend.xMax - (selectedSeason === 'all' ? 1 : (Number(selectedSeason) - 1) * 25 + 1)) /
+                          (selectedSeason === 'all' ? 25 : 5)
+                      ) + 1,
                     },
-                    (_, index) => Math.ceil((ratingTrend.xMin - 1) / 25) * 25 + 1 + index * 25
+                    (_, index) =>
+                      (selectedSeason === 'all'
+                        ? 1
+                        : (Number(selectedSeason) - 1) * 25 + 1) +
+                      index * (selectedSeason === 'all' ? 25 : 5)
                   ).map((tournamentNumber) => {
                     const x = ratingTrend.margin.left +
                       ((tournamentNumber - ratingTrend.xMin) /
