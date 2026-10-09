@@ -1124,9 +1124,12 @@ export default function Home() {
 
   function toggleRateChartPlayer(playerId) {
     const id = String(playerId);
+    if (selectedSeason !== 'all') {
+      setRateChartPlayers((current) => current.slice(-1)[0] === id ? [] : [id]);
+      return;
+    }
     setRateChartPlayers((current) => {
       if (current.includes(id)) return current.filter((value) => value !== id);
-      if (selectedSeason !== 'all') return [id];
       if (current.length >= 5) return current;
       return [...current, id];
     });
@@ -1651,7 +1654,7 @@ export default function Home() {
 
                   <button
                     type="button"
-                    className={`rankName rankNameButton ${rateChartPlayers.includes(String(player.id)) ? 'selected' : ''}`}
+                    className={`rankName rankNameButton ${chartPlayerIds.includes(String(player.id)) ? 'selected' : ''}`}
                     onClick={() => toggleRateChartPlayer(player.id)}
                     aria-pressed={rateChartPlayers.includes(String(player.id))}
                     title={rateChartPlayers.includes(String(player.id)) ? `${player.name}をグラフから外す` : rateChartPlayers.length >= 5 ? '最大5人まで選択できます' : `${player.name}のレート推移を追加`}
