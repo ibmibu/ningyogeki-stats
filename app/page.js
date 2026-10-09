@@ -90,7 +90,7 @@ function mergeData(oldData, newData) {
 
 const ELO_INITIAL_RATING = 1500;
 const ELO_K = 64;
-const ELO_LOSS_K = 96;
+const ELO_LOSS_K = 48;
 const ELO_RATING_SCALE = 1135.74;
 
 const GLICKO2_SCALE = 173.7178;
@@ -283,9 +283,11 @@ function updateEloPlayer(
   );
 
   const rdFactor =
-    score === 1
+    !disableRatingLossFactor && score === 1
       ? 1 + (Math.min(rdDifference, 200) / 200) * 0.5
-      : Math.max(0.25, 1 - (rdDifference / 100) * 0.75);
+      : !disableRatingLossFactor && score === 0
+      ? Math.max(0.25, 1 - (rdDifference / 100) * 0.75)
+      : 1;
 
   // レートが高い相手に負けた場合は、レート差が大きいほど
   // 減少量を 200 / レート差 倍にする。
@@ -476,7 +478,7 @@ function calculateElo(data, season = 'all') {
       };
 
       // 両者とも試合前のレート/RDを使って同時に計算する。
-      // すべての表示で勝利K=64・敗北K=96を使う。
+      // すべての表示で勝利K=64・敗北K=48を使う。
       const kOverride = null;
 
       const winnerAfterElo =
@@ -1300,7 +1302,7 @@ export default function Home() {
               </h2>
 
               <p>
-                25大会ごとにシーズンを区切り、Eloでレートを算出します。Eloは各シーズン1500から開始し、1試合ごとに更新します。レート差200点で勝利期待値が60%になる設定です。シーズン別・すべての両方で勝利K=64・敗北K=96です。RDはシーズンをまたいで引き継ぎ、長期間プレイしていない場合は経過期間に応じて増加します。相手のRDが自分より高い場合は、RD差200以上で勝利時の獲得量を最大1.5倍にし、敗北時の減少量は最大0.25倍に抑えます。
+                25大会ごとにシーズンを区切り、Eloでレートを算出します。Eloは各シーズン1500から開始し、1試合ごとに更新します。レート差200点で勝利期待値が60%になる設定です。シーズン別・すべての両方で勝利K=64・敗北K=48です。RDはシーズンをまたいで引き継ぎ、長期間プレイしていない場合は経過期間に応じて増加します。相手のRDが自分より高い場合、シーズン別ランキングではRD差200以上で勝利時の獲得量を最大1.5倍にし、敗北時の減少量は最大0.25倍に抑えます。「すべて」のランキングではRD差による補正を適用しません。
               </p>
             </div>
 
