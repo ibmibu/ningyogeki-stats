@@ -1007,7 +1007,6 @@ export default function Home() {
         point.tournamentNumber >= xMin &&
         (selectedSeason === 'all' || point.tournamentNumber < xMin + 25)
     );
-    if (selectedSeason !== 'all' && seasonRatings.length === 0) return null;
     const lastRecordedTournament = seasonRatings.length
       ? seasonRatings[seasonRatings.length - 1].tournamentNumber
       : xMin;
@@ -1046,6 +1045,7 @@ export default function Home() {
 
     return {
       points: plottedPoints,
+      hasSeasonParticipation: selectedSeason === 'all' || seasonRatings.length > 0,
       width,
       height,
       margin,
@@ -1493,10 +1493,12 @@ export default function Home() {
                     y2={ratingTrend.height - ratingTrend.margin.bottom}
                     className="trendAxisLine"
                   />
-                  <polyline
-                    points={ratingTrend.points.map((point) => `${point.x},${point.y}`).join(' ')}
-                    className="trendLine"
-                  />
+                  {ratingTrend.hasSeasonParticipation && (
+                    <polyline
+                      points={ratingTrend.points.map((point) => `${point.x},${point.y}`).join(' ')}
+                      className="trendLine"
+                    />
+                  )}
                   {[...new Set([
                     ...Array.from(
                       {
