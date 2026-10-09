@@ -996,12 +996,30 @@ export default function Home() {
     const xMin = selectedSeason === 'all'
       ? 1
       : (Number(selectedSeason) - 1) * 25 + 1;
-    const points = [
-      { tournamentNumber: xMin, rating: ELO_INITIAL_RATING },
-      ...[...endOfTournament.values()].sort(
-        (a, b) => a.tournamentNumber - b.tournamentNumber
-      ),
-    ];
+    const sortedRatings = [...endOfTournament.values()].sort(
+      (a, b) => a.tournamentNumber - b.tournamentNumber
+    );
+    const previousRating = sortedRatings
+      .filter((point) => point.tournamentNumber < xMin)
+      .at(-1)?.rating;
+    const seasonRatings = sortedRatings.filter(
+      (point) => point.tournamentNumber >= xMin
+    );
+    const lastRecordedTournament = seasonRatings.length
+      ? seasonRatings[seasonRatings.length - 1].tournamentNumber
+      : xMin;
+    const points = [];
+    let currentRating = previousRating ?? ELO_INITIAL_RATING;
+
+    for (
+      let tournamentNumber = xMin;
+      tournamentNumber <= lastRecordedTournament;
+      tournamentNumber += 1
+    ) {
+      const tournamentRating = endOfTournament.get(tournamentNumber);
+      if (tournamentRating) currentRating = tournamentRating.rating;
+      points.push({ tournamentNumber, rating: currentRating });
+    }
 
     // 全選手・全期間で同じ縦軸スケールを使う。
     const yMin = 1100;
