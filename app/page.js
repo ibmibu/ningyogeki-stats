@@ -701,6 +701,7 @@ export default function Home() {
   const [sortKey, setSortKey] = useState('opponent');
   const [sortDir, setSortDir] = useState('asc');
   const [season, setSeason] = useState('current');
+  const [rateChartPlayer, setRateChartPlayer] = useState(null);
 
   async function loadLatest(savedData = data, forceFull = false) {
     setLoading(true);
@@ -962,6 +963,82 @@ export default function Home() {
     sortKey,
     sortDir,
   ]);
+
+  const ratingTrend = useMemo(() => {
+    if (!rateChartPlayer) return null;
+
+    const startTournament =
+      selectedSeason === 'all'
+        ? 0
+        : (Number(selectedSeason) - 1) * 25;
+    const endOfTournament = new Map();
+
+    for (const match of matchHistory) {
+      if (match.winnerAfter == null || match.loserAfter == null) continue;
+
+      const playerId = String(rateChartPlayer);
+      let rating = null;
+
+      if (String(match.winnerId) === playerId) {
+        rating = match.winnerAfter;
+      } else if (String(match.loserId) === playerId) {
+        rating = match.loserAfter;
+      }
+
+      if (rating == null) continue;
+      const tournamentNumber = Number(match.tournamentNumber) || 0;
+      endOfTournament.set(tournamentNumber, {
+        tournamentNumber,
+        rating,
+      });
+    }
+
+    const points = [
+      { tournamentNumber: startTournament, rating: ELO_INITIAL_RATING },
+      ...[...endOfTournament.values()].sort(
+        (a, b) => a.tournamentNumber - b.tournamentNumber
+      ),
+    ];
+
+    const minRating = Math.min(...points.map((point) => point.rating));
+    const maxRating = Math.max(...points.map((point) => point.rating));
+    const yMin = Math.floor((minRating - 50) / 50) * 50;
+    const yMax = Math.max(
+      yMin + 100,
+      Math.ceil((maxRating + 50) / 50) * 50
+    );
+    const xMin = points[0].tournamentNumber;
+    const xMax = Math.max(
+      xMin + 1,
+      points[points.length - 1].tournamentNumber
+    );
+    const width = 700;
+    const height = 260;
+    const margin = { top: 18, right: 18, bottom: 38, left: 58 };
+    const plotWidth = width - margin.left - margin.right;
+    const plotHeight = height - margin.top - margin.bottom;
+    const plottedPoints = points.map((point) => ({
+      ...point,
+      x: margin.left + ((point.tournamentNumber - xMin) / (xMax - xMin)) * plotWidth,
+      y: margin.top + ((yMax - point.rating) / (yMax - yMin)) * plotHeight,
+    }));
+
+    return {
+      points: plottedPoints,
+      width,
+      height,
+      margin,
+      plotWidth,
+      plotHeight,
+      yMin,
+      yMax,
+      xMin,
+      xMax,
+      player: data?.players.find(
+        (player) => String(player.id) === String(rateChartPlayer)
+      ),
+    };
+  }, [matchHistory, rateChartPlayer, selectedSeason, data]);
 
   if (!data) {
     return (
@@ -1335,6 +1412,107 @@ export default function Home() {
             ))}
           </div>
 
+          {ratingTrend && (
+            <section className="ratingTrend" aria-label="選手のレート推移">
+              <div className="ratingTrendHead">
+                <div>
+                  <div className="sectionLabel">RATING HISTORY</div>
+                  <h3>{ratingTrend.player?.name || '選手'}のレート推移</h3>
+                  <p>
+                    {selectedSeason === 'all'
+                      ? '全期間'
+                      : `シーズン${selectedSeason}`}
+                    {' '}・大会ごとの最終レート
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="trendClose"
+                  onClick={() => setRateChartPlayer(null)}
+                  aria-label="レート推移を閉じる"
+                >
+                  閉じる ×
+                </button>
+              </div>
+              <div className="ratingTrendChart">
+                <svg
+                  viewBox={`0 0 ${ratingTrend.width} ${ratingTrend.height}`}
+                  role="img"
+                  aria-label={`${ratingTrend.player?.name || '選手'}の大会ごとのレート推移グラフ`}
+                >
+                  {[0, 1, 2, 3, 4].map((tick) => {
+                    const rating = ratingTrend.yMax -
+                      ((ratingTrend.yMax - ratingTrend.yMin) * tick) / 4;
+                    const y = ratingTrend.margin.top +
+                      (ratingTrend.plotHeight * tick) / 4;
+                    return (
+                      <g key={tick}>
+                        <line
+                          x1={ratingTrend.margin.left}
+                          x2={ratingTrend.width - ratingTrend.margin.right}
+                          y1={y}
+                          y2={y}
+                          className="trendGridLine"
+                        />
+                        <text
+                          x={ratingTrend.margin.left - 10}
+                          y={y + 4}
+                          textAnchor="end"
+                          className="trendAxisLabel"
+                        >
+                          {Math.round(rating)}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  <line
+                    x1={ratingTrend.margin.left}
+                    x2={ratingTrend.width - ratingTrend.margin.right}
+                    y1={ratingTrend.height - ratingTrend.margin.bottom}
+                    y2={ratingTrend.height - ratingTrend.margin.bottom}
+                    className="trendAxisLine"
+                  />
+                  <polyline
+                    points={ratingTrend.points.map((point) => `${point.x},${point.y}`).join(' ')}
+                    className="trendLine"
+                  />
+                  {ratingTrend.points.map((point, index) => (
+                    <circle
+                      key={`${point.tournamentNumber}-${index}`}
+                      cx={point.x}
+                      cy={point.y}
+                      r={index === ratingTrend.points.length - 1 ? 4 : 2.5}
+                      className="trendPoint"
+                    >
+                      <title>
+                        大会{point.tournamentNumber}：レート{point.rating}
+                      </title>
+                    </circle>
+                  ))}
+                  {[0, 0.5, 1].map((fraction) => {
+                    const tournamentNumber = Math.round(
+                      ratingTrend.xMin +
+                      (ratingTrend.xMax - ratingTrend.xMin) * fraction
+                    );
+                    const x = ratingTrend.margin.left +
+                      ratingTrend.plotWidth * fraction;
+                    return (
+                      <text
+                        key={fraction}
+                        x={x}
+                        y={ratingTrend.height - 12}
+                        textAnchor={fraction === 0 ? 'start' : fraction === 1 ? 'end' : 'middle'}
+                        className="trendAxisLabel"
+                      >
+                        {tournamentNumber === 0 ? '開始' : `大会${tournamentNumber}`}
+                      </text>
+                    );
+                  })}
+                </svg>
+              </div>
+            </section>
+          )}
+
           <div className="rankingList">
             {ranking.map(
               (player, index) => (
@@ -1349,9 +1527,15 @@ export default function Home() {
                     )}
                   </div>
 
-                  <div className="rankName">
+                  <button
+                    type="button"
+                    className={`rankName rankNameButton ${String(rateChartPlayer) === String(player.id) ? 'selected' : ''}`}
+                    onClick={() => setRateChartPlayer(String(player.id))}
+                    aria-pressed={String(rateChartPlayer) === String(player.id)}
+                    title={`${player.name}のレート推移を表示`}
+                  >
                     {player.name}
-                  </div>
+                  </button>
 
                   <div className="bar">
                     <i
