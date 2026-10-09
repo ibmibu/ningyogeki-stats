@@ -305,9 +305,9 @@ function updateEloPlayer(
   };
 }
 
-function calculateElo(data, season = 'all', collectTournamentStartRatings = false) {
+function calculateElo(data, season = 'all') {
   if (!data?.records?.length) {
-    return { ranking: [], history: [], tournamentStartRatings: {} };
+    return { ranking: [], history: [] };
   }
 
   const allRecords = [...data.records].sort(
@@ -406,34 +406,16 @@ function calculateElo(data, season = 'all', collectTournamentStartRatings = fals
     }
   };
 
-  const tournamentStartRatings = {};
-
   const processRecords = (
     players,
     records,
-    collectHistory = false,
-    collectTournamentRatings = false
+    collectHistory = false
   ) => {
     const history = [];
-    let lastTournamentNumber = null;
 
     // 1試合ずつ処理。Eloはシーズン内でリセットするが、
     // RDは全シーズンを通して同じ選手状態を引き継ぐ。
     for (const record of records) {
-      const recordTournamentNumber = Number(record.tournamentNumber) || 0;
-      if (
-        collectTournamentRatings &&
-        recordTournamentNumber !== lastTournamentNumber
-      ) {
-        tournamentStartRatings[recordTournamentNumber] = Object.fromEntries(
-          [...players.entries()].map(([id, player]) => [
-            id,
-            Math.round(player.rating),
-          ])
-        );
-        lastTournamentNumber = recordTournamentNumber;
-      }
-
       const winner = players.get(
         String(record.winnerId)
       );
@@ -459,8 +441,9 @@ function calculateElo(data, season = 'all', collectTournamentStartRatings = fals
         continue;
       }
 
-      applyInactivityRd(winner, recordTournamentNumber);
-      applyInactivityRd(loser, recordTournamentNumber);
+      const tournamentNumber = Number(record.tournamentNumber) || 0;
+      applyInactivityRd(winner, tournamentNumber);
+      applyInactivityRd(loser, tournamentNumber);
 
       const winnerBefore =
         Math.round(winner.rating);
@@ -532,8 +515,8 @@ function calculateElo(data, season = 'all', collectTournamentStartRatings = fals
       loser.volatility =
         loserAfterRd.volatility;
       loser.losses += 1;
-      winner.lastPlayedTournamentNumber = recordTournamentNumber;
-      loser.lastPlayedTournamentNumber = recordTournamentNumber;
+      winner.lastPlayedTournamentNumber = tournamentNumber;
+      loser.lastPlayedTournamentNumber = tournamentNumber;
 
       if (collectHistory) {
         const winnerAfter =
@@ -597,7 +580,7 @@ function calculateElo(data, season = 'all', collectTournamentStartRatings = fals
           )
       );
 
-    return { ranking, history, tournamentStartRatings };
+    return { ranking, history };
   }
 
   const seasonNumber =
@@ -636,8 +619,7 @@ function calculateElo(data, season = 'all', collectTournamentStartRatings = fals
       getSeasonRecords(
         seasonNumber
       ),
-      true,
-      collectTournamentStartRatings
+      true
     );
 
   const ranking = [...players.values()]
@@ -665,66 +647,7 @@ function calculateElo(data, season = 'all', collectTournamentStartRatings = fals
         )
     );
 
-  return { ranking, history, tournamentStartRatings };
-}
-
-function calculateTournamentSizeScores(data) {
-  if (!data?.records?.length || !data?.tournaments?.length) return {};
-
-  const maxSeason = Math.max(
-    1,
-    ...data.tournaments.map((tournament) =>
-      Math.ceil((Number(tournament.number) || 0) / 25)
-    )
-  );
-  const seasonResults = new Map();
-
-  for (let seasonNumber = 1; seasonNumber <= maxSeason; seasonNumber += 1) {
-    seasonResults.set(
-      seasonNumber,
-      calculateElo(data, String(seasonNumber), true)
-    );
-  }
-
-  const participantsByTournament = new Map();
-  for (const record of data.records) {
-    const tournamentNumber = Number(record.tournamentNumber) || 0;
-    if (!participantsByTournament.has(tournamentNumber)) {
-      participantsByTournament.set(tournamentNumber, new Set());
-    }
-    const participants = participantsByTournament.get(tournamentNumber);
-    if (record.winnerId != null) participants.add(String(record.winnerId));
-    if (record.loserId != null) participants.add(String(record.loserId));
-  }
-
-  const scores = {};
-  for (const tournament of data.tournaments) {
-    const tournamentNumber = Number(tournament.number) || 0;
-    const seasonNumber = Math.ceil(tournamentNumber / 25);
-    const positionInSeason = ((tournamentNumber - 1) % 25) + 1;
-    const currentSeasonRatings =
-      seasonResults.get(seasonNumber)?.tournamentStartRatings?.[tournamentNumber] || {};
-    const previousSeasonRanking =
-      seasonResults.get(seasonNumber - 1)?.ranking || [];
-    const previousSeasonRatings = Object.fromEntries(
-      previousSeasonRanking.map((player) => [
-        String(player.id),
-        player.rating,
-      ])
-    );
-    const usePreviousSeason = seasonNumber > 1 && positionInSeason <= 5;
-    const ratings = usePreviousSeason
-      ? previousSeasonRatings
-      : currentSeasonRatings;
-    const participants = participantsByTournament.get(tournamentNumber) || new Set();
-
-    scores[tournamentNumber] = [...participants].reduce(
-      (total, playerId) => total + (ratings[playerId] ?? ELO_INITIAL_RATING),
-      0
-    );
-  }
-
-  return scores;
+  return { ranking, history };
 }
 
 function getRecentResults(records, playerId, opponentId) {
@@ -955,11 +878,6 @@ export default function Home() {
       })
     );
   }, [data]);
-
-  const tournamentSizeScores = useMemo(
-    () => calculateTournamentSizeScores(data),
-    [data]
-  );
 
   const maxTournament = data?.tournaments?.length
     ? Math.max(
@@ -1910,14 +1828,9 @@ export default function Home() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <b className="tournamentName">
-                    人形劇#{tournament.number}
-                    <small
-                      className="tournamentSize"
-                      title="大会開始時点の参加者レート合計"
-                    >
-                      {tournamentSizeScores[tournament.number]?.toLocaleString('ja-JP') ?? '—'}
-                    </small>
+                  <b>
+                    人形劇#
+                    {tournament.number}
                   </b>
 
                   <span>

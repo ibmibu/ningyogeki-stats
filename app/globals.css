@@ -908,20 +908,6 @@ body {
   background: #141116;
 }
 
-.tournamentList .tournamentName {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-}
-
-.tournamentList .tournamentSize {
-  color: #817a88;
-  font-size: 10px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
 .tournamentList span {
   font-size: 11px;
   color: #817a88;
