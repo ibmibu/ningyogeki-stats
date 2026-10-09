@@ -1024,11 +1024,9 @@ export default function Home() {
 
       for (const [tournamentNumber, matches] of groupedPlayerMatches) {
         const tournamentMatches = matchesByTournament.get(tournamentNumber) || [];
-        let lastFraction = 0;
         for (const point of matches) {
           const matchIndex = tournamentMatches.indexOf(point.match);
           const fraction = (matchIndex + 1) / (tournamentMatches.length + 1);
-          lastFraction = Math.max(lastFraction, fraction);
           currentRating = point.rating;
           points.push({
             tournamentNumber,
