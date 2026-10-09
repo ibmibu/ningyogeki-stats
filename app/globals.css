@@ -817,13 +817,7 @@ body {
   stroke: #b76bf0;
   stroke-width: 3;
   stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-.trendPoint {
-  fill: #d8a9ff;
-  stroke: #17151b;
-  stroke-width: 1.5;
+  stroke-linecap: butt;
 }
 
 .bar {
