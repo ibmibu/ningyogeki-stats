@@ -266,7 +266,8 @@ function applyInactivityRd(player, tournamentNumber) {
 function updateEloPlayer(
   player,
   opponent,
-  score
+  score,
+  kOverride = null
 ) {
   const expected = eloExpected(
     player.rating,
@@ -299,7 +300,8 @@ function updateEloPlayer(
       ? Math.min(1, 200 / ratingDifference)
       : 1;
 
-  const kValue = score === 1 ? ELO_K : ELO_LOSS_K;
+  const kValue =
+    kOverride ?? (score === 1 ? ELO_K : ELO_LOSS_K);
 
   const delta =
     kValue *
@@ -473,18 +475,23 @@ function calculateElo(data, season = 'all') {
       };
 
       // 両者とも試合前のレート/RDを使って同時に計算する。
+      // 「すべて」では勝敗に関係なくK=96。それ以外は勝利K/敗北Kを使う。
+      const kOverride = season === 'all' ? 96 : null;
+
       const winnerAfterElo =
         updateEloPlayer(
           winnerState,
           loserState,
-          1
+          1,
+          kOverride
         );
 
       const loserAfterElo =
         updateEloPlayer(
           loserState,
           winnerState,
-          0
+          0,
+          kOverride
         );
 
       const winnerAfterRd =
