@@ -1438,11 +1438,11 @@ export default function Home() {
                   role="img"
                   aria-label={`${ratingTrend.player?.name || '選手'}の大会ごとのレート推移グラフ`}
                 >
-                  {[0, 1, 2, 3, 4].map((tick) => {
+                  {[0, 1, 2, 3, 4, 5, 6].map((tick) => {
                     const rating = ratingTrend.yMax -
-                      ((ratingTrend.yMax - ratingTrend.yMin) * tick) / 4;
+                      ((ratingTrend.yMax - ratingTrend.yMin) * tick) / 6;
                     const y = ratingTrend.margin.top +
-                      (ratingTrend.plotHeight * tick) / 4;
+                      (ratingTrend.plotHeight * tick) / 6;
                     return (
                       <g key={tick}>
                         <line
