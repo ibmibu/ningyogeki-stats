@@ -1010,39 +1010,54 @@ export default function Home() {
     let currentRating = previousRating ?? ELO_INITIAL_RATING;
     let matchCount = 0;
 
-    // シーズン表示では開始時点のレートを描く。
-    // 「すべて」では未参加期間に線を出さず、初参加直前のレートから線を始める。
-    if (selectedSeason !== 'all') {
-      points.push({ tournamentNumber: xMin, xMatch: 0, rating: currentRating });
-    }
-
     const matchesInSeason = selectedSeason === 'all'
       ? playerMatches
       : seasonRatings;
 
-    if (hasSeasonParticipation) {
-      for (const point of matchesInSeason) {
-        if (selectedSeason === 'all' && matchCount === 0) {
-          const beforeRating = String(point.match.winnerId) === playerId
-            ? point.match.winnerBefore
-            : point.match.loserBefore;
+    if (selectedSeason === 'all') {
+      // 「すべて」は大会ごとの最終レートを描く。
+      // 初参加大会から大会番号を横軸にし、不参加大会ではレートを維持する。
+      const finalRatingByTournament = new Map();
+      for (const point of playerMatches) {
+        finalRatingByTournament.set(point.tournamentNumber, point.rating);
+      }
+
+      if (finalRatingByTournament.size > 0) {
+        const firstPlayedTournament = Math.min(...finalRatingByTournament.keys());
+        const lastTournament = Math.max(
+          ...((data?.tournaments || []).map((t) => Number(t.number) || 0)),
+          ...finalRatingByTournament.keys()
+        );
+        currentRating = finalRatingByTournament.get(firstPlayedTournament);
+        for (
+          let tournamentNumber = firstPlayedTournament;
+          tournamentNumber <= lastTournament;
+          tournamentNumber += 1
+        ) {
+          if (finalRatingByTournament.has(tournamentNumber)) {
+            currentRating = finalRatingByTournament.get(tournamentNumber);
+          }
+          points.push({
+            tournamentNumber,
+            xMatch: tournamentNumber,
+            rating: currentRating,
+          });
+        }
+      }
+    } else {
+      // シーズン別は、シーズン開始時点から1試合ごとのレート推移を描く。
+      points.push({ tournamentNumber: xMin, xMatch: 0, rating: currentRating });
+      if (hasSeasonParticipation) {
+        for (const point of matchesInSeason) {
+          matchCount += 1;
+          currentRating = point.rating;
           points.push({
             tournamentNumber: point.tournamentNumber,
-            xMatch: 0,
-            rating: beforeRating ?? ELO_INITIAL_RATING,
+            xMatch: matchCount,
+            rating: currentRating,
           });
         }
 
-        matchCount += 1;
-        currentRating = point.rating;
-        points.push({
-          tournamentNumber: point.tournamentNumber,
-          xMatch: matchCount,
-          rating: currentRating,
-        });
-      }
-
-      if (selectedSeason !== 'all') {
         points.push({
           tournamentNumber: seasonEndTournament,
           xMatch: matchCount,
@@ -1051,12 +1066,13 @@ export default function Home() {
       }
     }
 
-    // 横軸の内部値は選手ごとの対戦数。表示ラベルだけ大会番号にする。
-    // 対戦していない大会は横方向の距離を消費しないため、選手ごとに目盛り位置が変わる。
+    // 「すべて」は大会番号、「シーズン別」は対戦数を横軸の内部値にする。
     const yMin = 1100;
     const yMax = 2100;
-    const xDomainMin = 0;
-    const xMax = Math.max(1, matchCount);
+    const xDomainMin = selectedSeason === 'all' ? 1 : 0;
+    const xMax = selectedSeason === 'all'
+      ? Math.max(2, ...points.map((point) => point.xMatch))
+      : Math.max(1, matchCount);
     const width = 700;
     const height = 260;
     const margin = { top: 18, right: 18, bottom: 38, left: 58 };
@@ -1064,7 +1080,7 @@ export default function Home() {
     const plotHeight = height - margin.top - margin.bottom;
     const plottedPoints = points.map((point) => ({
       ...point,
-      x: margin.left + (point.xMatch / (xMax - xDomainMin)) * plotWidth,
+      x: margin.left + ((point.xMatch - xDomainMin) / (xMax - xDomainMin)) * plotWidth,
       y: margin.top + ((yMax - point.rating) / (yMax - yMin)) * plotHeight,
     }));
 
@@ -1535,7 +1551,7 @@ export default function Home() {
                       ? Math.max(ratingTrend.xMin, ...ratingTrend.matchesInSeason.map((point) => point.tournamentNumber))
                       : ratingTrend.xMin + 24;
                     for (
-                      let tournamentNumber = ratingTrend.xMin;
+                      let tournamentNumber = selectedSeason === 'all' ? 1 : ratingTrend.xMin;
                       tournamentNumber <= lastTournament;
                       tournamentNumber += tickStep
                     ) {
@@ -1544,9 +1560,11 @@ export default function Home() {
                       ).length;
                       ticks.push({
                         tournamentNumber,
-                        xMatch: ratingTrend.hasSeasonParticipation
-                          ? matchesBeforeTick
-                          : ((tournamentNumber - ratingTrend.xMin) / Math.max(1, lastTournament - ratingTrend.xMin)) * ratingTrend.xMax,
+                        xMatch: selectedSeason === 'all'
+                          ? tournamentNumber
+                          : ratingTrend.hasSeasonParticipation
+                            ? matchesBeforeTick
+                            : ((tournamentNumber - ratingTrend.xMin) / Math.max(1, lastTournament - ratingTrend.xMin)) * ratingTrend.xMax,
                       });
                     }
                     if (selectedSeason !== 'all') {
@@ -1558,21 +1576,12 @@ export default function Home() {
                       });
                     }
 
-                    // 同じ対戦数位置に複数の大会番号が重なる場合は、最後のラベルだけ残す。
+                    // シーズン別は同じ対戦数位置に複数の大会番号が重なる場合、最後のラベルだけ残す。
                     const distinctTicks = new Map();
-                    for (const tick of ticks) {
-                      // 全期間は、参加前の大会が続いても左端の目盛りを必ず「1」にする。
-                      if (tick.xMatch === 0 && tick.tournamentNumber === 1) {
-                        distinctTicks.set(0, tick);
-                      } else if (!distinctTicks.has(tick.xMatch)) {
-                        distinctTicks.set(tick.xMatch, tick);
-                      } else if (!(selectedSeason === 'all' && distinctTicks.get(tick.xMatch)?.tournamentNumber === 1)) {
-                        distinctTicks.set(tick.xMatch, tick);
-                      }
-                    }
+                    for (const tick of ticks) distinctTicks.set(tick.xMatch, tick);
                     return [...distinctTicks.values()].map(({ tournamentNumber, xMatch }) => {
                       const x = ratingTrend.margin.left +
-                        (xMatch / (ratingTrend.xMax - ratingTrend.xDomainMin)) *
+                        ((xMatch - ratingTrend.xDomainMin) / (ratingTrend.xMax - ratingTrend.xDomainMin)) *
                         ratingTrend.plotWidth;
                       return (
                         <text
