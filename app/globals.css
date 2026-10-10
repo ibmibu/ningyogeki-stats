@@ -986,6 +986,7 @@ body {
 .achievementTournaments > span {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   min-width: 0;
   padding: 6px 9px;
   border-radius: 7px;
@@ -994,8 +995,33 @@ body {
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
+}
+
+.achievementTournament > span {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.achievementTier {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.achievementTier.tierS { background: #4a202b; color: #ff8da5; border-color: #b94d69; }
+.achievementTier.tierA { background: #4a2d19; color: #ffad5c; border-color: #b87536; }
+.achievementTier.tierB { background: #494019; color: #f6df64; border-color: #a89536; }
+.achievementTier.tierC { background: #183f2a; color: #61e49a; border-color: #2e8c5a; }
+.achievementTier.tierD { background: #173d4a; color: #75ddf5; border-color: #348ba4; }
 
 .streakItem {
   padding-left: 14px;
