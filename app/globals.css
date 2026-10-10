@@ -1035,21 +1035,21 @@ body {
 }
 
 .achievementTier {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-grid;
+  place-items: center;
   width: 17px;
   height: 17px;
   flex: 0 0 17px;
   padding: 0;
   border: 1px solid currentColor;
   border-radius: 4px;
-  font-family: Inter, "Noto Sans JP", sans-serif;
+  font-family: Arial, Inter, "Noto Sans JP", sans-serif;
   font-size: 10px;
-  line-height: 17px;
+  line-height: 1;
   font-weight: 700;
   text-align: center;
   font-variant-numeric: lining-nums;
+  vertical-align: middle;
   box-sizing: border-box;
 }
 
@@ -1149,17 +1149,20 @@ body {
 }
 
 .tournamentList .tierBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-grid;
+  place-items: center;
   width: 17px;
   height: 17px;
   flex: 0 0 17px;
+  padding: 0;
   border: 1px solid;
   border-radius: 4px;
+  font-family: Arial, Inter, "Noto Sans JP", sans-serif;
   font-size: 9px;
   font-weight: 900;
   line-height: 1;
+  text-align: center;
+  vertical-align: middle;
   box-sizing: border-box;
 }
 
