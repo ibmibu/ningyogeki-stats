@@ -1028,6 +1028,14 @@ body {
   border-left: 1px solid var(--line, #303039);
 }
 
+.streakItem > small {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.4;
+  opacity: 0.72;
+}
+
 @media (max-width: 560px) {
   .achievementPanel {
     grid-template-columns: repeat(3, minmax(0, 1fr));
