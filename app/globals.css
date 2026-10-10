@@ -998,10 +998,7 @@ body {
 }
 
 .achievementTournamentsCollapsed {
-  height: 100px;
-  min-height: 100px;
   overflow: hidden;
-  align-content: start;
 }
 
 .achievementTournamentsToggle {
@@ -1018,14 +1015,18 @@ body {
   color: #a9b49b;
 }
 
-@media (min-width: 561px) {
-  .achievementTournamentsCollapsed {
-    height: auto;
-    min-height: 0;
-    max-height: none;
-    overflow: visible;
+@media (max-width: 560px) {
+  .achievementTournamentsCollapsed > span:nth-child(n + 7) {
+    display: none;
   }
 
+  .achievementTournaments > span {
+    min-height: 28px;
+    box-sizing: border-box;
+  }
+}
+
+@media (min-width: 561px) {
   .achievementTournamentsToggle {
     display: none;
   }
