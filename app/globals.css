@@ -1108,10 +1108,15 @@ body {
   }
 
   .achievementTierCounts .achievementTier {
+    display: grid;
+    place-items: center;
     width: 16px;
     height: 16px;
     flex-basis: 16px;
-    line-height: 16px;
+    padding: 0 0 1px;
+    line-height: 1;
+    text-align: center;
+    vertical-align: middle;
   }
 
   .streakItem {
