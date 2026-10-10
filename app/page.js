@@ -1500,7 +1500,7 @@ export default function Home() {
                       const tier = score >= 24000 ? 'S' : score >= 20000 ? 'A' : score >= 16000 ? 'B' : score >= 12000 ? 'C' : 'D';
                       return (
                         <span className="achievementTournament" key={number}>
-                          <b className={`achievementTier tier${tier}`}>{tier}</b>
+                          <b className={`achievementTier tier${tier}`}><span className="tierLetter">{tier}</span></b>
                           <span>人形劇#{number}</span>
                         </span>
                       );
@@ -2066,7 +2066,7 @@ export default function Home() {
                         const tier = score >= 24000 ? 'S' : score >= 20000 ? 'A' : score >= 16000 ? 'B' : score >= 12000 ? 'C' : 'D';
                         return (
                           <>
-                            <span className={`tierBadge tier${tier}`}>{tier}</span>
+                            <span className={`tierBadge tier${tier}`}><span className="tierLetter">{tier}</span></span>
                             <span>{score.toLocaleString('ja-JP')}</span>
                           </>
                         );
