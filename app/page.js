@@ -1492,7 +1492,7 @@ export default function Home() {
                 <span>優勝した大会（全期間）</span>
                 {selectedAchievements.titleNumbers.length ? (
                   <>
-                  <div className={"achievementTournaments " + (selectedAchievements.titleNumbers.length > 4 && !showAllTitles ? "achievementTournamentsCollapsed" : "")}>
+                  <div className={"achievementTournaments " + (selectedAchievements.titleNumbers.length > 6 && !showAllTitles ? "achievementTournamentsCollapsed" : "")}>
                     {selectedAchievements.titleNumbers.map((number) => {
                       const score = Number(tournamentTierScores[Number(number)] || 0);
                       const tier = score >= 24000 ? 'S' : score >= 20000 ? 'A' : score >= 16000 ? 'B' : score >= 12000 ? 'C' : 'D';
@@ -1504,7 +1504,7 @@ export default function Home() {
                       );
                     })}
                   </div>
-                  {selectedAchievements.titleNumbers.length > 4 && (
+                  {selectedAchievements.titleNumbers.length > 6 && (
                     <button type="button" className="achievementTournamentsToggle" onClick={() => setShowAllTitles(!showAllTitles)} aria-expanded={showAllTitles}>
                       {showAllTitles ? '閉じる ▲' : 'すべて表示 ▼'}
                     </button>
