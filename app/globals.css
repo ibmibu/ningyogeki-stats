@@ -1006,13 +1006,13 @@ body {
   padding: 5px 0;
   border: 0;
   background: transparent;
-  color: #777f70;
+  color: #817a88;
   font: 500 11px Inter, "Noto Sans JP", sans-serif;
   cursor: pointer;
 }
 
 .achievementTournamentsToggle:hover {
-  color: #a9b49b;
+  color: #817a88;
 }
 
 @media (max-width: 560px) {
