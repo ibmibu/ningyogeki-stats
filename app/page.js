@@ -1513,12 +1513,12 @@ export default function Home() {
                         const wonTier = score >= 24000 ? 'S' : score >= 20000 ? 'A' : score >= 16000 ? 'B' : score >= 12000 ? 'C' : 'D';
                         return wonTier === tier;
                       }).length;
-                      return count > 0 ? (
+                      return (
                         <span key={tier}>
                           <b className={`achievementTier tier${tier}`}>{tier}</b>
                           ×{count}
                         </span>
-                      ) : null;
+                      );
                     })}
                   </div>
                   </>
