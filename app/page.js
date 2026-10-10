@@ -1039,6 +1039,39 @@ export default function Home() {
     [data]
   );
 
+  const tournamentChampions = useMemo(() => {
+    const recordsByTournament = new Map();
+
+    for (const record of data?.records || []) {
+      const number = Number(record.tournamentNumber);
+      if (!Number.isFinite(number)) continue;
+      if (!recordsByTournament.has(number)) recordsByTournament.set(number, []);
+      recordsByTournament.get(number).push(record);
+    }
+
+    const playerNames = new Map(
+      (data?.players || []).map((player) => [String(player.id), player.name])
+    );
+    const champions = new Map();
+
+    for (const [number, records] of recordsByTournament) {
+      const losers = new Set(records.map((record) => String(record.loserId)));
+      const participants = new Set(
+        records.flatMap((record) => [
+          String(record.winnerId),
+          String(record.loserId),
+        ])
+      );
+      const unbeaten = [...participants].filter((id) => !losers.has(id));
+
+      if (unbeaten.length === 1) {
+        champions.set(number, playerNames.get(unbeaten[0]) || '');
+      }
+    }
+
+    return champions;
+  }, [data]);
+
   const maxTournament = data?.tournaments?.length
     ? Math.max(
         ...data.tournaments.map(
@@ -2032,6 +2065,11 @@ export default function Home() {
                     <small className="tournamentTier">
                       {Number(tournamentTierScores[Number(tournament.number)] || 0).toLocaleString('ja-JP')}
                     </small>
+                    {tournamentChampions.get(Number(tournament.number)) && (
+                      <small className="tournamentChampion">
+                        優勝：{tournamentChampions.get(Number(tournament.number))}
+                      </small>
+                    )}
                   </div>
 
                   <span>
