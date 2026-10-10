@@ -1034,11 +1034,16 @@ body {
   width: 17px;
   height: 17px;
   flex: 0 0 17px;
+  padding: 0;
   border: 1px solid currentColor;
   border-radius: 4px;
+  font-family: Inter, "Noto Sans JP", sans-serif;
   font-size: 10px;
-  line-height: 1;
+  line-height: 17px;
   font-weight: 700;
+  text-align: center;
+  font-variant-numeric: lining-nums;
+  box-sizing: border-box;
 }
 
 .achievementTier.tierS { background: #4a202b; color: #ff8da5; border-color: #b94d69; }
@@ -1106,6 +1111,7 @@ body {
     width: 16px;
     height: 16px;
     flex-basis: 16px;
+    line-height: 16px;
   }
 
   .streakItem {
