@@ -998,8 +998,10 @@ body {
 }
 
 .achievementTournamentsCollapsed {
-  max-height: 64px;
+  height: 64px;
+  min-height: 64px;
   overflow: hidden;
+  align-content: start;
 }
 
 .achievementTournamentsToggle {
@@ -1007,13 +1009,13 @@ body {
   padding: 5px 0;
   border: 0;
   background: transparent;
-  color: #a9cf77;
-  font: 700 12px Inter, "Noto Sans JP", sans-serif;
+  color: #777f70;
+  font: 500 11px Inter, "Noto Sans JP", sans-serif;
   cursor: pointer;
 }
 
 .achievementTournamentsToggle:hover {
-  color: #d0edaa;
+  color: #a9b49b;
 }
 
 .achievementTierCounts {
