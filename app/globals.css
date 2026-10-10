@@ -998,8 +998,8 @@ body {
 }
 
 .achievementTournamentsCollapsed {
-  height: 64px;
-  min-height: 64px;
+  height: 100px;
+  min-height: 100px;
   overflow: hidden;
   align-content: start;
 }
