@@ -1031,9 +1031,6 @@ body {
 .streakItem > small {
   display: block;
   margin-top: 0;
-  font-size: inherit;
-  line-height: normal;
-  opacity: 0.72;
 }
 
 @media (max-width: 560px) {
