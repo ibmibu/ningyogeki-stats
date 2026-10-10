@@ -1542,7 +1542,7 @@ export default function Home() {
               <div className="achievementItem streakItem">
                 <span>最大連覇</span>
                 <strong>{selectedAchievements.streak}連覇</strong>
-                <small>出場大会のみ：{selectedAchievements.playedStreak}連覇</small>
+                <small>出場大会：{selectedAchievements.playedStreak}連覇</small>
               </div>
             </div>
           )}
