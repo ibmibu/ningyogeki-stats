@@ -895,13 +895,24 @@ body {
 
 .tournamentList a {
   display: grid;
-  grid-template-columns: 1fr auto 30px;
+  grid-template-columns: minmax(0, 1fr) auto 30px;
   align-items: center;
   gap: 14px;
   padding: 14px 4px;
   border-bottom: 1px solid #242128;
   color: #eee;
   text-decoration: none;
+}
+
+.tournamentList .tournamentTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tournamentList .tournamentTitle b {
+  min-width: 0;
 }
 
 .tournamentList a:hover {
