@@ -2026,7 +2026,11 @@ export default function Home() {
                       {tournament.number}
                     </b>
                     <small className="tournamentTier">
-                      {Number(tournamentTierScores[Number(tournament.number)] || 0).toLocaleString('ja-JP')}
+                      {(() => {
+                        const score = Number(tournamentTierScores[Number(tournament.number)] || 0);
+                        const tier = score >= 20000 ? 'S' : score >= 16000 ? 'A' : score >= 12000 ? 'B' : 'C';
+                        return tier + ' ' + score.toLocaleString('ja-JP');
+                      })()}
                     </small>
                     {tournamentChampions.get(Number(tournament.number)) && (
                       <small className="tournamentChampion">
