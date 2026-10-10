@@ -925,9 +925,10 @@ body {
 }
 
 .tournamentList .tournamentTier {
+  margin-left: 6px;
   font-size: 10px;
   line-height: 1.2;
-  color: #b8c86a;
+  color: #817a88;
   white-space: nowrap;
   justify-self: start;
 }
