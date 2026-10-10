@@ -959,13 +959,14 @@ body {
   font-size: 12px;
 }
 
-.achievementItem > small:not(.tierExplanation) {
+.achievementItem > small {
   white-space: nowrap;
   line-height: 1.4;
 }
 
 .tierExplanation {
-  margin-top: -5px;
+  margin: 5px 0 0;
+  color: #817a88;
   font-size: 11px;
   line-height: 1.5;
   white-space: normal;
@@ -1034,13 +1035,21 @@ body {
   }
 
   .achievementItem:not(.titleItem) {
-    min-height: 92px;
+    min-height: 108px;
+    box-sizing: border-box;
     gap: 8px;
   }
 
-  .achievementItem:not(.titleItem) > small:not(.tierExplanation) {
+  .achievementItem:not(.titleItem) > strong {
+    min-height: 24px;
+    line-height: 24px;
+    white-space: nowrap;
+  }
+
+  .achievementItem:not(.titleItem) > small {
+    margin-top: auto;
     font-size: 10px;
-    letter-spacing: -0.2px;
+    letter-spacing: -0.3px;
   }
 
   .achievementTournamentsCollapsed > span:nth-child(n + 7) {
