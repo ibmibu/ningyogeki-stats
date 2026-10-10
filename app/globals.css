@@ -913,6 +913,14 @@ body {
   color: #817a88;
 }
 
+.tournamentList .tournamentTier {
+  font-size: 10px;
+  line-height: 1.2;
+  color: #b8c86a;
+  white-space: nowrap;
+  justify-self: start;
+}
+
 .tournamentList em {
   font-style: normal;
   color: #a760e8;
