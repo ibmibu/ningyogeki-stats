@@ -71,24 +71,22 @@ function getPlayerAchievements(data, playerId) {
     .filter((number) => champions.get(number) === playerKey)
     .sort((a, b) => b - a);
 
-  // 全期間を対象に、番号が連続した大会での最大連覇数を数える。
+  // 全期間を対象に、選手が参加した大会だけで最大連覇数を数える。
+  // 不参加の大会は連覇を途切れさせず、参加して優勝できなかった大会で途切れる。
   let currentStreak = 0;
   let maxStreak = 0;
-  let previousNumber = null;
 
-  for (const number of tournamentNumbers) {
-    if (previousNumber === null || number !== previousNumber + 1) {
-      currentStreak = 0;
-    }
+  const playedTournamentNumbers = tournamentNumbers.filter(
+    (number) => participatedTournaments.has(number)
+  );
 
+  for (const number of playedTournamentNumbers) {
     if (champions.get(number) === playerKey) {
       currentStreak += 1;
       maxStreak = Math.max(maxStreak, currentStreak);
     } else {
       currentStreak = 0;
     }
-
-    previousNumber = number;
   }
 
   const tournamentWins = titleNumbers.length;
@@ -1474,6 +1472,7 @@ export default function Home() {
               <div className="achievementItem streakItem">
                 <span>最大連覇</span>
                 <strong>{selectedAchievements.streak}連覇</strong>
+                <small>参加した大会のみで判定（不参加大会は連覇に影響しません）</small>
               </div>
             </div>
           )}
