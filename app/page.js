@@ -1490,6 +1490,7 @@ export default function Home() {
             <div className="achievementPanel">
               <div className="achievementItem titleItem">
                 <span>優勝した大会（全期間）</span>
+                <small className="tierExplanation">Tier区分：S 24,000以上 ／ A 20,000以上 ／ B 16,000以上 ／ C 12,000以上 ／ D 12,000未満</small>
                 {selectedAchievements.titleNumbers.length ? (
                   <>
                   <div className={"achievementTournaments " + (selectedAchievements.titleNumbers.length > 4 && !showAllTitles ? "achievementTournamentsCollapsed" : "")}>
