@@ -1037,8 +1037,8 @@ body {
   .achievementItem:not(.titleItem) {
     min-height: 100px;
     box-sizing: border-box;
-    gap: 0;
-    justify-content: space-between;
+    gap: 4px;
+    justify-content: center;
   }
 
   .achievementItem:not(.titleItem) > strong {
