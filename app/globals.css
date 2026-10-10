@@ -977,20 +977,51 @@ body {
 }
 
 .achievementTournaments {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
   gap: 8px;
+  width: 100%;
 }
 
-.achievementTournaments span {
+.achievementTournaments .achievementTournament {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 7px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.achievementTournament > b {
   display: inline-flex;
   align-items: center;
-  padding: 6px 9px;
-  border-radius: 7px;
-  background: rgba(145, 185, 95, 0.12);
-  color: inherit;
-  font-size: 13px;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 9px;
+  line-height: 1;
 }
+
+.achievementTournament > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.achievementTournament.tierS { background: #4a202b; color: #ff8da5; border-color: #b94d69; }
+.achievementTournament.tierA { background: #4a2d19; color: #ffad5c; border-color: #b87536; }
+.achievementTournament.tierB { background: #494019; color: #f6df64; border-color: #a89536; }
+.achievementTournament.tierC { background: #183f2a; color: #61e49a; border-color: #2e8c5a; }
+.achievementTournament.tierD { background: #173d4a; color: #75ddf5; border-color: #348ba4; }
 
 .streakItem {
   padding-left: 14px;
@@ -1018,6 +1049,17 @@ body {
 
   .achievementPanel .titleItem {
     grid-column: 1 / -1;
+  }
+
+  .achievementTournaments {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .achievementTournaments .achievementTournament {
+    gap: 3px;
+    padding: 6px 5px;
+    font-size: 11px;
   }
 
   .streakItem {
