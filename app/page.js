@@ -13,6 +13,7 @@ function getPlayerAchievements(data, playerId) {
     return {
       titleNumbers: [],
       streak: 0,
+      playedStreak: 0,
       matchWinRate: 0,
       matchWins: 0,
       matchCount: 0,
@@ -71,21 +72,29 @@ function getPlayerAchievements(data, playerId) {
     .filter((number) => champions.get(number) === playerKey)
     .sort((a, b) => b - a);
 
-  // 全期間を対象に、選手が参加した大会だけで最大連覇数を数える。
-  // 不参加の大会は連覇を途切れさせず、参加して優勝できなかった大会で途切れる。
+  // 全期間の連続する大会で最大連覇数を数える。不参加・未優勝の大会で途切れる。
   let currentStreak = 0;
   let maxStreak = 0;
 
-  const playedTournamentNumbers = tournamentNumbers.filter(
-    (number) => participatedTournaments.has(number)
-  );
+  // 参考値として、従来どおり出場した大会だけで連覇数を数える。
+  let currentPlayedStreak = 0;
+  let maxPlayedStreak = 0;
 
-  for (const number of playedTournamentNumbers) {
+  for (const number of tournamentNumbers) {
     if (champions.get(number) === playerKey) {
       currentStreak += 1;
       maxStreak = Math.max(maxStreak, currentStreak);
     } else {
       currentStreak = 0;
+    }
+
+    if (participatedTournaments.has(number)) {
+      if (champions.get(number) === playerKey) {
+        currentPlayedStreak += 1;
+        maxPlayedStreak = Math.max(maxPlayedStreak, currentPlayedStreak);
+      } else {
+        currentPlayedStreak = 0;
+      }
     }
   }
 
@@ -95,6 +104,7 @@ function getPlayerAchievements(data, playerId) {
   return {
     titleNumbers,
     streak: maxStreak,
+    playedStreak: maxPlayedStreak,
     matchWinRate: matchCount ? Math.round((matchWins / matchCount) * 1000) / 10 : 0,
     matchWins,
     matchCount,
