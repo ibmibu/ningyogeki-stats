@@ -2029,7 +2029,12 @@ export default function Home() {
                       {(() => {
                         const score = Number(tournamentTierScores[Number(tournament.number)] || 0);
                         const tier = score >= 20000 ? 'S' : score >= 16000 ? 'A' : score >= 12000 ? 'B' : 'C';
-                        return tier + ' ' + score.toLocaleString('ja-JP');
+                        return (
+                          <>
+                            <span className={`tierBadge tier${tier}`}>{tier}</span>
+                            <span>{score.toLocaleString('ja-JP')}</span>
+                          </>
+                        );
                       })()}
                     </small>
                     {tournamentChampions.get(Number(tournament.number)) && (
