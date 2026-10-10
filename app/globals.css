@@ -972,6 +972,10 @@ body {
   white-space: normal;
 }
 
+.tierExplanation span {
+  display: block;
+}
+
 .achievementItem {
   display: flex;
   flex-direction: column;
