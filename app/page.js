@@ -1493,6 +1493,7 @@ export default function Home() {
               <div className="achievementItem titleItem">
                 <span>優勝した大会（全期間）</span>
                 {selectedAchievements.titleNumbers.length ? (
+                  <>
                   <div className="achievementTournaments">
                     {selectedAchievements.titleNumbers.map((number) => {
                       const score = Number(tournamentTierScores[Number(number)] || 0);
@@ -1520,6 +1521,7 @@ export default function Home() {
                       ) : null;
                     })}
                   </div>
+                  </>
                 ) : (
                   <strong>優勝記録なし</strong>
                 )}
