@@ -998,7 +998,21 @@ body {
 
 @media (max-width: 560px) {
   .achievementPanel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .achievementPanel .achievementItem > span {
+    font-size: 11px;
+  }
+
+  .achievementPanel .achievementItem > strong {
+    font-size: 17px;
+  }
+
+  .achievementPanel .achievementItem > small {
+    font-size: 10px;
   }
 
   .achievementPanel .titleItem {
