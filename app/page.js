@@ -1505,6 +1505,21 @@ export default function Home() {
                       );
                     })}
                   </div>
+                  <div className="achievementTierCounts">
+                    {['S', 'A', 'B', 'C', 'D'].map((tier) => {
+                      const count = selectedAchievements.titleNumbers.filter((number) => {
+                        const score = Number(tournamentTierScores[Number(number)] || 0);
+                        const wonTier = score >= 24000 ? 'S' : score >= 20000 ? 'A' : score >= 16000 ? 'B' : score >= 12000 ? 'C' : 'D';
+                        return wonTier === tier;
+                      }).length;
+                      return count > 0 ? (
+                        <span key={tier}>
+                          <b className={`achievementTier tier${tier}`}>{tier}</b>
+                          ×{count}
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
                 ) : (
                   <strong>優勝記録なし</strong>
                 )}
