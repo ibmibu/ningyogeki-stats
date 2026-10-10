@@ -2040,7 +2040,14 @@ export default function Home() {
               </div>
 
               <h2>取得した人形劇</h2>
-              <p className="tierExplanation">Tier区分：S 24,000以上 ／ A 20,000以上 ／ B 16,000以上 ／ C 12,000以上 ／ D 12,000未満</p>
+              <p className="tierExplanation">
+                Tier区分：
+                <span>S：24,000以上</span>
+                <span>A：20,000以上</span>
+                <span>B：16,000以上</span>
+                <span>C：12,000以上</span>
+                <span>D：12,000未満</span>
+              </p>
             </div>
 
             <span className="badge">
