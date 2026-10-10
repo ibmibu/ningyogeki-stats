@@ -2067,7 +2067,7 @@ export default function Home() {
                     </small>
                     {tournamentChampions.get(Number(tournament.number)) && (
                       <small className="tournamentChampion">
-                        優勝：{tournamentChampions.get(Number(tournament.number))}
+                        {tournamentChampions.get(Number(tournament.number))}
                       </small>
                     )}
                   </div>
