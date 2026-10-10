@@ -1059,17 +1059,32 @@ body {
 .achievementTier.tierC { background: #183f2a; color: #61e49a; border-color: #2e8c5a; }
 .achievementTier.tierD { background: #173d4a; color: #75ddf5; border-color: #348ba4; }
 
-/* Center the letter's own box exactly on the badge's center */
+/* Optical alignment for each letter inside the tier frame */
 .achievementTier .tierLetter,
 .tournamentList .tierBadge .tierLetter {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
+  display: block;
   line-height: 1;
-  transform: none;
-  margin: 0;
-  padding: 0;
+  transform-origin: center;
+}
+.achievementTier.tierS .tierLetter,
+.tournamentList .tierS .tierLetter {
+  transform: translate(0.15px, 0.35px);
+}
+.achievementTier.tierA .tierLetter,
+.tournamentList .tierA .tierLetter {
+  transform: translate(0.1px, -0.1px);
+}
+.achievementTier.tierB .tierLetter,
+.tournamentList .tierB .tierLetter {
+  transform: translate(0, -0.1px);
+}
+.achievementTier.tierC .tierLetter,
+.tournamentList .tierC .tierLetter {
+  transform: translate(0.1px, 0.2px);
+}
+.achievementTier.tierD .tierLetter,
+.tournamentList .tierD .tierLetter {
+  transform: translate(0, 0);
 }
 .streakItem {
   padding-left: 14px;
