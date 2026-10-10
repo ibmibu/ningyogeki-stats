@@ -1472,7 +1472,6 @@ export default function Home() {
               <div className="achievementItem streakItem">
                 <span>最大連覇</span>
                 <strong>{selectedAchievements.streak}連覇</strong>
-                <small>参加した大会のみで判定（不参加大会は連覇に影響しません）</small>
               </div>
             </div>
           )}
