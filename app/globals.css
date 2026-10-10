@@ -1017,9 +1017,15 @@ body {
 }
 
 .achievementTierCounts .achievementTier {
+  display: grid;
+  place-items: center;
   width: 17px;
   height: 17px;
   flex-basis: 17px;
+  padding: 0 0 1px;
+  line-height: 1;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .achievementTournament > span {
