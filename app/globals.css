@@ -1000,10 +1000,10 @@ body {
 .achievementTierCounts {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 12px;
   margin-top: 10px;
   white-space: nowrap;
-  overflow-x: auto;
 }
 
 .achievementTierCounts > span {
@@ -1088,6 +1088,24 @@ body {
   .achievementTournaments > span {
     padding: 6px 5px;
     font-size: 11px;
+  }
+
+  .achievementTierCounts {
+    width: 100%;
+    justify-content: space-between;
+    gap: 4px;
+    overflow: visible;
+  }
+
+  .achievementTierCounts > span {
+    gap: 3px;
+    font-size: 11px;
+  }
+
+  .achievementTierCounts .achievementTier {
+    width: 16px;
+    height: 16px;
+    flex-basis: 16px;
   }
 
   .streakItem {
