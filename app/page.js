@@ -1897,7 +1897,7 @@ export default function Home() {
                       {tournament.number}
                     </b>
                     <small className="tournamentTier">
-                      規模 {Number(tournamentTierScores[Number(tournament.number)] || 0).toLocaleString('ja-JP')}
+                      {Number(tournamentTierScores[Number(tournament.number)] || 0).toLocaleString('ja-JP')}
                     </small>
                   </div>
 
