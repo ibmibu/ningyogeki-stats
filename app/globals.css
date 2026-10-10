@@ -924,6 +924,69 @@ body {
   color: #817a88;
 }
 
+
+.achievementPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 0.35fr);
+  gap: 12px;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid var(--line, #303039);
+  border-radius: 12px;
+  background: var(--panel, rgba(255, 255, 255, 0.025));
+}
+
+.achievementItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.achievementItem > span {
+  color: #817a88;
+  font-size: 12px;
+}
+
+.achievementItem > strong {
+  font-size: 20px;
+}
+
+.achievementTournaments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.achievementTournaments span {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: rgba(145, 185, 95, 0.12);
+  color: inherit;
+  font-size: 13px;
+}
+
+.streakItem {
+  padding-left: 14px;
+  border-left: 1px solid var(--line, #303039);
+}
+
+@media (max-width: 560px) {
+  .achievementPanel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .streakItem {
+    padding-left: 0;
+    padding-top: 12px;
+    border-left: 0;
+    border-top: 1px solid var(--line, #303039);
+  }
+}
+
 .tournamentList .tournamentTier {
   margin-left: 6px;
   font-size: 10px;
