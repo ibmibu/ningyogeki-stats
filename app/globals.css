@@ -997,6 +997,25 @@ body {
   overflow: hidden;
 }
 
+.achievementTournamentsCollapsed {
+  max-height: 64px;
+  overflow: hidden;
+}
+
+.achievementTournamentsToggle {
+  margin-top: 8px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: #a9cf77;
+  font: 700 12px Inter, "Noto Sans JP", sans-serif;
+  cursor: pointer;
+}
+
+.achievementTournamentsToggle:hover {
+  color: #d0edaa;
+}
+
 .achievementTierCounts {
   display: flex;
   align-items: center;
