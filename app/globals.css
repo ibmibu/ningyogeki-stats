@@ -906,7 +906,7 @@ body {
 
 .tournamentList .tournamentTitle {
   display: grid;
-  grid-template-columns: 104px 42px minmax(100px, 1fr);
+  grid-template-columns: 104px 62px minmax(100px, 1fr);
   align-items: center;
   column-gap: 8px;
   min-width: 0;
@@ -1306,7 +1306,7 @@ footer span {
   }
 
   .tournamentList .tournamentTitle {
-    grid-template-columns: 88px 36px minmax(90px, 1fr);
+    grid-template-columns: 88px 62px minmax(90px, 1fr);
     column-gap: 8px;
   }
 
