@@ -863,6 +863,7 @@ export default function Home() {
     return localStorage.getItem('ningyogeki-selected-player') || 'all';
   });
   const [show, setShow] = useState(false);
+  const [showAllTitles, setShowAllTitles] = useState(false);
   const [sortKey, setSortKey] = useState('opponent');
   const [sortDir, setSortDir] = useState('asc');
   const [season, setSeason] = useState('current');
@@ -1491,7 +1492,7 @@ export default function Home() {
                 <span>優勝した大会（全期間）</span>
                 {selectedAchievements.titleNumbers.length ? (
                   <>
-                  <div className="achievementTournaments">
+                  <div className={"achievementTournaments " + (selectedAchievements.titleNumbers.length > 4 && !showAllTitles ? "achievementTournamentsCollapsed" : "")}>
                     {selectedAchievements.titleNumbers.map((number) => {
                       const score = Number(tournamentTierScores[Number(number)] || 0);
                       const tier = score >= 24000 ? 'S' : score >= 20000 ? 'A' : score >= 16000 ? 'B' : score >= 12000 ? 'C' : 'D';
@@ -1503,6 +1504,11 @@ export default function Home() {
                       );
                     })}
                   </div>
+                  {selectedAchievements.titleNumbers.length > 4 && (
+                    <button type="button" className="achievementTournamentsToggle" onClick={() => setShowAllTitles(!showAllTitles)} aria-expanded={showAllTitles}>
+                      {showAllTitles ? '閉じる ▲' : 'すべて表示 ▼'}
+                    </button>
+                  )}
                   <div className="achievementTierCounts">
                     {['S', 'A', 'B', 'C', 'D'].map((tier) => {
                       const count = selectedAchievements.titleNumbers.filter((number) => {
