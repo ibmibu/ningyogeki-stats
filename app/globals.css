@@ -959,6 +959,18 @@ body {
   font-size: 12px;
 }
 
+.achievementItem > small:not(.tierExplanation) {
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.tierExplanation {
+  margin-top: -5px;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: normal;
+}
+
 .achievementItem {
   display: flex;
   flex-direction: column;
@@ -1016,6 +1028,21 @@ body {
 }
 
 @media (max-width: 560px) {
+  .achievementPanel {
+    align-items: stretch;
+    row-gap: 14px;
+  }
+
+  .achievementItem:not(.titleItem) {
+    min-height: 92px;
+    gap: 8px;
+  }
+
+  .achievementItem:not(.titleItem) > small:not(.tierExplanation) {
+    font-size: 10px;
+    letter-spacing: -0.2px;
+  }
+
   .achievementTournamentsCollapsed > span:nth-child(n + 7) {
     display: none;
   }
