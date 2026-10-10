@@ -1037,7 +1037,8 @@ body {
   .achievementItem:not(.titleItem) {
     min-height: 100px;
     box-sizing: border-box;
-    gap: 6px;
+    gap: 0;
+    justify-content: space-between;
   }
 
   .achievementItem:not(.titleItem) > strong {
@@ -1184,6 +1185,7 @@ body {
 
   .achievementPanel .achievementItem > small {
     font-size: 10px;
+    margin-top: 0;
   }
 
   .achievementPanel .titleItem {
