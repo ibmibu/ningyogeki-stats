@@ -905,17 +905,24 @@ body {
 }
 
 .tournamentList .tournamentTitle {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 54px minmax(90px, max-content);
+  display: flex;
   align-items: center;
-  column-gap: 10px;
+  gap: 8px;
   min-width: 0;
   width: 100%;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tournamentList .tournamentTitle::-webkit-scrollbar {
+  display: none;
 }
 
 .tournamentList .tournamentTitle b {
-  min-width: 0;
+  flex: 0 0 auto;
   text-align: left;
+  white-space: nowrap;
 }
 
 .tournamentList a:hover {
@@ -1006,22 +1013,23 @@ body {
 }
 
 .tournamentList .tournamentTier {
+  flex: 0 0 auto;
   margin: 0;
   font-size: 10px;
   line-height: 1.2;
   color: #817a88;
   white-space: nowrap;
-  text-align: right;
-  justify-self: stretch;
+  text-align: left;
 }
 
 .tournamentList .tournamentChampion {
+  flex: 0 0 auto;
+  margin: 0;
   font-size: 11px;
   line-height: 1.3;
   color: #b8d98a;
   white-space: nowrap;
   text-align: left;
-  justify-self: start;
 }
 
 .tournamentList em {
