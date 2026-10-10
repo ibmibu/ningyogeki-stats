@@ -997,6 +997,30 @@ body {
   overflow: hidden;
 }
 
+.achievementTierCounts {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.achievementTierCounts > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #c8c4ce;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.achievementTierCounts .achievementTier {
+  width: 17px;
+  height: 17px;
+  flex-basis: 17px;
+}
+
 .achievementTournament > span {
   min-width: 0;
   overflow: hidden;
