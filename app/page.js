@@ -1407,9 +1407,6 @@ export default function Home() {
               人形劇 <span>戦績表</span>
             </h1>
 
-            <p>
-              人形劇全体の直接対戦成績をまとめて確認できます。
-            </p>
           </div>
         </div>
       </header>
