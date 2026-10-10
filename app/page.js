@@ -1500,7 +1500,7 @@ export default function Home() {
               <div className="achievementItem">
                 <span>大会優勝率</span>
                 <strong>{selectedAchievements.tournamentWinRate}%</strong>
-                <small>{selectedAchievements.tournamentWins}優勝 / {selectedAchievements.tournamentCount}大会参加</small>
+                <small>{selectedAchievements.tournamentWins}優勝 / {selectedAchievements.tournamentCount}大会</small>
               </div>
               <div className="achievementItem streakItem">
                 <span>最大連覇</span>
