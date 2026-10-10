@@ -937,7 +937,12 @@ export default function Home() {
     );
   }, [data]);
 
-  const tournamentTierScores = useMemo(\n    () => calculateTournamentTierScores(data),\n    [data]\n  );\n\n  const maxTournament = data?.tournaments?.length
+  const tournamentTierScores = useMemo(
+    () => calculateTournamentTierScores(data),
+    [data]
+  );
+
+  const maxTournament = data?.tournaments?.length
     ? Math.max(
         ...data.tournaments.map(
           (t) => Number(t.number) || 0
