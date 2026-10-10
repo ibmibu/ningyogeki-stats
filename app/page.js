@@ -2028,7 +2028,7 @@ export default function Home() {
                     <small className="tournamentTier">
                       {(() => {
                         const score = Number(tournamentTierScores[Number(tournament.number)] || 0);
-                        const tier = score >= 20000 ? 'S' : score >= 16000 ? 'A' : score >= 12000 ? 'B' : 'C';
+                        const tier = score >= 24000 ? 'S' : score >= 20000 ? 'A' : score >= 16000 ? 'B' : score >= 12000 ? 'C' : 'D';
                         return (
                           <>
                             <span className={`tierBadge tier${tier}`}>{tier}</span>
