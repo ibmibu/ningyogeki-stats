@@ -1030,12 +1030,36 @@ body {
 .tournamentList .tournamentTier {
   min-width: 0;
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
   font-size: 10px;
   line-height: 1.2;
-  color: #817a88;
+  color: #c8c4ce;
   white-space: nowrap;
   text-align: left;
 }
+
+.tournamentList .tierBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.tournamentList .tierS { background: #4a202b; color: #ff8da5; border-color: #b94d69; }
+.tournamentList .tierA { background: #4a2d19; color: #ffad5c; border-color: #b87536; }
+.tournamentList .tierB { background: #494019; color: #f6df64; border-color: #a89536; }
+.tournamentList .tierC { background: #183f2a; color: #61e49a; border-color: #2e8c5a; }
 
 .tournamentList .tournamentChampion {
   min-width: 0;
