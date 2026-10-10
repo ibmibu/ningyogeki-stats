@@ -9,16 +9,38 @@ function rate(stat) {
 }
 
 function getPlayerAchievements(data, playerId) {
-  if (!data?.tournaments?.length || !data?.records?.length || !playerId) {
-    return { recentTitles: [], streak: 0 };
+  if (!data?.tournaments?.length || !playerId) {
+    return {
+      titleNumbers: [],
+      streak: 0,
+      matchWinRate: 0,
+      matchWins: 0,
+      matchCount: 0,
+      tournamentWinRate: 0,
+      tournamentWins: 0,
+      tournamentCount: 0,
+    };
   }
 
+  const playerKey = String(playerId);
   const recordsByTournament = new Map();
-  for (const record of data.records) {
+  let matchWins = 0;
+  let matchCount = 0;
+  const participatedTournaments = new Set();
+
+  for (const record of data.records || []) {
     const number = Number(record.tournamentNumber);
     if (!Number.isFinite(number)) continue;
     if (!recordsByTournament.has(number)) recordsByTournament.set(number, []);
     recordsByTournament.get(number).push(record);
+
+    const winnerId = String(record.winnerId);
+    const loserId = String(record.loserId);
+    if (winnerId === playerKey || loserId === playerKey) {
+      matchCount += 1;
+      participatedTournaments.add(number);
+      if (winnerId === playerKey) matchWins += 1;
+    }
   }
 
   const champions = new Map();
@@ -42,13 +64,11 @@ function getPlayerAchievements(data, playerId) {
       .filter(Number.isFinite)
   )].sort((a, b) => a - b);
 
-  const recentTitles = tournamentNumbers
-    .filter((number) => champions.get(number) === String(playerId))
-    .sort((a, b) => b - a)
-    .slice(0, 5);
+  const titleNumbers = tournamentNumbers
+    .filter((number) => champions.get(number) === playerKey)
+    .sort((a, b) => b - a);
 
   // 全期間を対象に、番号が連続した大会での最大連覇数を数える。
-  // 優勝者を特定できない大会や、優勝を逃した大会は連覇を途切れさせる。
   let currentStreak = 0;
   let maxStreak = 0;
   let previousNumber = null;
@@ -58,7 +78,7 @@ function getPlayerAchievements(data, playerId) {
       currentStreak = 0;
     }
 
-    if (champions.get(number) === String(playerId)) {
+    if (champions.get(number) === playerKey) {
       currentStreak += 1;
       maxStreak = Math.max(maxStreak, currentStreak);
     } else {
@@ -68,7 +88,21 @@ function getPlayerAchievements(data, playerId) {
     previousNumber = number;
   }
 
-  return { recentTitles, streak: maxStreak };
+  const tournamentWins = titleNumbers.length;
+  const tournamentCount = participatedTournaments.size;
+
+  return {
+    titleNumbers,
+    streak: maxStreak,
+    matchWinRate: matchCount ? Math.round((matchWins / matchCount) * 1000) / 10 : 0,
+    matchWins,
+    matchCount,
+    tournamentWinRate: tournamentCount
+      ? Math.round((tournamentWins / tournamentCount) * 1000) / 10
+      : 0,
+    tournamentWins,
+    tournamentCount,
+  };
 }
 function mergeStats(base = {}, added = {}) {
   const result = structuredClone(base || {});
@@ -1412,11 +1446,11 @@ export default function Home() {
 
           {selected !== 'all' && selectedPlayer && (
             <div className="achievementPanel">
-              <div className="achievementItem">
-                <span>直近の優勝大会（最大5回）</span>
-                {selectedAchievements.recentTitles.length ? (
+              <div className="achievementItem titleItem">
+                <span>優勝した大会（全期間）</span>
+                {selectedAchievements.titleNumbers.length ? (
                   <div className="achievementTournaments">
-                    {selectedAchievements.recentTitles.map((number) => (
+                    {selectedAchievements.titleNumbers.map((number) => (
                       <span key={number}>人形劇#{number}</span>
                     ))}
                   </div>
@@ -1424,8 +1458,18 @@ export default function Home() {
                   <strong>優勝記録なし</strong>
                 )}
               </div>
+              <div className="achievementItem">
+                <span>勝率</span>
+                <strong>{selectedAchievements.matchWinRate}%</strong>
+                <small>{selectedAchievements.matchWins}勝 / {selectedAchievements.matchCount}戦</small>
+              </div>
+              <div className="achievementItem">
+                <span>大会優勝率</span>
+                <strong>{selectedAchievements.tournamentWinRate}%</strong>
+                <small>{selectedAchievements.tournamentWins}優勝 / {selectedAchievements.tournamentCount}大会参加</small>
+              </div>
               <div className="achievementItem streakItem">
-                <span>連続優勝</span>
+                <span>最大連覇</span>
                 <strong>{selectedAchievements.streak}連覇</strong>
               </div>
             </div>
