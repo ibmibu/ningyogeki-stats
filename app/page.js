@@ -8,6 +8,56 @@ function rate(stat) {
   return stat ? `${stat.rate}%` : '—';
 }
 
+function getPlayerAchievements(data, playerId) {
+  if (!data?.tournaments?.length || !data?.records?.length || !playerId) {
+    return { recentTitles: [], streak: 0 };
+  }
+
+  const recordsByTournament = new Map();
+  for (const record of data.records) {
+    const number = Number(record.tournamentNumber);
+    if (!Number.isFinite(number)) continue;
+    if (!recordsByTournament.has(number)) recordsByTournament.set(number, []);
+    recordsByTournament.get(number).push(record);
+  }
+
+  const champions = new Map();
+  for (const [number, records] of recordsByTournament) {
+    const wins = new Map();
+    for (const record of records) {
+      const id = String(record.winnerId);
+      wins.set(id, (wins.get(id) || 0) + 1);
+    }
+    const ranked = [...wins.entries()].sort((a, b) => b[1] - a[1]);
+    // Bracket data does not expose round labels; the player with the most wins
+    // in a tournament is used as the champion candidate.
+    if (ranked.length && (ranked.length === 1 || ranked[0][1] > ranked[1][1])) {
+      champions.set(number, ranked[0][0]);
+    }
+  }
+
+  const tournamentNumbers = data.tournaments
+    .map((t) => Number(t.number))
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+  const recentTitles = tournamentNumbers
+    .filter((number) => champions.get(number) === String(playerId))
+    .sort((a, b) => b - a)
+    .slice(0, 5);
+
+  let streak = 0;
+  for (const number of [...tournamentNumbers].sort((a, b) => b - a)) {
+    if (!champions.has(number)) continue;
+    if (champions.get(number) === String(playerId)) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  return { recentTitles, streak };
+}
+
 function mergeStats(base = {}, added = {}) {
   const result = structuredClone(base || {});
 
@@ -973,6 +1023,11 @@ export default function Home() {
       String(player.id) === String(selected)
   );
 
+  const selectedAchievements = useMemo(
+    () => getPlayerAchievements(data, selected),
+    [data, selected]
+  );
+
   const opponentRows = useMemo(() => {
     if (!data || !selectedPlayer) return [];
 
@@ -1342,6 +1397,27 @@ export default function Home() {
               ))}
             </select>
           </div>
+
+          {selected !== 'all' && selectedPlayer && (
+            <div className="achievementPanel">
+              <div className="achievementItem">
+                <span>直近の優勝大会（最大5回）</span>
+                {selectedAchievements.recentTitles.length ? (
+                  <div className="achievementTournaments">
+                    {selectedAchievements.recentTitles.map((number) => (
+                      <span key={number}>人形劇#{number}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <strong>優勝記録なし</strong>
+                )}
+              </div>
+              <div className="achievementItem streakItem">
+                <span>連続優勝</span>
+                <strong>{selectedAchievements.streak}回</strong>
+              </div>
+            </div>
+          )}
 
           {selected === 'all' ? (
             <div className="matrixWrap">
