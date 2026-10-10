@@ -650,6 +650,64 @@ function calculateElo(data, season = 'all') {
   return { ranking, history };
 }
 
+function calculateTournamentTierScores(data) {
+  const tournaments = Array.isArray(data?.tournaments) ? data.tournaments : [];
+  const records = Array.isArray(data?.records) ? data.records : [];
+  if (!tournaments.length || !records.length) return {};
+
+  const ratingCache = new Map();
+  const getSeasonRatings = (seasonNumber, beforeTournamentNumber = Infinity) => {
+    const cacheKey = `${seasonNumber}:${beforeTournamentNumber}`;
+    if (ratingCache.has(cacheKey)) return ratingCache.get(cacheKey);
+
+    const seasonRecords = records.filter((record) => {
+      const n = Number(record.tournamentNumber) || 0;
+      return n < beforeTournamentNumber;
+    });
+    const result = calculateElo(
+      { ...data, records: seasonRecords },
+      String(seasonNumber)
+    );
+    const ratings = new Map(
+      result.ranking.map((player) => [String(player.id), Number(player.rating) || ELO_INITIAL_RATING])
+    );
+    ratingCache.set(cacheKey, ratings);
+    return ratings;
+  };
+
+  const scores = {};
+  for (const tournament of tournaments) {
+    const tournamentNumber = Number(tournament.number) || 0;
+    if (!tournamentNumber) continue;
+
+    const seasonNumber = Math.floor((tournamentNumber - 1) / 25) + 1;
+    const positionInSeason = ((tournamentNumber - 1) % 25) + 1;
+    const usePreviousSeason = seasonNumber > 1 && positionInSeason <= 5;
+
+    let ratings;
+    if (usePreviousSeason) {
+      ratings = getSeasonRatings(seasonNumber - 1, (seasonNumber - 1) * 25 + 1);
+    } else {
+      ratings = getSeasonRatings(seasonNumber, tournamentNumber);
+    }
+
+    const participants = new Set();
+    for (const record of records) {
+      if ((Number(record.tournamentNumber) || 0) !== tournamentNumber) continue;
+      if (record.winnerId != null) participants.add(String(record.winnerId));
+      if (record.loserId != null) participants.add(String(record.loserId));
+    }
+
+    let total = 0;
+    for (const playerId of participants) {
+      total += ratings.get(playerId) ?? ELO_INITIAL_RATING;
+    }
+    scores[tournamentNumber] = Math.round(total);
+  }
+
+  return scores;
+}
+
 function getRecentResults(records, playerId, opponentId) {
   if (!Array.isArray(records)) return [];
 
@@ -879,7 +937,7 @@ export default function Home() {
     );
   }, [data]);
 
-  const maxTournament = data?.tournaments?.length
+  const tournamentTierScores = useMemo(\n    () => calculateTournamentTierScores(data),\n    [data]\n  );\n\n  const maxTournament = data?.tournaments?.length
     ? Math.max(
         ...data.tournaments.map(
           (t) => Number(t.number) || 0
@@ -1832,6 +1890,10 @@ export default function Home() {
                     人形劇#
                     {tournament.number}
                   </b>
+
+                  <small className="tournamentTier">
+                    規模 {Number(tournamentTierScores[Number(tournament.number)] || 0).toLocaleString('ja-JP')}
+                  </small>
 
                   <span>
                     {tournament.players}人 /{' '}
