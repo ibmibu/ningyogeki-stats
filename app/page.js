@@ -1891,14 +1891,15 @@ export default function Home() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <b>
-                    人形劇#
-                    {tournament.number}
-                  </b>
-
-                  <small className="tournamentTier">
-                    規模 {Number(tournamentTierScores[Number(tournament.number)] || 0).toLocaleString('ja-JP')}
-                  </small>
+                  <div className="tournamentTitle">
+                    <b>
+                      人形劇#
+                      {tournament.number}
+                    </b>
+                    <small className="tournamentTier">
+                      規模 {Number(tournamentTierScores[Number(tournament.number)] || 0).toLocaleString('ja-JP')}
+                    </small>
+                  </div>
 
                   <span>
                     {tournament.players}人 /{' '}
