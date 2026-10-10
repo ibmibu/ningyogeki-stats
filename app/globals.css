@@ -1060,6 +1060,7 @@ body {
 .tournamentList .tierA { background: #4a2d19; color: #ffad5c; border-color: #b87536; }
 .tournamentList .tierB { background: #494019; color: #f6df64; border-color: #a89536; }
 .tournamentList .tierC { background: #183f2a; color: #61e49a; border-color: #2e8c5a; }
+.tournamentList .tierD { background: #173d4a; color: #75ddf5; border-color: #348ba4; }
 
 .tournamentList .tournamentChampion {
   min-width: 0;
