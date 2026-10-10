@@ -1018,6 +1018,19 @@ body {
   color: #a9b49b;
 }
 
+@media (min-width: 561px) {
+  .achievementTournamentsCollapsed {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .achievementTournamentsToggle {
+    display: none;
+  }
+}
+
 .achievementTierCounts {
   display: flex;
   align-items: center;
