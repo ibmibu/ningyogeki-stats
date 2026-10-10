@@ -45,16 +45,19 @@ function getPlayerAchievements(data, playerId) {
 
   const champions = new Map();
   for (const [number, records] of recordsByTournament) {
-    const wins = new Map();
-    for (const record of records) {
-      const id = String(record.winnerId);
-      wins.set(id, (wins.get(id) || 0) + 1);
-    }
-    const ranked = [...wins.entries()].sort((a, b) => b[1] - a[1]);
-    // Bracket data does not expose round labels; the player with the most wins
-    // in a tournament is used as the champion candidate.
-    if (ranked.length && (ranked.length === 1 || ranked[0][1] > ranked[1][1])) {
-      champions.set(number, ranked[0][0]);
+    // 大会内で一度も敗者になっていない選手を優勝候補とする。
+    // 候補が1人だけの場合に限り優勝者として確定する。
+    const losers = new Set(records.map((record) => String(record.loserId)));
+    const participants = new Set(
+      records.flatMap((record) => [
+        String(record.winnerId),
+        String(record.loserId),
+      ])
+    );
+    const unbeaten = [...participants].filter((id) => !losers.has(id));
+
+    if (unbeaten.length === 1) {
+      champions.set(number, unbeaten[0]);
     }
   }
 
