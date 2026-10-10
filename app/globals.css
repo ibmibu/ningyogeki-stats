@@ -978,7 +978,7 @@ body {
 
 .achievementTournaments {
   display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
+  grid-template-columns: repeat(9, minmax(0, 1fr));
   gap: 8px;
   width: 100%;
 }
