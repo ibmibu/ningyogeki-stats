@@ -1011,6 +1011,13 @@ body {
   justify-self: start;
 }
 
+.tournamentList .tournamentChampion {
+  font-size: 11px;
+  line-height: 1.3;
+  color: #b8d98a;
+  white-space: nowrap;
+}
+
 .tournamentList em {
   font-style: normal;
   color: #a760e8;
