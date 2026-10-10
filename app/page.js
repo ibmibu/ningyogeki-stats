@@ -2014,13 +2014,13 @@ export default function Home() {
               .slice()
               .reverse()
               .map((tournament) => (
-                <a
-                  key={tournament.number}
-                  href={tournament.bracketUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <div className="tournamentTitle">
+                <div className="tournamentRow" key={tournament.number}>
+                  <a
+                    className="tournamentTitle"
+                    href={tournament.bracketUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     <b>
                       人形劇#
                       {tournament.number}
@@ -2042,15 +2042,13 @@ export default function Home() {
                         {tournamentChampions.get(Number(tournament.number))}
                       </small>
                     )}
-                  </div>
+                  </a>
 
-                  <span>
+                  <span className="tournamentMeta">
                     {tournament.players}人 /{' '}
                     {tournament.matches}試合
                   </span>
-
-                  <em>↗</em>
-                </a>
+                </div>
               ))}
           </div>
         </section>
