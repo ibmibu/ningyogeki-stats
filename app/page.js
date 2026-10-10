@@ -1484,9 +1484,16 @@ export default function Home() {
                 <span>優勝した大会（全期間）</span>
                 {selectedAchievements.titleNumbers.length ? (
                   <div className="achievementTournaments">
-                    {selectedAchievements.titleNumbers.map((number) => (
-                      <span key={number}>人形劇#{number}</span>
-                    ))}
+                    {selectedAchievements.titleNumbers.map((number) => {
+                      const score = Number(tournamentTierScores[Number(number)] || 0);
+                      const tier = score >= 24000 ? 'S' : score >= 20000 ? 'A' : score >= 16000 ? 'B' : score >= 12000 ? 'C' : 'D';
+                      return (
+                        <span className="achievementTournament" key={number}>
+                          <b className={`achievementTier tier${tier}`}>{tier}</b>
+                          <span>人形劇#{number}</span>
+                        </span>
+                      );
+                    })}
                   </div>
                 ) : (
                   <strong>優勝記録なし</strong>
