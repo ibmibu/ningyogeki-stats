@@ -36,28 +36,40 @@ function getPlayerAchievements(data, playerId) {
     }
   }
 
-  const tournamentNumbers = data.tournaments
-    .map((t) => Number(t.number))
-    .filter(Number.isFinite)
-    .sort((a, b) => a - b);
+  const tournamentNumbers = [...new Set(
+    data.tournaments
+      .map((t) => Number(t.number))
+      .filter(Number.isFinite)
+  )].sort((a, b) => a - b);
+
   const recentTitles = tournamentNumbers
     .filter((number) => champions.get(number) === String(playerId))
     .sort((a, b) => b - a)
     .slice(0, 5);
 
-  let streak = 0;
-  for (const number of [...tournamentNumbers].sort((a, b) => b - a)) {
-    if (!champions.has(number)) continue;
-    if (champions.get(number) === String(playerId)) {
-      streak++;
-    } else {
-      break;
+  // 全期間を対象に、番号が連続した大会での最大連覇数を数える。
+  // 優勝者を特定できない大会や、優勝を逃した大会は連覇を途切れさせる。
+  let currentStreak = 0;
+  let maxStreak = 0;
+  let previousNumber = null;
+
+  for (const number of tournamentNumbers) {
+    if (previousNumber === null || number !== previousNumber + 1) {
+      currentStreak = 0;
     }
+
+    if (champions.get(number) === String(playerId)) {
+      currentStreak += 1;
+      maxStreak = Math.max(maxStreak, currentStreak);
+    } else {
+      currentStreak = 0;
+    }
+
+    previousNumber = number;
   }
 
-  return { recentTitles, streak };
+  return { recentTitles, streak: maxStreak };
 }
-
 function mergeStats(base = {}, added = {}) {
   const result = structuredClone(base || {});
 
@@ -1414,7 +1426,7 @@ export default function Home() {
               </div>
               <div className="achievementItem streakItem">
                 <span>連続優勝</span>
-                <strong>{selectedAchievements.streak}回</strong>
+                <strong>{selectedAchievements.streak}連覇</strong>
               </div>
             </div>
           )}
