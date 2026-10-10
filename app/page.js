@@ -1994,43 +1994,6 @@ export default function Home() {
         </section>
 
 
-        {/* 全対戦履歴の下 */}
-        <section className="control card" style={{ marginTop: '18px' }}>
-          <div>
-            <h2>人形劇全体を集計</h2>
-
-            <p>
-              ページを開くたびに大会一覧だけを確認し、まだ読み込んでいない大会がある場合だけ取得します。
-            </p>
-          </div>
-
-          <div className="buttonGroup">
-            <button
-              className="primary"
-              onClick={() => loadLatest()}
-              disabled={loading}
-            >
-              {loading
-                ? '未取得大会を確認中…'
-                : '最新データを確認'}
-            </button>
-
-            <button
-              className="secondary"
-              onClick={resetData}
-              disabled={loading}
-            >
-              保存データをリセット
-            </button>
-          </div>
-
-          <div className="hint">
-            {loading
-              ? '既存の大会は再取得しません。'
-              : '未取得の大会がある場合だけ追加で読み込みます。'}
-          </div>
-        </section>
-
         <section className="card">
           <div className="sectionHead">
             <div>
@@ -2080,6 +2043,43 @@ export default function Home() {
                   <em>↗</em>
                 </a>
               ))}
+          </div>
+        </section>
+
+        {/* 全対戦履歴の下 */}
+        <section className="control card" style={{ marginTop: '18px' }}>
+          <div>
+            <h2>人形劇全体を集計</h2>
+
+            <p>
+              ページを開くたびに大会一覧だけを確認し、まだ読み込んでいない大会がある場合だけ取得します。
+            </p>
+          </div>
+
+          <div className="buttonGroup">
+            <button
+              className="primary"
+              onClick={() => loadLatest()}
+              disabled={loading}
+            >
+              {loading
+                ? '未取得大会を確認中…'
+                : '最新データを確認'}
+            </button>
+
+            <button
+              className="secondary"
+              onClick={resetData}
+              disabled={loading}
+            >
+              保存データをリセット
+            </button>
+          </div>
+
+          <div className="hint">
+            {loading
+              ? '既存の大会は再取得しません。'
+              : '未取得の大会がある場合だけ追加で読み込みます。'}
           </div>
         </section>
 
