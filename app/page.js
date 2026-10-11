@@ -2091,8 +2091,7 @@ export default function Home() {
                   </a>
 
                   <span className="tournamentMeta">
-                    {tournament.players}人 /{' '}
-                    {tournament.matches}試合
+                    {tournament.players}人
                   </span>
                 </div>
               ))}
