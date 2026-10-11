@@ -232,39 +232,6 @@ async function mapWithConcurrency(items, limit, fn) {
   return output;
 }
 
-async function fetchCurrentPlayerName(player) {
-  try {
-    const page = await html(`${BASE}/user/${player.id}/`);
-    const $ = cheerio.load(page);
-
-    const heading = $('h1')
-      .first()
-      .text()
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    const match = heading.match(/^(.*?)さんのユーザーページ$/u);
-
-    if (match?.[1]?.trim()) {
-      return { id: player.id, name: match[1].trim() };
-    }
-  } catch (_) {}
-
-  return player;
-}
-
-async function refreshCurrentPlayerNames(players) {
-  const refreshed = await mapWithConcurrency(
-    players,
-    NAME_CONCURRENCY,
-    fetchCurrentPlayerName
-  );
-
-  return refreshed.map((player, index) =>
-    player?.error ? players[index] : player
-  );
-}
-
 async function fetchTournament(tournament) {
   const bracketUrl = await findBracketUrl(tournament);
   const parsed = parseBracket(
@@ -368,25 +335,9 @@ export async function GET(request) {
       });
     });
 
-    // 新しく読み込んだ大会に出てきたUIDだけ名前を最新化する。
-    // 未取得大会がない場合はこの処理自体が走らない。
-    for (const targetId of Object.values(ACCOUNT_ALIASES)) {
-      const id = canonicalId(targetId);
-      if (!players.has(id)) continue;
-    }
-
-    const currentPlayers = await refreshCurrentPlayerNames([
-      ...players.values(),
-    ]);
-
-    const names = new Map(
-      currentPlayers.map((player) => [String(player.id), player.name])
-    );
-
-    records.forEach((record) => {
-      record.winner = names.get(String(record.winnerId)) || record.winner;
-      record.loser = names.get(String(record.loserId)) || record.loser;
-    });
+    // 初回読み込みを速くするため、選手プロフィールページの追加取得は行わず、
+    // トーナメント表から取得した選手名を使用する。
+    const currentPlayers = [...players.values()];
 
     finishStats(stats);
 
