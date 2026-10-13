@@ -1208,7 +1208,10 @@ export default function Home() {
       ...knownCharacters.map((name) => ({ match: name, officialName: name })),
       ...aliasEntries.map(([match, officialName]) => ({ match, officialName })),
     ].sort((a, b) => b.match.length - a.match.length);
-    for (const tournament of characterComments) {
+    // キャラ名の前後に別の文字が続く場合は一致とみなさない。
+    // 例：「ソラ」は認識するが、「ソラニン」は「ソラ」として認識しない。
+    const hasExactName = (text, name) => {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\    for (const tournament of characterComments) {
       const usedInTournament = new Set();
       for (const comment of tournament.comments || []) {
         if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
@@ -1224,6 +1227,55 @@ export default function Home() {
             remainingText = remainingText.split(pattern.match).join(' ');
           } else if (remainingText.includes(pattern.match)) {
             remainingText = remainingText.split(pattern.match).join(' ');
+          }
+        }
+      }
+      if (usedInTournament.size) reportedByTournament.set(Number(tournament.number), new Set([...(reportedByTournament.get(Number(tournament.number)) || []), ...usedInTournament]));
+    }');
+      const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'u');
+      return pattern.test(text);
+    };
+    const removeExactName = (text, name) => {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\    for (const tournament of characterComments) {
+      const usedInTournament = new Set();
+      for (const comment of tournament.comments || []) {
+        if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
+        matchedComments += 1;
+        let remainingText = String(comment.text || '').normalize('NFKC');
+        // 正式名と辞書の別表記を同じ正式名に統一してから、大会ごとに重複を除く。
+        for (const pattern of characterPatterns) {
+          if (remainingText.includes(pattern.match) && !usedInTournament.has(pattern.officialName)) {
+            counts.set(pattern.officialName, (counts.get(pattern.officialName) || 0) + 1);
+            parsedComments += 1;
+            usedInTournament.add(pattern.officialName);
+            seenTournaments.add(Number(tournament.number));
+            remainingText = remainingText.split(pattern.match).join(' ');
+          } else if (remainingText.includes(pattern.match)) {
+            remainingText = remainingText.split(pattern.match).join(' ');
+          }
+        }
+      }
+      if (usedInTournament.size) reportedByTournament.set(Number(tournament.number), new Set([...(reportedByTournament.get(Number(tournament.number)) || []), ...usedInTournament]));
+    }');
+      const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'gu');
+      return text.replace(pattern, '$1 ');
+    };
+    for (const tournament of characterComments) {
+      const usedInTournament = new Set();
+      for (const comment of tournament.comments || []) {
+        if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
+        matchedComments += 1;
+        let remainingText = String(comment.text || '').normalize('NFKC');
+        // 正式名と辞書の別表記を、単語として独立している場合だけ認識する。
+        for (const pattern of characterPatterns) {
+          if (hasExactName(remainingText, pattern.match) && !usedInTournament.has(pattern.officialName)) {
+            counts.set(pattern.officialName, (counts.get(pattern.officialName) || 0) + 1);
+            parsedComments += 1;
+            usedInTournament.add(pattern.officialName);
+            seenTournaments.add(Number(tournament.number));
+            remainingText = removeExactName(remainingText, pattern.match);
+          } else if (hasExactName(remainingText, pattern.match)) {
+            remainingText = removeExactName(remainingText, pattern.match);
           }
         }
       }
