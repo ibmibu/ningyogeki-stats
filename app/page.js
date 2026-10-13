@@ -1702,41 +1702,52 @@ export default function Home() {
                 <path d="m16 16 4.2 4.2" />
               </svg>
             </button>
-            <select
-              id="playerSelect"
-              value={selected}
-              onChange={(e) => setSelected(e.target.value)}
-            >
-              <option value="all">全体（全選手）</option>
-              {selected !== 'all' && playerSearch.trim() && !filteredPlayers.some((player) => String(player.id) === String(selected)) && selectedPlayer && (
-                <option value={selected} hidden>{selectedPlayer.name}</option>
-              )}
-              {filteredPlayers.map((player) => (
-                <option key={player.id} value={player.id}>
-                  {player.name}
-                </option>
-              ))}
-            </select>
-            {playerSearchOpen && (
-              <>
-                <input
-                  id="playerSearch"
-                  className="playerSearchInput"
-                  type="search"
-                  value={playerSearch}
-                  onChange={(e) => setPlayerSearch(e.target.value)}
-                  placeholder="選手名を入力…"
-                  autoComplete="off"
-                  autoFocus
-                />
-                <div className="playerSortHint">名前を入力すると一致した選手に絞り込みます</div>
-                {playerSearch.trim() && (
-                  <div className="playerSearchCount">
-                    {filteredPlayers.filter((player) => String(player.id) !== String(selected)).length}人が見つかりました
-                    <button type="button" onClick={() => setPlayerSearch('')}>検索をクリア</button>
-                  </div>
-                )}
-              </>
+            {playerSearchOpen ? (
+              <input
+                id="playerSearch"
+                className="playerSearchInput playerSearchInline"
+                type="search"
+                value={playerSearch}
+                onChange={(e) => {
+                  const nextQuery = e.target.value;
+                  setPlayerSearch(nextQuery);
+                  const query = nextQuery.trim().toLocaleLowerCase('ja');
+                  if (!query) return;
+                  const matches = sortedPlayers.filter((player) =>
+                    String(player.name).toLocaleLowerCase('ja').includes(query) ||
+                    String(player.id).includes(query)
+                  );
+                  const exactMatch = sortedPlayers.find(
+                    (player) => String(player.name).toLocaleLowerCase('ja') === query
+                  );
+                  if (exactMatch) {
+                    setSelected(String(exactMatch.id));
+                  } else if (matches.length === 1) {
+                    setSelected(String(matches[0].id));
+                  }
+                }}
+                placeholder="選手名を入力…"
+                autoComplete="off"
+                autoFocus
+              />
+            ) : (
+              <select
+                id="playerSelect"
+                value={selected}
+                onChange={(e) => setSelected(e.target.value)}
+              >
+                <option value="all">全体（全選手）</option>
+                {sortedPlayers.map((player) => (
+                  <option key={player.id} value={player.id}>
+                    {player.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            {playerSearchOpen && playerSearch.trim() && (
+              <div className="playerSearchCount">
+                {filteredPlayers.length}人が一致
+              </div>
             )}
           </div>
 
