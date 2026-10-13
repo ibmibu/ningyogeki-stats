@@ -1178,9 +1178,9 @@ export default function Home() {
         matchedComments += 1;
         const text = String(comment.text || '').normalize('NFKC').replace(/[，、]/g, ',');
         // 区切り記号ごとに分け、「スティーブ6P」「ウルフ 5ｐ」などを抽出する。
-        const matches = [...text.matchAll(/(?:^|[,/／\\n])\\s*([^,/／\\n\\d]+?)\\s*(\\d{1,2})\\s*p(?=$|[\\s,./／])/gi)];
+        const matches = [...text.matchAll(/(?:^|[,/／\n])\s*([^,/／\n\d]+?)\s*(\d{1,2})\s*p(?=$|[\s,./／])/gi)];
         for (const match of matches) {
-          const character = match[1].trim().replace(/[。．.\\s]+$/g, '');
+          const character = match[1].trim().replace(/[。．.\s]+$/g, '');
           if (!character || character.length > 20 || /ありがとう|お願いします|運営|今回|決勝|準決勝|回戦/.test(character)) continue;
           counts.set(character, (counts.get(character) || 0) + 1);
           parsedComments += 1;
