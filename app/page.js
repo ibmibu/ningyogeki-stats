@@ -886,7 +886,7 @@ export default function Home() {
       if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
       const results = json.results || [];
       setCharacterComments(results);
-      try { localStorage.setItem('ningyogeki-character-comments-v2', JSON.stringify(results)); } catch {}
+      try { localStorage.setItem('ningyogeki-character-comments-v3', JSON.stringify(results)); } catch {}
     } catch (e) {
       setCharacterError(e instanceof Error ? e.message : 'コメント取得に失敗しました');
     } finally {
@@ -896,7 +896,7 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('ningyogeki-character-comments-v2');
+      const saved = localStorage.getItem('ningyogeki-character-comments-v3');
       if (saved) setCharacterComments(JSON.parse(saved));
     } catch {}
   }, []);
@@ -1594,6 +1594,17 @@ export default function Home() {
                   </> : <p>この選手のコメントからキャラ報告を確認できませんでした。</p>}
                   <small>確認情報：取得コメント {selectedCharacterStats.fetchedComments}件／選手ID一致 {selectedCharacterStats.matchedComments}件／キャラ形式一致 {selectedCharacterStats.parsedComments}件／取得エラー大会 {selectedCharacterStats.fetchErrors}件（選手ID: {selectedCharacterStats.targetId}）</small>
                   <small>コメントにキャラ報告がない大会は使用キャラ不明として扱います。単騎判定は報告確認分のみです。</small>
+                  <details className="characterDebug">
+                    <summary>取得コメントの確認（原因調査用）</summary>
+                    {characterComments.filter((item) => item.comments?.length).slice(0, 5).map((tournament) => (
+                      <div key={tournament.number}>
+                        <strong>大会 #{tournament.number}</strong>
+                        {(tournament.debug?.sampleComments || tournament.comments.slice(0, 3)).map((comment, index) => (
+                          <p key={index}>選手: {comment.name || comment.userId}<br />本文: {comment.text || '(本文なし)'}</p>
+                        ))}
+                      </div>
+                    ))}
+                  </details>
                 </>}
                 {characterError && <p className="error">{characterError}</p>}
               </div>
