@@ -1177,6 +1177,7 @@ export default function Home() {
     const reportedByTournament = new Map();
     let matchedComments = 0;
     let parsedComments = 0;
+    const diagnosticComments = [];
     const canonical = (id) => {
       const aliases = { '99450': '145071', '118591': '149650', '148400': '164481', '80108': '142959', '100389': '167992', '159344': '167992', '156108': '156414' };
       let value = String(id); const visited = new Set();
@@ -1247,9 +1248,11 @@ export default function Home() {
         if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
         matchedComments += 1;
         let remainingText = String(comment.text || '').normalize('NFKC');
+        const detectedForComment = [];
         // 正式名と辞書の別表記を同じ正式名に統一してから、大会ごとに重複を除く。
         for (const pattern of characterPatterns) {
           if (findExactName(remainingText, pattern.match) !== -1) {
+            detectedForComment.push(pattern.officialName);
             if (!usedInTournament.has(pattern.officialName)) {
               counts.set(pattern.officialName, (counts.get(pattern.officialName) || 0) + 1);
               parsedComments += 1;
@@ -1259,6 +1262,7 @@ export default function Home() {
             remainingText = removeExactName(remainingText, pattern.match);
           }
         }
+        if (Number(tournament.number) === 6) diagnosticComments.push({ userId: String(comment.userId ?? ''), name: String(comment.name ?? ''), text: String(comment.text ?? ''), matchedTarget: canonical(comment.userId) === canonical(characterTargetPlayer.id), detectedCharacters: detectedForComment });
       }
       if (usedInTournament.size) reportedByTournament.set(Number(tournament.number), new Set([...(reportedByTournament.get(Number(tournament.number)) || []), ...usedInTournament]));
     }
@@ -1281,7 +1285,7 @@ export default function Home() {
       .filter(([number, characters]) => champions.get(number) === playerId && characters.size === 1)
       .map(([number, characters]) => ({ number, character: [...characters][0] }))
       .sort((a, b) => b.number - a.number);
-    return { counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size, soloAchievements, matchedComments, parsedComments, targetId: String(characterTargetPlayer.id), fetchedComments: characterComments.reduce((sum, item) => sum + (item.comments?.length || 0), 0), fetchErrors: characterComments.filter((item) => item.error).length };
+    return { diagnosticTournament6: characterComments.find((item) => Number(item.number) === 6) || null, diagnosticComments, counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size, soloAchievements, matchedComments, parsedComments, targetId: String(characterTargetPlayer.id), fetchedComments: characterComments.reduce((sum, item) => sum + (item.comments?.length || 0), 0), fetchErrors: characterComments.filter((item) => item.error).length };
   }, [data, selected, characterComments]);
 
   const opponentRows = useMemo(() => {
@@ -1663,6 +1667,18 @@ export default function Home() {
                   </> : <p>この選手のコメントからキャラ報告を確認できませんでした。</p>}
                 </>}
                 {characterError && <p className="error">{characterError}</p>}
+                {characterComments && <details className="characterDebugDetails">
+                  <summary>調査用ログ（人形劇#6）</summary>
+                  <p>対象選手ID: {selectedCharacterStats.targetId || '未選択'} / 取得コメント数: {selectedCharacterStats.fetchedComments ?? 0} / ID一致コメント数: {selectedCharacterStats.matchedComments ?? 0} / 検出キャラ数（大会重複除外前）: {selectedCharacterStats.parsedComments ?? 0} / 取得エラー: {selectedCharacterStats.fetchErrors ?? 0}</p>
+                  {selectedCharacterStats.diagnosticTournament6 ? <>
+                    <p>大会URL由来のID: {selectedCharacterStats.diagnosticTournament6.bracketId || 'なし'} / コメント数: {selectedCharacterStats.diagnosticTournament6.comments?.length || 0} / エラー: {selectedCharacterStats.diagnosticTournament6.error || 'なし'}</p>
+                    {(selectedCharacterStats.diagnosticTournament6.comments || []).map((comment, index) => {
+                      const diagnostic = (selectedCharacterStats.diagnosticComments || []).find((item) => item.userId === String(comment.userId ?? '') && item.name === String(comment.name ?? '') && item.text === String(comment.text ?? ''));
+                      return <div className="characterDebugComment" key={index}><strong>{comment.name || '投稿者名なし'}（ID: {comment.userId || 'なし'}）</strong><p>{comment.text || '本文なし'}</p><small>対象選手とID一致: {diagnostic ? (diagnostic.matchedTarget ? 'はい' : 'いいえ')} / 検出キャラ: {diagnostic?.detectedCharacters?.join('、') || 'なし（対象選手以外の場合も含む）'}</small></div>;
+                    })}
+                    {selectedCharacterStats.diagnosticTournament6.debug && <pre>{JSON.stringify(selectedCharacterStats.diagnosticTournament6.debug, null, 2)}</pre>}
+                  </> : <p>人形劇#6の取得データがありません。コメント取得データが古い可能性もあります。</p>}
+                </details>}
               </div>
 
               <div className="achievementItem titleItem">
