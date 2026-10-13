@@ -1249,10 +1249,13 @@ export default function Home() {
         matchedComments += 1;
         let remainingText = String(comment.text || '').normalize('NFKC');
         const detectedForComment = [];
+        const detectionTrace = [];
         // 正式名と辞書の別表記を同じ正式名に統一してから、大会ごとに重複を除く。
         for (const pattern of characterPatterns) {
-          if (findExactName(remainingText, pattern.match) !== -1) {
+          const foundAt = findExactName(remainingText, pattern.match);
+          if (foundAt !== -1) {
             detectedForComment.push(pattern.officialName);
+            detectionTrace.push({ matchedText: pattern.match, officialName: pattern.officialName, foundAt, remainingBefore: remainingText.slice(Math.max(0, foundAt - 24), Math.min(remainingText.length, foundAt + pattern.match.length + 36)) });
             if (!usedInTournament.has(pattern.officialName)) {
               counts.set(pattern.officialName, (counts.get(pattern.officialName) || 0) + 1);
               parsedComments += 1;
@@ -1262,7 +1265,7 @@ export default function Home() {
             remainingText = removeExactName(remainingText, pattern.match);
           }
         }
-        if (Number(tournament.number) === 6) diagnosticComments.push({ userId: String(comment.userId ?? ''), name: String(comment.name ?? ''), text: String(comment.text ?? ''), matchedTarget: canonical(comment.userId) === canonical(characterTargetPlayer.id), detectedCharacters: detectedForComment });
+        if (Number(tournament.number) === 6) diagnosticComments.push({ userId: String(comment.userId ?? ''), name: String(comment.name ?? ''), text: String(comment.text ?? ''), matchedTarget: canonical(comment.userId) === canonical(characterTargetPlayer.id), detectedCharacters: detectedForComment, detectionTrace, remainingAfterParsing: remainingText });
       }
       if (usedInTournament.size) reportedByTournament.set(Number(tournament.number), new Set([...(reportedByTournament.get(Number(tournament.number)) || []), ...usedInTournament]));
     }
@@ -1674,7 +1677,7 @@ export default function Home() {
                     <p>大会URL由来のID: {selectedCharacterStats.diagnosticTournament6.bracketId || 'なし'} / コメント数: {selectedCharacterStats.diagnosticTournament6.comments?.length || 0} / エラー: {selectedCharacterStats.diagnosticTournament6.error || 'なし'}</p>
                     {(selectedCharacterStats.diagnosticTournament6.comments || []).map((comment, index) => {
                       const diagnostic = (selectedCharacterStats.diagnosticComments || []).find((item) => item.userId === String(comment.userId ?? '') && item.name === String(comment.name ?? '') && item.text === String(comment.text ?? ''));
-                      return <div className="characterDebugComment" key={index}><strong>{comment.name || '投稿者名なし'}（ID: {comment.userId || 'なし'}）</strong><p>{comment.text || '本文なし'}</p><small>対象選手とID一致: {diagnostic ? (diagnostic.matchedTarget ? 'はい' : 'いいえ') : '未判定'} / 検出キャラ: {diagnostic?.detectedCharacters?.join('、') || 'なし（対象選手以外の場合も含む）'}</small></div>;
+                      return <div className="characterDebugComment" key={index}><strong>{comment.name || '投稿者名なし'}（ID: {comment.userId || 'なし'}）</strong><p>{comment.text || '本文なし'}</p><small>対象選手とID一致: {diagnostic ? (diagnostic.matchedTarget ? 'はい' : 'いいえ') : '未判定'} / 検出キャラ: {diagnostic?.detectedCharacters?.join('、') || 'なし（対象選手以外の場合も含む）'}</small>{diagnostic && <details><summary>検出処理の詳細</summary><pre>{JSON.stringify({ detectionTrace: diagnostic.detectionTrace, remainingAfterParsing: diagnostic.remainingAfterParsing }, null, 2)}</pre></details>}</div>;
                     })}
                     {selectedCharacterStats.diagnosticTournament6.debug && <pre>{JSON.stringify(selectedCharacterStats.diagnosticTournament6.debug, null, 2)}</pre>}
                   </> : <p>人形劇#6の取得データがありません。コメント取得データが古い可能性もあります。</p>}
