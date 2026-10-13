@@ -1699,6 +1699,20 @@ footer span {
 }
 
 
+.characterUsageItem > p {
+  width: 100%;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .characterUsageItem > p {
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    max-width: 100%;
+  }
+}
+
 .characterSoloSection { margin-top: 0; }
 .characterSoloList { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
 .characterSoloCard { display: inline-flex; align-items: center; justify-content: flex-start; gap: 8px; width: fit-content; max-width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid rgba(145, 185, 95, 0.2); border-radius: 7px; background: rgba(145, 185, 95, 0.12); white-space: nowrap; }
