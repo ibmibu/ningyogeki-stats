@@ -1208,18 +1208,34 @@ export default function Home() {
       ...knownCharacters.map((name) => ({ match: name, officialName: name })),
       ...aliasEntries.map(([match, officialName]) => ({ match, officialName })),
     ].sort((a, b) => b.match.length - a.match.length);
-    // キャラ名の前後に別の文字が続く場合は一致とみなさない。
-    // 例：「ソラ」は認識するが、「ソラニン」は「ソラ」として認識しない。
-    const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const hasExactName = (text, name) => {
-      const escaped = escapeRegExp(name);
-      const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'u');
-      return pattern.test(text);
+    // 日本語の文字が直後に続く場合は別の単語とみなし、英数字や記号は許可する。
+    // 例：「ソラ4P」は認識するが、「ソラニン」は「ソラ」として認識しない。
+    const isJapaneseWordChar = (char) => Boolean(char && /[ぁ-んァ-ヶ一-龯々ー]/u.test(char));
+    const findExactName = (text, name) => {
+      let fromIndex = 0;
+      while (fromIndex <= text.length - name.length) {
+        const index = text.indexOf(name, fromIndex);
+        if (index === -1) return -1;
+        if (!isJapaneseWordChar(text[index + name.length])) return index;
+        fromIndex = index + name.length;
+      }
+      return -1;
     };
     const removeExactName = (text, name) => {
-      const escaped = escapeRegExp(name);
-      const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'gu');
-      return text.replace(pattern, '$1 ');
+      let result = '';
+      let fromIndex = 0;
+      while (fromIndex < text.length) {
+        const index = text.indexOf(name, fromIndex);
+        if (index === -1) return result + text.slice(fromIndex);
+        if (isJapaneseWordChar(text[index + name.length])) {
+          result += text.slice(fromIndex, index + name.length);
+          fromIndex = index + name.length;
+        } else {
+          result += text.slice(fromIndex, index) + ' ';
+          fromIndex = index + name.length;
+        }
+      }
+      return result;
     };
     for (const tournament of characterComments) {
       const usedInTournament = new Set();
@@ -1229,62 +1245,13 @@ export default function Home() {
         let remainingText = String(comment.text || '').normalize('NFKC');
         // 正式名と辞書の別表記を同じ正式名に統一してから、大会ごとに重複を除く。
         for (const pattern of characterPatterns) {
-          if (remainingText.includes(pattern.match) && !usedInTournament.has(pattern.officialName)) {
-            counts.set(pattern.officialName, (counts.get(pattern.officialName) || 0) + 1);
-            parsedComments += 1;
-            usedInTournament.add(pattern.officialName);
-            seenTournaments.add(Number(tournament.number));
-            remainingText = remainingText.split(pattern.match).join(' ');
-          } else if (remainingText.includes(pattern.match)) {
-            remainingText = remainingText.split(pattern.match).join(' ');
-          }
-        }
-      }
-      if (usedInTournament.size) reportedByTournament.set(Number(tournament.number), new Set([...(reportedByTournament.get(Number(tournament.number)) || []), ...usedInTournament]));
-    }');
-      const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'u');
-      return pattern.test(text);
-    };
-    const removeExactName = (text, name) => {
-      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\    for (const tournament of characterComments) {
-      const usedInTournament = new Set();
-      for (const comment of tournament.comments || []) {
-        if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
-        matchedComments += 1;
-        let remainingText = String(comment.text || '').normalize('NFKC');
-        // 正式名と辞書の別表記を同じ正式名に統一してから、大会ごとに重複を除く。
-        for (const pattern of characterPatterns) {
-          if (remainingText.includes(pattern.match) && !usedInTournament.has(pattern.officialName)) {
-            counts.set(pattern.officialName, (counts.get(pattern.officialName) || 0) + 1);
-            parsedComments += 1;
-            usedInTournament.add(pattern.officialName);
-            seenTournaments.add(Number(tournament.number));
-            remainingText = remainingText.split(pattern.match).join(' ');
-          } else if (remainingText.includes(pattern.match)) {
-            remainingText = remainingText.split(pattern.match).join(' ');
-          }
-        }
-      }
-      if (usedInTournament.size) reportedByTournament.set(Number(tournament.number), new Set([...(reportedByTournament.get(Number(tournament.number)) || []), ...usedInTournament]));
-    }');
-      const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'gu');
-      return text.replace(pattern, '$1 ');
-    };
-    for (const tournament of characterComments) {
-      const usedInTournament = new Set();
-      for (const comment of tournament.comments || []) {
-        if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
-        matchedComments += 1;
-        let remainingText = String(comment.text || '').normalize('NFKC');
-        // 正式名と辞書の別表記を、単語として独立している場合だけ認識する。
-        for (const pattern of characterPatterns) {
-          if (hasExactName(remainingText, pattern.match) && !usedInTournament.has(pattern.officialName)) {
-            counts.set(pattern.officialName, (counts.get(pattern.officialName) || 0) + 1);
-            parsedComments += 1;
-            usedInTournament.add(pattern.officialName);
-            seenTournaments.add(Number(tournament.number));
-            remainingText = removeExactName(remainingText, pattern.match);
-          } else if (hasExactName(remainingText, pattern.match)) {
+          if (findExactName(remainingText, pattern.match) !== -1) {
+            if (!usedInTournament.has(pattern.officialName)) {
+              counts.set(pattern.officialName, (counts.get(pattern.officialName) || 0) + 1);
+              parsedComments += 1;
+              usedInTournament.add(pattern.officialName);
+              seenTournaments.add(Number(tournament.number));
+            }
             remainingText = removeExactName(remainingText, pattern.match);
           }
         }
