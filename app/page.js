@@ -1591,12 +1591,11 @@ export default function Home() {
           {selected !== 'all' && selectedPlayer && (
             <div className="achievementPanel">
               <div className="achievementItem">
-                <span>使用キャラ TOP3・単騎実績</span>
+                <span>使用キャラ TOP3</span>
                 {characterLoading && <p>大会コメントからキャラ情報を取得しています… {characterProgress.done} / {characterProgress.total} 大会</p>}
                 {characterComments && <>
                   {selectedCharacterStats.counts.length > 0 ? <>
                     <div className="characterTopList">{selectedCharacterStats.counts.slice(0, 3).map((item) => <div className="characterTopCard" key={item.name}>{item.name}</div>)}</div>
-                    {selectedCharacterStats.counts.length === 1 && <p className="characterSoloAchievement">🏆 {selectedCharacterStats.counts[0].name}単騎達成（報告確認分）</p>}
                   </> : <p>この選手のコメントからキャラ報告を確認できませんでした。</p>}
                 </>}
                 {characterError && <p className="error">{characterError}</p>}
