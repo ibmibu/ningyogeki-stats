@@ -1610,3 +1610,22 @@ footer span {
   color: #92899c;
   font-size: 12px;
 }
+
+
+.characterTopList {
+  margin: 10px 0;
+  padding-left: 24px;
+}
+.characterTopList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 5px 0;
+}
+.characterTopList li strong {
+  overflow-wrap: anywhere;
+}
+.characterSoloAchievement {
+  margin: 8px 0;
+  font-weight: 800;
+}
