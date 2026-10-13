@@ -901,6 +901,12 @@ export default function Home() {
     } catch {}
   }, []);
 
+  useEffect(() => {
+    if (data?.tournaments?.length && characterComments === null && !characterLoading) {
+      loadCharacterComments();
+    }
+  }, [data, characterComments, characterLoading]);
+
 
 
   async function loadLatest(savedData = data, forceFull = false) {
@@ -1551,14 +1557,13 @@ export default function Home() {
             <div className="achievementPanel">
               <div className="achievementItem">
                 <span>使用キャラ TOP3・単騎実績</span>
-                {!characterComments && <button type="button" className="secondary" onClick={loadCharacterComments} disabled={characterLoading}>{characterLoading ? '大会コメントを取得中…' : 'キャラ実績を取得'}</button>}
+                {characterLoading && <p>大会コメントからキャラ情報を取得しています…</p>}
                 {characterComments && <>
                   {selectedCharacterStats.counts.length > 0 ? <>
                     <ol className="characterTopList">{selectedCharacterStats.counts.slice(0, 3).map((item) => <li key={item.name}><strong>{item.name}</strong><span>{item.count}回</span></li>)}</ol>
                     {selectedCharacterStats.counts.length === 1 && <p className="characterSoloAchievement">🏆 {selectedCharacterStats.counts[0].name}単騎達成（報告確認分）</p>}
                     <small>報告確認：{selectedCharacterStats.tournaments}大会・キャラ報告{selectedCharacterStats.total}件</small>
                   </> : <p>この選手のコメントからキャラ報告を確認できませんでした。</p>}
-                  <button type="button" className="secondary" onClick={loadCharacterComments} disabled={characterLoading}>{characterLoading ? '更新中…' : 'コメントを再取得'}</button>
                   <small>コメントにキャラ報告がない大会は使用キャラ不明として扱います。単騎判定は報告確認分のみです。</small>
                 </>}
                 {characterError && <p className="error">{characterError}</p>}
