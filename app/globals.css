@@ -1614,9 +1614,10 @@ footer span {
 
 .characterUsageGrid {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  flex-wrap: nowrap;
   align-items: flex-start;
-  gap: 18px 24px;
+  gap: 18px;
   width: 100%;
 }
 .characterUsageSection {
