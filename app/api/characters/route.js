@@ -20,26 +20,45 @@ function parseComments(html) {
   const $ = cheerio.load(html);
   const comments = [];
   const seen = new Set();
-  const selectors = ['.tournament-comment', '.tournament_comment', '.tournament-comment-item', '.tournament_comment_item', '.comment-item', '.comment_item', '.comment-area .comment', '.comment_area .comment', '[class*="tournament-comment"]', '[class*="tournament_comment"]'];
-  const nodes = $(selectors.join(','));
-  nodes.each((_, element) => {
+  // Smashmate's AJAX response is a sequence of author name + timestamp + comment body,
+  // rather than elements with a dedicated comment CSS class.
+  const root = $('body').length ? $('body') : $.root();
+  const blocks = root.find('li, .comment, [class*="comment"], tr').toArray();
+  const candidates = blocks.length ? blocks : [root.get(0)].filter(Boolean);
+
+  for (const element of candidates) {
     const node = $(element);
-    if (node.parents().filter((__, parent) => selectors.some((selector) => $(parent).is(selector))).length) return;
-    const profile = node.find('a[href]').filter((__, a) => /\/user\/(\d+)\/?(?:[?#].*)?$/.test($(a).attr('href') || '')).first();
-    const href = profile.attr('href') || '';
-    const userId = href.match(/\/user\/(\d+)\/?(?:[?#].*)?$/)?.[1] || '';
-    const name = cleanText(profile.text());
+    const text = cleanText(node.text());
+    if (!text || text.length > 2500) continue;
+    const profile = node.find('a[href]').toArray().map(a => $(a)).find(a => /\\/user\\/(\\d+)\\/?(?:[?#].*)?$/.test(a.attr('href') || ''));
+    const href = profile ? profile.attr('href') || '' : '';
+    const userId = href.match(/\\/user\\/(\\d+)\\/?(?:[?#].*)?$/)?.[1] || '';
+    const name = profile ? cleanText(profile.text()) : '';
     const clone = node.clone();
     clone.find('a[href]').remove();
-    let text = cleanText(clone.text());
-    if (name && text.startsWith(name)) text = cleanText(text.slice(name.length));
-    if (!text) return;
-    const key = [userId, name, text].join('|');
-    if (seen.has(key)) return;
+    let body = cleanText(clone.text());
+    if (name && body.startsWith(name)) body = cleanText(body.slice(name.length));
+    if (!body || body === text) continue;
+    const key = [userId, name, body].join('|');
+    if (seen.has(key)) continue;
     seen.add(key);
-    comments.push({ userId, name, date: '', text });
-  });
-  return { comments, debug: { htmlLength: html.length, profileLinks: $('a[href]').filter((_, a) => /\/user\/\d+/.test($(a).attr('href') || '')).length, commentNodeCount: nodes.length, sampleComments: comments.slice(0, 8).map(({ name, userId, text }) => ({ name, userId, text: text.slice(0, 300) })), responsePreview: cleanText($.root().text()).slice(0, 1200), commentHtmlPreview: nodes.toArray().slice(0, 3).map((element) => $.html(element).slice(0, 1000)) } };
+    comments.push({ userId, name, date: '', text: body });
+  }
+
+  // Diagnostic only: return strings and numbers, never Cheerio nodes.
+  const profileLinks = $('a[href]').toArray().filter(a => /\\/user\\/\\d+/.test($(a).attr('href') || '')).length;
+  const responsePreview = cleanText(root.text()).slice(0, 1200);
+  return {
+    comments,
+    debug: {
+      htmlLength: html.length,
+      profileLinks,
+      commentNodeCount: candidates.length,
+      sampleComments: comments.slice(0, 8).map(({ name, userId, text }) => ({ name, userId, text: text.slice(0, 300) })),
+      responsePreview,
+      commentHtmlPreview: candidates.slice(0, 3).map(element => $.html(element).slice(0, 1000))
+    }
+  };
 }
 
 async function getComments(tournament) {
