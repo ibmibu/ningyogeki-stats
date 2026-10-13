@@ -431,6 +431,10 @@ body {
   grid-column: 2 / 4;
 }
 
+.playerSearchInput.playerSearchInline {
+  grid-column: 3;
+}
+
 .playerSearchToggle {
   grid-column: 2;
   display: grid;
@@ -1881,6 +1885,10 @@ footer span {
   .playerSortHint,
   .playerSearchCount {
     grid-column: 1 / -1;
+  }
+
+  .playerSearchInput.playerSearchInline {
+    grid-column: 2;
   }
 
   .playerSortHint {
