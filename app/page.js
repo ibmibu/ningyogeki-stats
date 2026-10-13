@@ -1667,7 +1667,7 @@ export default function Home() {
                   {selectedCharacterStats.counts.length > 0 ? <>
                     <div className="characterUsageGrid">
                       <section className="characterUsageSection">
-                        <span className="characterSectionTitle">使用キャラ TOP3</span>
+                        <span className="characterSectionTitle">メインファイター</span>
                         <div className="characterTopList">{selectedCharacterStats.counts.slice(0, 3).map((item) => <div className="characterTopCard" key={item.name}>{item.name}</div>)}</div>
                       </section>
                       {selectedCharacterStats.soloAchievements?.length > 0 && <section className="characterUsageSection characterSoloSection"><span className="characterSectionTitle">単騎達成</span><div className="characterSoloList">{selectedCharacterStats.soloAchievements.map((item) => <div className="characterSoloCard" key={item.number}><span>大会 #{item.number}</span><strong>{item.character}</strong></div>)}</div></section>}
