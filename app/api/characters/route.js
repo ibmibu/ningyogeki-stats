@@ -102,4 +102,77 @@ export async function POST(request) {
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : 'コメント取得に失敗しました' }, { status: 500 });
   }
+}    const knownCharacters = [
+      'マリオ', 'ドンキーコング', 'リンク', 'サムス', 'ダークサムス', 'ヨッシー',
+      'カービィ', 'フォックス', 'ピカチュウ', 'ルイージ', 'ネス', 'キャプテン・ファルコン',
+      'プリン', 'ピーチ', 'デイジー', 'クッパ', 'アイスクライマー', 'シーク', 'ゼルダ',
+      'ドクターマリオ', 'ピチュー', 'ファルコ', 'マルス', 'ルキナ', 'こどもリンク',
+      'ガノンドロフ', 'ミュウツー', 'ロイ', 'クロム', 'Mr.ゲーム＆ウォッチ', 'メタナイト',
+      'ピット', 'ブラックピット', 'ゼロスーツサムス', 'ワリオ', 'スネーク', 'アイク',
+      'ポケモントレーナー', 'ディディーコング', 'リュカ', 'ソニック', 'デデデ',
+      'ピクミン＆オリマー', 'ルカリオ', 'ロボット', 'トゥーンリンク', 'ウルフ', 'むらびと',
+      'ロックマン', 'Wii Fit トレーナー', 'ロゼッタ＆チコ', 'リトル・マック', 'ゲッコウガ',
+      'Mii 格闘タイプ', 'Mii 剣術タイプ', 'Mii 射撃タイプ', 'パルテナ', 'パックマン',
+      'ルフレ', 'シュルク', 'クッパJr.', 'ダックハント', 'リュウ', 'ケン', 'クラウド',
+      'カムイ', 'ベヨネッタ', 'インクリング', 'リドリー', 'シモン', 'リヒター',
+      'キングクルール', 'しずえ', 'ガオガエン', 'パックンフラワー', 'ジョーカー', '勇者',
+      'バンジョー＆カズーイ', 'テリー', 'ベレト／ベレス', 'ミェンミェン', 'スティーブ',
+      'セフィロス', 'ホムラ／ヒカリ', 'カズヤ', 'ソラ'
+    ];
+    const containsFighter = (value) => knownCharacters.some((fighter) => value.includes(fighter));
+
+    // 各コメント要素から投稿者名と本文をまとめて取得する
+    const commentNodes = $('.tournament-comment');
+    commentNodes.each((_, element) => {
+      const node = $(element);
+      const profile = node.find('a[href]').filter((__, a) =>
+        /\/user\/(\d+)\/?(?:[?#].*)?$/.test($(a).attr('href') || '')
+      ).first();
+      const href = profile.attr('href') || '';
+      const userId = href.match(/\/user\/(\d+)\/?(?:[?#].*)?$/)?.[1] || '';
+      const name = profile.text().replace(/\s+/g, ' ').trim();
+      const clone = node.clone();
+      clone.find('a[href]').remove();
+      const text = clone.text().replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      const key = [userId, name, text].join('|');
+      if (seen.has(key)) return;
+      seen.add(key);
+      comments.push({ userId, name, date: '', text });
+    });
+
+    return {
+      number: tournament.number,
+      bracketId: id,
+      comments,
+      debug: {
+        htmlLength: html.length,
+        profileLinks: $('a[href]').filter((_, a) => /\/user\/\d+/.test($(a).attr('href') || '')).length,
+        commentNodeCount: commentNodes.length,
+        sampleComments: comments.slice(0, 5).map(({ name, userId, text }) => ({ name, userId, text: text.slice(0, 300) })),
+        responsePreview: $.root().text().replace(/\s+/g, ' ').trim().slice(0, 1200)
+      }
+    };
+  } catch (error) {
+        commentNodeCount: commentNodes.length,
+        sampleComments: comments.slice(0, 5).map(({ name, userId, text }) => ({ name, userId, text: text.slice(0, 300) })),
+        responsePreview: $.root().text().replace(/\s+/g, ' ').trim().slice(0, 1200),
+
+export async function POST(request) {
+  try {
+    const payload = await request.json();
+    const tournaments = Array.isArray(payload.tournaments) ? payload.tournaments.slice(0, 150) : [];
+    const results = [];
+    let next = 0;
+    async function worker() {
+      while (next < tournaments.length) {
+        const index = next++;
+        results[index] = await getComments(tournaments[index]);
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(3, tournaments.length) }, worker));
+    return Response.json({ results, count: results.length });
+  } catch (error) {
+    return Response.json({ error: error instanceof Error ? error.message : 'コメント取得に失敗しました' }, { status: 500 });
+  }
 }
