@@ -1210,8 +1210,18 @@ export default function Home() {
     ].sort((a, b) => b.match.length - a.match.length);
     // キャラ名の前後に別の文字が続く場合は一致とみなさない。
     // 例：「ソラ」は認識するが、「ソラニン」は「ソラ」として認識しない。
+    const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const hasExactName = (text, name) => {
-      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\    for (const tournament of characterComments) {
+      const escaped = escapeRegExp(name);
+      const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'u');
+      return pattern.test(text);
+    };
+    const removeExactName = (text, name) => {
+      const escaped = escapeRegExp(name);
+      const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'gu');
+      return text.replace(pattern, '$1 ');
+    };
+    for (const tournament of characterComments) {
       const usedInTournament = new Set();
       for (const comment of tournament.comments || []) {
         if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
