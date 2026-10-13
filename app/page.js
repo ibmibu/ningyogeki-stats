@@ -1207,7 +1207,7 @@ export default function Home() {
       .map(([alias, officialName]) => [String(alias).normalize('NFKC'), String(officialName)])
       .filter(([alias, officialName]) => alias && normalizedKnownCharacters.has(officialName.normalize('NFKC')));
     const characterPatterns = [
-      ...knownCharacters.map((name) => ({ match: name, officialName: name })),
+      ...knownCharacters.map((name) => ({ match: name.normalize('NFKC'), officialName: name })),
       ...aliasEntries.map(([match, officialName]) => ({ match, officialName })),
     ].sort((a, b) => b.match.length - a.match.length);
     // キャラ名の直後が文字列の続きなら誤認識を避ける。
