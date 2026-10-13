@@ -1173,6 +1173,7 @@ export default function Home() {
     if (!characterTargetPlayer || !characterComments) return { counts: [], total: 0, tournaments: 0 };
     const counts = new Map();
     const seenTournaments = new Set();
+    const reportedByTournament = new Map();
     let matchedComments = 0;
     let parsedComments = 0;
     const canonical = (id) => {
@@ -1217,8 +1218,28 @@ export default function Home() {
           }
         }
       }
+      if (usedInTournament.size) reportedByTournament.set(Number(tournament.number), new Set([...(reportedByTournament.get(Number(tournament.number)) || []), ...usedInTournament]));
     }
-    return { counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size, matchedComments, parsedComments, targetId: String(characterTargetPlayer.id), fetchedComments: characterComments.reduce((sum, item) => sum + (item.comments?.length || 0), 0), fetchErrors: characterComments.filter((item) => item.error).length };
+    const recordsByTournament = new Map();
+    for (const record of data.records || []) {
+      const number = Number(record.tournamentNumber);
+      if (!Number.isFinite(number)) continue;
+      if (!recordsByTournament.has(number)) recordsByTournament.set(number, []);
+      recordsByTournament.get(number).push(record);
+    }
+    const champions = new Map();
+    for (const [number, records] of recordsByTournament) {
+      const losers = new Set(records.map((record) => String(record.loserId)));
+      const participants = new Set(records.flatMap((record) => [String(record.winnerId), String(record.loserId)]));
+      const unbeaten = [...participants].filter((id) => !losers.has(id));
+      if (unbeaten.length === 1) champions.set(number, canonical(unbeaten[0]));
+    }
+    const playerId = canonical(characterTargetPlayer.id);
+    const soloAchievements = [...reportedByTournament.entries()]
+      .filter(([number, characters]) => champions.get(number) === playerId && characters.size === 1)
+      .map(([number, characters]) => ({ number, character: [...characters][0] }))
+      .sort((a, b) => b.number - a.number);
+    return { counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size, soloAchievements, matchedComments, parsedComments, targetId: String(characterTargetPlayer.id), fetchedComments: characterComments.reduce((sum, item) => sum + (item.comments?.length || 0), 0), fetchErrors: characterComments.filter((item) => item.error).length };
   }, [data, selected, characterComments]);
 
   const opponentRows = useMemo(() => {
@@ -1596,6 +1617,7 @@ export default function Home() {
                 {characterComments && <>
                   {selectedCharacterStats.counts.length > 0 ? <>
                     <div className="characterTopList">{selectedCharacterStats.counts.slice(0, 3).map((item) => <div className="characterTopCard" key={item.name}>{item.name}</div>)}</div>
+                    {selectedCharacterStats.soloAchievements?.length > 0 && <div className="characterSoloSection"><strong>単騎達成</strong><div className="characterSoloList">{selectedCharacterStats.soloAchievements.map((item) => <div className="characterSoloCard" key={item.number}><span>大会 #{item.number}</span><strong>{item.character}</strong></div>)}</div></div>}
                   </> : <p>この選手のコメントからキャラ報告を確認できませんでした。</p>}
                 </>}
                 {characterError && <p className="error">{characterError}</p>}
