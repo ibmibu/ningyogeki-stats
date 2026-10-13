@@ -39,7 +39,7 @@ function parseComments(html) {
     seen.add(key);
     comments.push({ userId, name, date: '', text });
   });
-  return { comments, debug: { htmlLength: html.length, profileLinks: $('a[href]').filter((_, a) => /\/user\/\d+/.test($(a).attr('href') || '')).length, commentNodeCount: nodes.length, sampleComments: comments.slice(0, 8).map(({ name, userId, text }) => ({ name, userId, text: text.slice(0, 300) })), responsePreview: cleanText($.root().text()).slice(0, 1200), commentHtmlPreview: nodes.slice(0, 3).map((_, element) => $.html(element).slice(0, 1000)) } };
+  return { comments, debug: { htmlLength: html.length, profileLinks: $('a[href]').filter((_, a) => /\/user\/\d+/.test($(a).attr('href') || '')).length, commentNodeCount: nodes.length, sampleComments: comments.slice(0, 8).map(({ name, userId, text }) => ({ name, userId, text: text.slice(0, 300) })), responsePreview: cleanText($.root().text()).slice(0, 1200), commentHtmlPreview: nodes.toArray().slice(0, 3).map((element) => $.html(element).slice(0, 1000)) } };
 }
 
 async function getComments(tournament) {
