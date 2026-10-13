@@ -46,12 +46,20 @@ async function getComments(tournament) {
   const id = String(tournament.bracketUrl || '').match(/\/bracket\/(\d+)/)?.[1];
   if (!id) return { number: tournament.number, comments: [], error: '大会IDが見つかりません' };
   try {
-    const response = await fetch(BASE + '/php/ajax/tournament_comment/', { method: 'POST', headers: { 'User-Agent': UA, 'Accept': '*/*', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest', 'Referer': tournament.bracketUrl }, body: new URLSearchParams({ id, fl: '' }), cache: 'no-store' });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    let response;
+    try {
+      response = await fetch(BASE + '/php/ajax/tournament_comment/', { method: 'POST', headers: { 'User-Agent': UA, 'Accept': '*/*', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest', 'Referer': tournament.bracketUrl }, body: new URLSearchParams({ id, fl: '' }), cache: 'no-store', signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
     if (!response.ok) throw new Error('HTTP ' + response.status);
     const html = await response.text();
     return { number: tournament.number, bracketId: id, ...parseComments(html) };
   } catch (error) {
-    return { number: tournament.number, bracketId: id, comments: [], error: error instanceof Error ? error.message : 'コメント取得に失敗しました' };
+    const message = error instanceof Error && error.name === 'AbortError' ? 'コメント取得が12秒でタイムアウトしました' : error instanceof Error ? error.message : 'コメント取得に失敗しました';
+    return { number: tournament.number, bracketId: id, comments: [], error: message };
   }
 }
 
