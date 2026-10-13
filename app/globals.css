@@ -1868,7 +1868,7 @@ footer span {
 
 @media (max-width: 600px) {
   .playerSelectWrap {
-    grid-template-columns: 36px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 36px;
     gap: 8px;
     padding: 12px;
   }
@@ -1878,7 +1878,16 @@ footer span {
   }
 
   .playerSelectWrap select {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .playerSearchToggle {
     grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
   }
 
   .playerSearchInput,
@@ -1888,7 +1897,8 @@ footer span {
   }
 
   .playerSearchInput.playerSearchInline {
-    grid-column: 2;
+    grid-column: 1;
+    grid-row: 2;
   }
 
   .playerSortHint {
