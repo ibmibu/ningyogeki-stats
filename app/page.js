@@ -863,6 +863,7 @@ export default function Home() {
     if (typeof window === 'undefined') return 'all';
     return localStorage.getItem('ningyogeki-selected-player') || 'all';
   });
+  const [playerSearch, setPlayerSearch] = useState('');
   const [show, setShow] = useState(false);
   const [showAllTitles, setShowAllTitles] = useState(false);
   const [sortKey, setSortKey] = useState('opponent');
@@ -1059,18 +1060,65 @@ export default function Home() {
     setError('');
   }
 
+  const playerTournamentStats = useMemo(() => {
+    const appearances = new Map();
+    const wins = new Map();
+    const recordsByTournament = new Map();
+
+    for (const record of data?.records || []) {
+      const number = Number(record.tournamentNumber);
+      if (!Number.isFinite(number)) continue;
+      if (!recordsByTournament.has(number)) recordsByTournament.set(number, []);
+      recordsByTournament.get(number).push(record);
+
+      for (const id of [record.winnerId, record.loserId]) {
+        const key = String(id);
+        if (!appearances.has(key)) appearances.set(key, new Set());
+        appearances.get(key).add(number);
+      }
+    }
+
+    for (const [number, records] of recordsByTournament) {
+      const losers = new Set(records.map((record) => String(record.loserId)));
+      const participants = new Set(records.flatMap((record) => [
+        String(record.winnerId),
+        String(record.loserId),
+      ]));
+      const unbeaten = [...participants].filter((id) => !losers.has(id));
+      if (unbeaten.length === 1) {
+        const key = unbeaten[0];
+        wins.set(key, (wins.get(key) || 0) + 1);
+      }
+    }
+
+    return { appearances, wins };
+  }, [data]);
+
   const sortedPlayers = useMemo(
     () =>
       data
-        ? [...data.players].sort((a, b) =>
-            String(a.name).localeCompare(
-              String(b.name),
-              'ja'
-            )
-          )
+        ? [...data.players].sort((a, b) => {
+            const appearancesA = playerTournamentStats.appearances.get(String(a.id))?.size || 0;
+            const appearancesB = playerTournamentStats.appearances.get(String(b.id))?.size || 0;
+            const winsA = playerTournamentStats.wins.get(String(a.id)) || 0;
+            const winsB = playerTournamentStats.wins.get(String(b.id)) || 0;
+            return appearancesB - appearancesA ||
+              winsB - winsA ||
+              String(a.name).localeCompare(String(b.name), 'ja');
+          })
         : [],
-    [data]
+    [data, playerTournamentStats]
   );
+
+  const filteredPlayers = useMemo(() => {
+    const query = playerSearch.trim().toLocaleLowerCase('ja');
+    if (!query) return sortedPlayers;
+    return sortedPlayers.filter((player) =>
+      String(player.name).toLocaleLowerCase('ja').includes(query) ||
+      String(player.id).includes(query) ||
+      String(player.id) === String(selected)
+    );
+  }, [sortedPlayers, playerSearch, selected]);
 
   const seasons = useMemo(() => {
     if (!data?.tournaments?.length) return [];
@@ -1634,30 +1682,41 @@ export default function Home() {
           </div>
 
           <div className="playerSelectWrap">
+            <label htmlFor="playerSearch">
+              選手を検索
+            </label>
+            <input
+              id="playerSearch"
+              className="playerSearchInput"
+              type="search"
+              value={playerSearch}
+              onChange={(e) => setPlayerSearch(e.target.value)}
+              placeholder="選手名を入力…"
+              autoComplete="off"
+            />
+            <div className="playerSortHint">出場大会数 ↓ → 優勝回数 ↓ の順</div>
+
             <label htmlFor="playerSelect">
               表示する選手
             </label>
-
             <select
               id="playerSelect"
               value={selected}
-              onChange={(e) =>
-                setSelected(e.target.value)
-              }
+              onChange={(e) => setSelected(e.target.value)}
             >
-              <option value="all">
-                全体（全選手）
-              </option>
-
-              {sortedPlayers.map((player) => (
-                <option
-                  key={player.id}
-                  value={player.id}
-                >
-                  {player.name}
+              <option value="all">全体（全選手）</option>
+              {filteredPlayers.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.name}（出場{playerTournamentStats.appearances.get(String(player.id))?.size || 0}回・優勝{playerTournamentStats.wins.get(String(player.id)) || 0}回）
                 </option>
               ))}
             </select>
+            {playerSearch.trim() && (
+              <div className="playerSearchCount">
+                {filteredPlayers.filter((player) => String(player.id) !== String(selected)).length}人が見つかりました
+                <button type="button" onClick={() => setPlayerSearch('')}>検索をクリア</button>
+              </div>
+            )}
           </div>
 
           {selected !== 'all' && selectedPlayer && (
