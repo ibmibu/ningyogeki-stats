@@ -1172,41 +1172,39 @@ export default function Home() {
       while (aliases[value] && !visited.has(value)) { visited.add(value); value = aliases[value]; }
       return value;
     };
+    // ファイター名は、一覧にある正式表記との一致だけを集計する。表記ゆれ対応は後で追加する。
     const knownCharacters = [
-      'Mr.ゲーム&ウォッチ', 'ゲーム&ウォッチ', 'ドンキーコング', 'ディディーコング',
-      'リトル・マック', 'ロックマン', 'パックマン', 'クッパJr.', 'ロゼッタ&チコ',
-      'むらびと', 'しずえ', 'ダックハント', 'Wii Fit トレーナー', 'Mii 格闘タイプ',
-      'Mii 剣術タイプ', 'Mii 射撃タイプ', 'ホムラ', 'ヒカリ', 'ホムヒカ',
-      'スティーブ', 'アレックス', 'ゾンビ', 'エンダーマン', 'カズヤ', 'セフィロス',
-      'ソラ', 'ベレト', 'ベレス', 'ミェンミェン', 'テリー', 'バンジョー&カズーイ',
-      'バンカズ', '勇者', 'ジョーカー', 'パルテナ', 'ゼロスーツサムス', 'ゼルダ',
-      'シーク', 'サムス', 'ダークサムス', 'ピット', 'ブラックピット', 'キングクルール',
-      'リドリー', 'インクリング', 'クロム', 'ルキナ', 'ロイ', 'アイク', 'マルス',
-      'ルフレ', 'カムイ', 'ピカチュウ', 'ピチュー', 'プリン', 'ミュウツー',
-      'ルカリオ', 'ゲッコウガ', 'ガオガエン', 'フシギソウ', 'リザードン', 'ゼニガメ',
-      'マリオ', 'ルイージ', 'ピーチ', 'デイジー', 'クッパ', 'ヨッシー', 'ワリオ',
-      'リンク', 'こどもリンク', 'トゥーンリンク', 'ガノンドロフ', 'フォックス', 'ファルコ',
-      'ウルフ', 'ネス', 'リュカ', 'キャプテン・ファルコン', 'ファルコン', 'アイスクライマー',
-      'カービィ', 'デデデ', 'メタナイト', 'ピクミン&オリマー', 'オリマー',
-      'ロボット', 'Mr.ゲーム＆ウォッチ', 'シュルク', 'リュウ', 'ケン',
-      'パックンフラワー', 'ソニック', 'シモン', 'リヒター'
+      'マリオ', 'ドンキーコング', 'リンク', 'サムス', 'ダークサムス', 'ヨッシー',
+      'カービィ', 'フォックス', 'ピカチュウ', 'ルイージ', 'ネス', 'キャプテン・ファルコン',
+      'プリン', 'ピーチ', 'デイジー', 'クッパ', 'アイスクライマー', 'シーク', 'ゼルダ',
+      'ドクターマリオ', 'ピチュー', 'ファルコ', 'マルス', 'ルキナ', 'こどもリンク',
+      'ガノンドロフ', 'ミュウツー', 'ロイ', 'クロム', 'Mr.ゲーム＆ウォッチ', 'メタナイト',
+      'ピット', 'ブラックピット', 'ゼロスーツサムス', 'ワリオ', 'スネーク', 'アイク',
+      'ポケモントレーナー', 'ディディーコング', 'リュカ', 'ソニック', 'デデデ',
+      'ピクミン＆オリマー', 'ルカリオ', 'ロボット', 'トゥーンリンク', 'ウルフ', 'むらびと',
+      'ロックマン', 'Wii Fit トレーナー', 'ロゼッタ＆チコ', 'リトル・マック', 'ゲッコウガ',
+      'Mii 格闘タイプ', 'Mii 剣術タイプ', 'Mii 射撃タイプ', 'パルテナ', 'パックマン',
+      'ルフレ', 'シュルク', 'クッパJr.', 'ダックハント', 'リュウ', 'ケン', 'クラウド',
+      'カムイ', 'ベヨネッタ', 'インクリング', 'リドリー', 'シモン', 'リヒター',
+      'キングクルール', 'しずえ', 'ガオガエン', 'パックンフラワー', 'ジョーカー', '勇者',
+      'バンジョー＆カズーイ', 'テリー', 'ベレト／ベレス', 'ミェンミェン', 'スティーブ',
+      'セフィロス', 'ホムラ／ヒカリ', 'カズヤ', 'ソラ'
     ];
-    const uniqueCharacters = [...new Set(knownCharacters)].sort((a, b) => b.length - a.length);
+    const uniqueCharacters = [...knownCharacters].sort((a, b) => b.length - a.length);
     for (const tournament of characterComments) {
       const usedInTournament = new Set();
       for (const comment of tournament.comments || []) {
         if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
         matchedComments += 1;
-        const normalizedText = String(comment.text || '').normalize('NFKC').toLocaleLowerCase('ja');
-        // 「6P」などの数字は無視し、コメント中にキャラ名があれば使用扱い。
+        let remainingText = String(comment.text || '').normalize('NFKC');
+        // 長い名前から先に一致させ、同じ文字列の一部を別ファイターとして二重計上しない。
         for (const character of uniqueCharacters) {
-          const escaped = character.toLocaleLowerCase('ja').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const occurrences = normalizedText.match(new RegExp(escaped, 'g')) || [];
-          if (occurrences.length > 0 && !usedInTournament.has(character)) {
+          if (remainingText.includes(character) && !usedInTournament.has(character)) {
             counts.set(character, (counts.get(character) || 0) + 1);
             parsedComments += 1;
             usedInTournament.add(character);
             seenTournaments.add(Number(tournament.number));
+            remainingText = remainingText.split(character).join(' ');
           }
         }
       }
