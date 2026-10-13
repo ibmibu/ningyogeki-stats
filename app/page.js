@@ -1301,7 +1301,7 @@ export default function Home() {
 
   const ibukiTopFourTemplate = useMemo(() => {
     const numbers = getTopFourTournamentNumbers(data, '81727');
-    return numbers.map((number) => `  { tournamentName: '人形劇 #${number}', characters: [] },`).join('\\n');
+    return numbers.map((number) => `  { tournamentName: '人形劇 #${number}', characters: [] },`).join('\n');
   }, [data]);
 
   const selectedPlayer = data?.players.find(
