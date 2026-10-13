@@ -117,6 +117,42 @@ function getPlayerAchievements(data, playerId) {
     tournamentCount,
   };
 }
+function getTopFourTournamentNumbers(data, playerId) {
+  const targetId = String(playerId);
+  const recordsByTournament = new Map();
+
+  // records は大会表の表示順で保存されるため、各大会の最後の試合を決勝として扱う。
+  for (const record of data?.records || []) {
+    const number = Number(record.tournamentNumber);
+    if (!Number.isFinite(number)) continue;
+    if (!recordsByTournament.has(number)) recordsByTournament.set(number, []);
+    recordsByTournament.get(number).push(record);
+  }
+
+  const topFour = [];
+  for (const [number, records] of recordsByTournament) {
+    if (records.length < 3) continue;
+    const final = records[records.length - 1];
+    const finalists = new Set([String(final.winnerId), String(final.loserId)]);
+    const semifinalLosers = new Set();
+
+    // 決勝進出者が決勝前に最後に勝った試合の敗者を、準決勝敗退者として拾う。
+    for (const finalistId of finalists) {
+      for (let i = records.length - 2; i >= 0; i -= 1) {
+        if (String(records[i].winnerId) === finalistId) {
+          semifinalLosers.add(String(records[i].loserId));
+          break;
+        }
+      }
+    }
+
+    const placements = new Set([...finalists, ...semifinalLosers]);
+    if (placements.has(targetId)) topFour.push(number);
+  }
+
+  return topFour.sort((a, b) => a - b);
+}
+
 function mergeStats(base = {}, added = {}) {
   const result = structuredClone(base || {});
 
@@ -878,6 +914,7 @@ export default function Home() {
   const [characterProgress, setCharacterProgress] = useState({ done: 0, total: 0 });
   const [characterError, setCharacterError] = useState('');
   const [expandedSoloCharacters, setExpandedSoloCharacters] = useState([]);
+  const [showCharacterTemplate, setShowCharacterTemplate] = useState(false);
 
   async function loadCharacterComments() {
     if (!data?.tournaments?.length) return;
@@ -1262,6 +1299,11 @@ export default function Home() {
     return sortedPlayers.filter((player) => participantIds.has(String(player.id)));
   }, [data, matrixSeason, matrixSelectedSeason, sortedPlayers]);
 
+  const ibukiTopFourTemplate = useMemo(() => {
+    const numbers = getTopFourTournamentNumbers(data, '81727');
+    return numbers.map((number) => `  { tournamentName: '人形劇 #${number}', characters: [] },`).join('\\n');
+  }, [data]);
+
   const selectedPlayer = data?.players.find(
     (player) =>
       String(player.id) === String(selected)
@@ -1307,11 +1349,13 @@ export default function Home() {
         }
         const number = Number(tournament?.number);
         if (!Number.isFinite(number)) continue;
-        manualReportsByTournament.set(number, [...new Set(
+        const characters = [...new Set(
           (Array.isArray(report.characters) ? report.characters : [])
             .map((name) => String(name || '').trim())
             .filter(Boolean)
-        )]);
+        )];
+        // 空欄のテンプレート行はコメント集計を止めない。キャラが入力済みの大会だけ手動登録を優先する。
+        if (characters.length > 0) manualReportsByTournament.set(number, characters);
       }
     }
     // ファイター名は、一覧にある正式表記との一致だけを集計する。表記ゆれ対応は後で追加する。
@@ -1844,6 +1888,31 @@ export default function Home() {
               </div>
             )}
           </div>
+
+          {selected === '81727' && (
+            <section className="card characterTemplateCard">
+              <div className="sectionHead">
+                <div>
+                  <div className="sectionLabel">MANUAL CHARACTER HISTORY</div>
+                  <h2>いぶの過去TOP4大会テンプレート</h2>
+                  <p>大会表の最後の試合を決勝として逆算した候補です。内容をコピーして app/data/manualCharacterReports.js の配列に貼り付け、characters にキャラ名を入力してください。</p>
+                </div>
+                <button type="button" className="secondary" onClick={() => setShowCharacterTemplate((value) => !value)}>
+                  {showCharacterTemplate ? '閉じる' : 'テンプレートを表示'}
+                </button>
+              </div>
+              {showCharacterTemplate && (
+                <textarea
+                  className="characterTemplateText"
+                  readOnly
+                  rows={Math.min(18, Math.max(4, getTopFourTournamentNumbers(data, '81727').length))}
+                  value={ibukiTopFourTemplate}
+                  onFocus={(event) => event.target.select()}
+                  aria-label="いぶの過去TOP4大会テンプレート"
+                />
+              )}
+            </section>
+          )}
 
           {selected !== 'all' && selectedPlayer && (
             <div className="achievementPanel">
