@@ -870,23 +870,32 @@ export default function Home() {
   const [rateChartPlayers, setRateChartPlayers] = useState([]);
   const [characterComments, setCharacterComments] = useState(null);
   const [characterLoading, setCharacterLoading] = useState(false);
+  const [characterProgress, setCharacterProgress] = useState({ done: 0, total: 0 });
   const [characterError, setCharacterError] = useState('');
 
   async function loadCharacterComments() {
     if (!data?.tournaments?.length) return;
     setCharacterLoading(true);
     setCharacterError('');
+    const tournaments = [...data.tournaments].sort((a, b) => Number(a.number) - Number(b.number));
+    const results = [];
+    setCharacterProgress({ done: 0, total: tournaments.length });
     try {
-      const response = await fetch('/api/characters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tournaments: data.tournaments }),
-      });
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
-      const results = json.results || [];
-      setCharacterComments(results);
-      try { localStorage.setItem('ningyogeki-character-comments-v4', JSON.stringify(results)); } catch {}
+      const batchSize = 10;
+      for (let offset = 0; offset < tournaments.length; offset += batchSize) {
+        const batch = tournaments.slice(offset, offset + batchSize);
+        const response = await fetch('/api/characters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tournaments: batch }),
+        });
+        const json = await response.json();
+        if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
+        results.push(...(json.results || []));
+        setCharacterComments([...results]);
+        setCharacterProgress({ done: results.length, total: tournaments.length });
+        try { localStorage.setItem('ningyogeki-character-comments-v5', JSON.stringify(results)); } catch {}
+      }
     } catch (e) {
       setCharacterError(e instanceof Error ? e.message : 'コメント取得に失敗しました');
     } finally {
@@ -896,7 +905,7 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('ningyogeki-character-comments-v4');
+      const saved = localStorage.getItem('ningyogeki-character-comments-v5');
       if (saved) setCharacterComments(JSON.parse(saved));
     } catch {}
   }, []);
@@ -1583,7 +1592,7 @@ export default function Home() {
             <div className="achievementPanel">
               <div className="achievementItem">
                 <span>使用キャラ TOP3・単騎実績</span>
-                {characterLoading && <p>大会コメントからキャラ情報を取得しています…</p>}
+                {characterLoading && <p>大会コメントからキャラ情報を取得しています… {characterProgress.done} / {characterProgress.total} 大会</p>}
                 {characterComments && <>
                   {selectedCharacterStats.counts.length > 0 ? <>
                     <ol className="characterTopList">{selectedCharacterStats.counts.slice(0, 3).map((item) => <li key={item.name}><strong>{item.name}</strong><span>{item.count}回</span></li>)}</ol>
