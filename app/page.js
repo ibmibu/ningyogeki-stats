@@ -1671,18 +1671,7 @@ export default function Home() {
                   </> : <p>この選手のコメントからキャラ報告を確認できませんでした。</p>}
                 </>}
                 {characterError && <p className="error">{characterError}</p>}
-                {characterComments && <details className="characterDebugDetails">
-                  <summary>調査用ログ（人形劇#6）</summary>
-                  <p>対象選手ID: {selectedCharacterStats.targetId || '未選択'} / 取得コメント数: {selectedCharacterStats.fetchedComments ?? 0} / ID一致コメント数: {selectedCharacterStats.matchedComments ?? 0} / 検出キャラ数（大会重複除外前）: {selectedCharacterStats.parsedComments ?? 0} / 取得エラー: {selectedCharacterStats.fetchErrors ?? 0}</p>
-                  {selectedCharacterStats.diagnosticTournament6 ? <>
-                    <p>大会URL由来のID: {selectedCharacterStats.diagnosticTournament6.bracketId || 'なし'} / コメント数: {selectedCharacterStats.diagnosticTournament6.comments?.length || 0} / エラー: {selectedCharacterStats.diagnosticTournament6.error || 'なし'}</p>
-                    {(selectedCharacterStats.diagnosticTournament6.comments || []).map((comment, index) => {
-                      const diagnostic = (selectedCharacterStats.diagnosticComments || []).find((item) => item.userId === String(comment.userId ?? '') && item.name === String(comment.name ?? '') && item.text === String(comment.text ?? ''));
-                      return <div className="characterDebugComment" key={index}><strong>{comment.name || '投稿者名なし'}（ID: {comment.userId || 'なし'}）</strong><p>{comment.text || '本文なし'}</p><small>対象選手とID一致: {diagnostic ? (diagnostic.matchedTarget ? 'はい' : 'いいえ') : '未判定'} / 検出キャラ: {diagnostic?.detectedCharacters?.join('、') || 'なし（対象選手以外の場合も含む）'}</small>{diagnostic && <details><summary>検出処理の詳細</summary><pre>{JSON.stringify({ detectionTrace: diagnostic.detectionTrace, remainingAfterParsing: diagnostic.remainingAfterParsing }, null, 2)}</pre></details>}</div>;
-                    })}
-                    {selectedCharacterStats.diagnosticTournament6.debug && <pre>{JSON.stringify(selectedCharacterStats.diagnosticTournament6.debug, null, 2)}</pre>}
-                  </> : <p>人形劇#6の取得データがありません。コメント取得データが古い可能性もあります。</p>}
-                </details>}
+
               </div>
 
               <div className="achievementItem titleItem">
