@@ -380,7 +380,7 @@ body {
 
 .playerSelectWrap {
   display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
+  grid-template-columns: 110px 36px minmax(0, 1fr);
   align-items: center;
   gap: 10px 12px;
   margin: 0 0 16px;
@@ -391,6 +391,7 @@ body {
 }
 
 .playerSelectWrap label {
+  grid-column: 1;
   color: #aaa2b3;
   font-size: 11px;
   font-weight: 700;
@@ -400,6 +401,7 @@ body {
 
 .playerSelectWrap select,
 .playerSearchInput {
+  grid-column: 3;
   width: 100%;
   min-width: 0;
   appearance: none;
@@ -425,6 +427,41 @@ body {
   cursor: pointer;
 }
 
+.playerSearchInput {
+  grid-column: 2 / 4;
+}
+
+.playerSearchToggle {
+  grid-column: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 38px;
+  padding: 8px;
+  border: 1px solid #39333f;
+  border-radius: 9px;
+  background: #17131b;
+  color: #b7df71;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.playerSearchToggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.playerSearchToggle:hover,
+.playerSearchToggle.isActive {
+  border-color: #9bcf54;
+  background: #9bcf5415;
+}
+
 .playerSearchInput::placeholder {
   color: #817a88;
   font-weight: 400;
@@ -442,14 +479,14 @@ body {
 }
 
 .playerSortHint {
-  grid-column: 2;
+  grid-column: 2 / 4;
   color: #8b8494;
   font-size: 11px;
   margin-top: -4px;
 }
 
 .playerSearchCount {
-  grid-column: 2;
+  grid-column: 2 / 4;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1827,14 +1864,23 @@ footer span {
 
 @media (max-width: 600px) {
   .playerSelectWrap {
-    grid-template-columns: 1fr;
+    grid-template-columns: 36px minmax(0, 1fr);
     gap: 8px;
     padding: 12px;
   }
 
+  .playerSelectWrap label {
+    grid-column: 1 / -1;
+  }
+
+  .playerSelectWrap select {
+    grid-column: 2;
+  }
+
+  .playerSearchInput,
   .playerSortHint,
   .playerSearchCount {
-    grid-column: 1;
+    grid-column: 1 / -1;
   }
 
   .playerSortHint {
