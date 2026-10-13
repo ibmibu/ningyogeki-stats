@@ -914,7 +914,6 @@ export default function Home() {
   const [characterProgress, setCharacterProgress] = useState({ done: 0, total: 0 });
   const [characterError, setCharacterError] = useState('');
   const [expandedSoloCharacters, setExpandedSoloCharacters] = useState([]);
-  const [showCharacterTemplate, setShowCharacterTemplate] = useState(false);
 
   async function loadCharacterComments() {
     if (!data?.tournaments?.length) return;
@@ -1299,10 +1298,6 @@ export default function Home() {
     return sortedPlayers.filter((player) => participantIds.has(String(player.id)));
   }, [data, matrixSeason, matrixSelectedSeason, sortedPlayers]);
 
-  const ibukiTopFourTemplate = useMemo(() => {
-    const numbers = getTopFourTournamentNumbers(data, '81727');
-    return numbers.map((number) => `  { tournamentName: '人形劇 #${number}', characters: [] },`).join('\n');
-  }, [data]);
 
   const selectedPlayer = data?.players.find(
     (player) =>
@@ -1889,30 +1884,6 @@ export default function Home() {
             )}
           </div>
 
-          {selected === '81727' && (
-            <section className="card characterTemplateCard">
-              <div className="sectionHead">
-                <div>
-                  <div className="sectionLabel">MANUAL CHARACTER HISTORY</div>
-                  <h2>いぶの過去TOP4大会テンプレート</h2>
-                  <p>大会表の最後の試合を決勝として逆算した候補です。内容をコピーして app/data/manualCharacterReports.js の配列に貼り付け、characters にキャラ名を入力してください。</p>
-                </div>
-                <button type="button" className="secondary" onClick={() => setShowCharacterTemplate((value) => !value)}>
-                  {showCharacterTemplate ? '閉じる' : 'テンプレートを表示'}
-                </button>
-              </div>
-              {showCharacterTemplate && (
-                <textarea
-                  className="characterTemplateText"
-                  readOnly
-                  rows={Math.min(18, Math.max(4, getTopFourTournamentNumbers(data, '81727').length))}
-                  value={ibukiTopFourTemplate}
-                  onFocus={(event) => event.target.select()}
-                  aria-label="いぶの過去TOP4大会テンプレート"
-                />
-              )}
-            </section>
-          )}
 
           {selected !== 'all' && selectedPlayer && (
             <div className="achievementPanel">
