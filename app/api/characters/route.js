@@ -26,16 +26,45 @@ async function getComments(tournament) {
     const html = await response.text();
     const $ = cheerio.load(html);
     const comments = [];
-    $('.comment-body').each((_, element) => {
-      const item = $(element);
-      const profile = item.find('a[href*="/user/"]').filter((__, a) => /\/user\/\d+\/?/.test($(a).attr('href') || '')).first();
-      const userId = (profile.attr('href') || '').match(/\/user\/(\d+)/)?.[1];
+    const seen = new Set();
+
+    // SmashmateのHTML構造変更に備え、ユーザープロフィールリンクを起点にコメント領域を探す。
+    $('a[href]').each((_, anchor) => {
+      const href = $(anchor).attr('href') || '';
+      const userId = href.match(/\/user\/(\d+)\/?(?:[?#].*)?$/)?.[1];
+      if (!userId) return;
+
+      const profile = $(anchor);
       const name = profile.text().replace(/\s+/g, ' ').trim();
-      const date = item.find('.text-right.gray').first().text().replace(/\s+/g, ' ').trim();
-      const text = item.find('.comment-area').text().replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim();
-      if (userId && text) comments.push({ userId, name, date, text });
+      let container = profile;
+      let text = '';
+      let date = '';
+
+      for (let depth = 0; depth < 6 && container.length; depth += 1) {
+        const candidate = container.text().replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim();
+        const hasCharacterReport = /[0-9０-９]{1,2}\s*[pPｐＰ]/.test(candidate);
+        if (candidate.length > name.length && candidate.length < 1500 && (hasCharacterReport || depth >= 2)) {
+          text = container.find('.comment-area').text().trim() || container.find('p').text().trim() || candidate;
+          date = container.find('.text-right.gray, time, [datetime]').first().text().replace(/\s+/g, ' ').trim();
+          if (text && text !== name) break;
+        }
+        container = container.parent();
+      }
+
+      text = text.replace(name, '').replace(/\s+/g, ' ').trim();
+      const key = userId + '|' + text;
+      if (text && text.length <= 1500 && !seen.has(key)) {
+        seen.add(key);
+        comments.push({ userId, name, date, text });
+      }
     });
-    return { number: tournament.number, comments };
+
+    return {
+      number: tournament.number,
+      bracketId: id,
+      comments,
+      debug: { htmlLength: html.length, profileLinks: $('a[href]').filter((_, a) => /\/user\/\d+/.test($(a).attr('href') || '')).length }
+    };
   } catch (error) {
     return { number: tournament.number, comments: [], error: error instanceof Error ? error.message : String(error) };
   }
