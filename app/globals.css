@@ -1699,6 +1699,13 @@ footer span {
 }
 
 
+/* Fix mobile character section width */
+.characterUsageItem {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+
 .characterUsageItem > p {
   width: 100%;
   white-space: nowrap;
