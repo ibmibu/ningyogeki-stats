@@ -1613,19 +1613,41 @@ footer span {
 
 
 .characterTopList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
   margin: 10px 0;
-  padding-left: 24px;
+  padding: 0;
 }
-.characterTopList li {
+
+.characterTopCard {
   display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 5px 0;
-}
-.characterTopList li strong {
+  align-items: center;
+  min-width: 0;
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 1px solid rgba(145, 185, 95, 0.2);
+  border-radius: 7px;
+  background: rgba(145, 185, 95, 0.12);
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
+
 .characterSoloAchievement {
   margin: 8px 0;
   font-weight: 800;
+}
+
+@media (max-width: 700px) {
+  .characterTopList {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .characterTopCard {
+    min-height: 36px;
+    padding: 7px 10px;
+  }
 }
