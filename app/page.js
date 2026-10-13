@@ -864,6 +864,7 @@ export default function Home() {
     return localStorage.getItem('ningyogeki-selected-player') || 'all';
   });
   const [playerSearch, setPlayerSearch] = useState('');
+  const [playerSearchOpen, setPlayerSearchOpen] = useState(false);
   const [show, setShow] = useState(false);
   const [showAllTitles, setShowAllTitles] = useState(false);
   const [sortKey, setSortKey] = useState('opponent');
@@ -1682,23 +1683,26 @@ export default function Home() {
           </div>
 
           <div className="playerSelectWrap">
-            <label htmlFor="playerSearch">
-              選手を検索
-            </label>
-            <input
-              id="playerSearch"
-              className="playerSearchInput"
-              type="search"
-              value={playerSearch}
-              onChange={(e) => setPlayerSearch(e.target.value)}
-              placeholder="選手名を入力…"
-              autoComplete="off"
-            />
-            <div className="playerSortHint">出場大会数 ↓ → 優勝回数 ↓ の順</div>
-
             <label htmlFor="playerSelect">
               表示する選手
             </label>
+            <button
+              type="button"
+              className={`playerSearchToggle ${playerSearchOpen ? 'isActive' : ''}`}
+              aria-label={playerSearchOpen ? '選手検索を閉じる' : '選手を検索'}
+              aria-expanded={playerSearchOpen}
+              onClick={() => {
+                setPlayerSearchOpen((open) => {
+                  if (open) setPlayerSearch('');
+                  return !open;
+                });
+              }}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="10.8" cy="10.8" r="6.5" />
+                <path d="m16 16 4.2 4.2" />
+              </svg>
+            </button>
             <select
               id="playerSelect"
               value={selected}
@@ -1711,11 +1715,26 @@ export default function Home() {
                 </option>
               ))}
             </select>
-            {playerSearch.trim() && (
-              <div className="playerSearchCount">
-                {filteredPlayers.filter((player) => String(player.id) !== String(selected)).length}人が見つかりました
-                <button type="button" onClick={() => setPlayerSearch('')}>検索をクリア</button>
-              </div>
+            {playerSearchOpen && (
+              <>
+                <input
+                  id="playerSearch"
+                  className="playerSearchInput"
+                  type="search"
+                  value={playerSearch}
+                  onChange={(e) => setPlayerSearch(e.target.value)}
+                  placeholder="選手名を入力…"
+                  autoComplete="off"
+                  autoFocus
+                />
+                <div className="playerSortHint">名前を入力すると一致した選手に絞り込みます</div>
+                {playerSearch.trim() && (
+                  <div className="playerSearchCount">
+                    {filteredPlayers.filter((player) => String(player.id) !== String(selected)).length}人が見つかりました
+                    <button type="button" onClick={() => setPlayerSearch('')}>検索をクリア</button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
