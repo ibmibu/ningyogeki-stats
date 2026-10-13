@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { CHARACTER_ALIASES } from './data/characterAliases';
+import { MANUAL_CHARACTER_REPORTS } from './data/manualCharacterReports';
 
 const STORAGE_KEY = 'ningyogeki-stats-v4';
 
@@ -1286,6 +1287,33 @@ export default function Home() {
       while (aliases[value] && !visited.has(value)) { visited.add(value); value = aliases[value]; }
       return value;
     };
+    // いぶ選手の過去大会は手動登録を優先し、同じ大会のコメント集計と二重計上しない。
+    const manualReportsByTournament = new Map();
+    if (canonical(characterTargetPlayer.id) === '81727') {
+      const normalizeTournamentName = (value) =>
+        String(value || '').normalize('NFKC').replace(/[\\s#＃]/gu, '');
+      for (const report of MANUAL_CHARACTER_REPORTS) {
+        const reportName = String(report.tournamentName || '');
+        let tournament = (data.tournaments || []).find(
+          (item) => normalizeTournamentName(item.name) === normalizeTournamentName(reportName)
+        );
+        if (!tournament) {
+          const numberMatch = reportName.match(/人形劇\\s*#?\\s*(\\d+)/u);
+          if (numberMatch) {
+            tournament = (data.tournaments || []).find(
+              (item) => Number(item.number) === Number(numberMatch[1])
+            );
+          }
+        }
+        const number = Number(tournament?.number);
+        if (!Number.isFinite(number)) continue;
+        manualReportsByTournament.set(number, [...new Set(
+          (Array.isArray(report.characters) ? report.characters : [])
+            .map((name) => String(name || '').trim())
+            .filter(Boolean)
+        )]);
+      }
+    }
     // ファイター名は、一覧にある正式表記との一致だけを集計する。表記ゆれ対応は後で追加する。
     const knownCharacters = [
       'マリオ', 'ドンキーコング', 'リンク', 'サムス', 'ダークサムス', 'ヨッシー',
@@ -1346,6 +1374,8 @@ export default function Home() {
       return result;
     };
     for (const tournament of characterComments) {
+      // 過去大会を手動登録している場合、その大会のコメントは集計対象から外す。
+      if (manualReportsByTournament.has(Number(tournament.number))) continue;
       const usedInTournament = new Set();
       for (const comment of tournament.comments || []) {
         if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
@@ -1371,6 +1401,17 @@ export default function Home() {
         if (Number(tournament.number) === 6) diagnosticComments.push({ userId: String(comment.userId ?? ''), name: String(comment.name ?? ''), text: String(comment.text ?? ''), matchedTarget: canonical(comment.userId) === canonical(characterTargetPlayer.id), detectedCharacters: detectedForComment, detectionTrace, remainingAfterParsing: remainingText });
       }
       if (usedInTournament.size) reportedByTournament.set(Number(tournament.number), new Set([...(reportedByTournament.get(Number(tournament.number)) || []), ...usedInTournament]));
+    }
+    for (const [number, characters] of manualReportsByTournament) {
+      const used = new Set();
+      for (const character of characters) {
+        used.add(character);
+        counts.set(character, (counts.get(character) || 0) + 1);
+      }
+      if (used.size) {
+        seenTournaments.add(number);
+        reportedByTournament.set(number, used);
+      }
     }
     const recordsByTournament = new Map();
     for (const record of data.records || []) {
