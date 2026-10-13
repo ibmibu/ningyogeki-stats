@@ -123,8 +123,10 @@ export const CHARACTER_ALIASES = {
    'ゲコ': 'ゲッコウガ',
   // Mii 格闘タイプ系
    '格mii': 'Mii 格闘タイプ',
+   '格闘mii': 'Mii 格闘タイプ',
   // Mii 剣術タイプ系
    '剣mii': 'Mii 剣術タイプ',
+   '剣術mii': 'Mii 剣術タイプ',
   // Mii 射撃タイプ系
    '射撃mii': 'Mii 射撃タイプ',
    'シャゲミ': 'Mii 射撃タイプ',
