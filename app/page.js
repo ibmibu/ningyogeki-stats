@@ -868,6 +868,64 @@ export default function Home() {
   const [sortDir, setSortDir] = useState('asc');
   const [season, setSeason] = useState('current');
   const [rateChartPlayers, setRateChartPlayers] = useState([]);
+  const [characterComments, setCharacterComments] = useState(null);
+  const [characterLoading, setCharacterLoading] = useState(false);
+  const [characterError, setCharacterError] = useState('');
+
+  async function loadCharacterComments() {
+    if (!data?.tournaments?.length) return;
+    setCharacterLoading(true);
+    setCharacterError('');
+    try {
+      const response = await fetch('/api/characters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tournaments: data.tournaments }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
+      const results = json.results || [];
+      setCharacterComments(results);
+      try { localStorage.setItem('ningyogeki-character-comments-v1', JSON.stringify(results)); } catch {}
+    } catch (e) {
+      setCharacterError(e instanceof Error ? e.message : 'コメント取得に失敗しました');
+    } finally {
+      setCharacterLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ningyogeki-character-comments-v1');
+      if (saved) setCharacterComments(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  const selectedCharacterStats = useMemo(() => {
+    if (!selectedPlayer || !characterComments) return { counts: [], total: 0, tournaments: 0 };
+    const counts = new Map();
+    const seenTournaments = new Set();
+    const canonical = (id) => {
+      const aliases = { '99450': '145071', '118591': '149650', '148400': '164481', '80108': '142959', '100389': '167992', '159344': '167992', '156108': '156414' };
+      let value = String(id); const visited = new Set();
+      while (aliases[value] && !visited.has(value)) { visited.add(value); value = aliases[value]; }
+      return value;
+    };
+    for (const tournament of characterComments) {
+      for (const comment of tournament.comments || []) {
+        if (canonical(comment.userId) !== canonical(selectedPlayer.id)) continue;
+        const text = String(comment.text || '').replace(/[，、]/g, ',');
+        const matches = [...text.matchAll(/([^,，、\\n]+?)\\s*[0-9０-９]{1,2}\\s*[pPｐＰ]/g)];
+        for (const match of matches) {
+          const character = match[1].trim().replace(/[。．.\\s]+$/g, '');
+          if (!character || character.length > 20 || /ありがとう|お願いします|運営|今回|決勝|準決勝|回戦/.test(character)) continue;
+          counts.set(character, (counts.get(character) || 0) + 1);
+          seenTournaments.add(Number(tournament.number));
+        }
+      }
+    }
+    return { counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size };
+  }, [selectedPlayer, characterComments]);
 
   async function loadLatest(savedData = data, forceFull = false) {
     setLoading(true);
@@ -1488,6 +1546,21 @@ export default function Home() {
 
           {selected !== 'all' && selectedPlayer && (
             <div className="achievementPanel">
+              <div className="achievementItem">
+                <span>使用キャラ TOP3・単騎実績</span>
+                {!characterComments && <button type="button" className="secondary" onClick={loadCharacterComments} disabled={characterLoading}>{characterLoading ? '大会コメントを取得中…' : 'キャラ実績を取得'}</button>}
+                {characterComments && <>
+                  {selectedCharacterStats.counts.length > 0 ? <>
+                    <ol className="characterTopList">{selectedCharacterStats.counts.slice(0, 3).map((item) => <li key={item.name}><strong>{item.name}</strong><span>{item.count}回</span></li>)}</ol>
+                    {selectedCharacterStats.counts.length === 1 && <p className="characterSoloAchievement">🏆 {selectedCharacterStats.counts[0].name}単騎達成（報告確認分）</p>}
+                    <small>報告確認：{selectedCharacterStats.tournaments}大会・キャラ報告{selectedCharacterStats.total}件</small>
+                  </> : <p>この選手のコメントからキャラ報告を確認できませんでした。</p>}
+                  <button type="button" className="secondary" onClick={loadCharacterComments} disabled={characterLoading}>{characterLoading ? '更新中…' : 'コメントを再取得'}</button>
+                  <small>コメントにキャラ報告がない大会は使用キャラ不明として扱います。単騎判定は報告確認分のみです。</small>
+                </>}
+                {characterError && <p className="error">{characterError}</p>}
+              </div>
+
               <div className="achievementItem titleItem">
                 <span>優勝した大会（全期間）</span>
                 {selectedAchievements.titleNumbers.length ? (
