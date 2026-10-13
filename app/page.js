@@ -1154,7 +1154,8 @@ export default function Home() {
   );
 
   const selectedCharacterStats = useMemo(() => {
-    if (!selectedPlayer || !characterComments) return { counts: [], total: 0, tournaments: 0 };
+    const characterTargetPlayer = data?.players?.find((player) => String(player.id) === String(selected));
+    if (!characterTargetPlayer || !characterComments) return { counts: [], total: 0, tournaments: 0 };
     const counts = new Map();
     const seenTournaments = new Set();
     const canonical = (id) => {
@@ -1165,7 +1166,7 @@ export default function Home() {
     };
     for (const tournament of characterComments) {
       for (const comment of tournament.comments || []) {
-        if (canonical(comment.userId) !== canonical(selectedPlayer.id)) continue;
+        if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
         const text = String(comment.text || '').replace(/[，、]/g, ',');
         const matches = [...text.matchAll(/([^,，、\\n]+?)\\s*[0-9０-９]{1,2}\\s*[pPｐＰ]/g)];
         for (const match of matches) {
@@ -1177,7 +1178,7 @@ export default function Home() {
       }
     }
     return { counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size };
-  }, [selectedPlayer, characterComments]);
+  }, [data, selected, characterComments]);
 
   const opponentRows = useMemo(() => {
     if (!data || !selectedPlayer) return [];
