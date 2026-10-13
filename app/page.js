@@ -1595,7 +1595,7 @@ export default function Home() {
                 {characterLoading && <p>大会コメントからキャラ情報を取得しています… {characterProgress.done} / {characterProgress.total} 大会</p>}
                 {characterComments && <>
                   {selectedCharacterStats.counts.length > 0 ? <>
-                    <ol className="characterTopList">{selectedCharacterStats.counts.slice(0, 3).map((item) => <li key={item.name}><strong>{item.name}</strong><span>{item.count}回</span></li>)}</ol>
+                    <div className="characterTopList">{selectedCharacterStats.counts.slice(0, 3).map((item) => <div className="characterTopCard" key={item.name}>{item.name}</div>)}</div>
                     {selectedCharacterStats.counts.length === 1 && <p className="characterSoloAchievement">🏆 {selectedCharacterStats.counts[0].name}単騎達成（報告確認分）</p>}
                   </> : <p>この選手のコメントからキャラ報告を確認できませんでした。</p>}
                 </>}
