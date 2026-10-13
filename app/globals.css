@@ -1723,8 +1723,8 @@ footer span {
   }
 }
 
-.characterSoloSection { margin-top: 0; }
-.characterSoloList { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 14px; }
+.characterSoloSection { margin-top: 0; width: 100%; }
+.characterSoloList { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 10px; width: 100%; }
 .characterSoloEntry { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; max-width: 100%; min-width: 0; }
 .characterSoloEntryHead { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; }
 .characterSoloCard {
