@@ -1172,56 +1172,41 @@ export default function Home() {
       while (aliases[value] && !visited.has(value)) { visited.add(value); value = aliases[value]; }
       return value;
     };
+    const knownCharacters = [
+      'Mr.ゲーム&ウォッチ', 'ゲーム&ウォッチ', 'ドンキーコング', 'ディディーコング',
+      'リトル・マック', 'ロックマン', 'パックマン', 'クッパJr.', 'ロゼッタ&チコ',
+      'むらびと', 'しずえ', 'ダックハント', 'Wii Fit トレーナー', 'Mii 格闘タイプ',
+      'Mii 剣術タイプ', 'Mii 射撃タイプ', 'ホムラ', 'ヒカリ', 'ホムヒカ',
+      'スティーブ', 'アレックス', 'ゾンビ', 'エンダーマン', 'カズヤ', 'セフィロス',
+      'ソラ', 'ベレト', 'ベレス', 'ミェンミェン', 'テリー', 'バンジョー&カズーイ',
+      'バンカズ', '勇者', 'ジョーカー', 'パルテナ', 'ゼロスーツサムス', 'ゼルダ',
+      'シーク', 'サムス', 'ダークサムス', 'ピット', 'ブラックピット', 'キングクルール',
+      'リドリー', 'インクリング', 'クロム', 'ルキナ', 'ロイ', 'アイク', 'マルス',
+      'ルフレ', 'カムイ', 'ピカチュウ', 'ピチュー', 'プリン', 'ミュウツー',
+      'ルカリオ', 'ゲッコウガ', 'ガオガエン', 'フシギソウ', 'リザードン', 'ゼニガメ',
+      'マリオ', 'ルイージ', 'ピーチ', 'デイジー', 'クッパ', 'ヨッシー', 'ワリオ',
+      'リンク', 'こどもリンク', 'トゥーンリンク', 'ガノンドロフ', 'フォックス', 'ファルコ',
+      'ウルフ', 'ネス', 'リュカ', 'キャプテン・ファルコン', 'ファルコン', 'アイスクライマー',
+      'カービィ', 'デデデ', 'メタナイト', 'ピクミン&オリマー', 'オリマー',
+      'ロボット', 'Mr.ゲーム＆ウォッチ', 'シュルク', 'リュウ', 'ケン',
+      'パックンフラワー', 'ソニック', 'シモン', 'リヒター'
+    ];
+    const uniqueCharacters = [...new Set(knownCharacters)].sort((a, b) => b.length - a.length);
     for (const tournament of characterComments) {
+      const usedInTournament = new Set();
       for (const comment of tournament.comments || []) {
         if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
         matchedComments += 1;
-        const text = String(comment.text || '').normalize('NFKC');
-        // P数ではなく、コメント本文にキャラ名が何回登場するかで使用回数を数える。
-        // 同じ大会内では同じキャラを最大1回だけカウントする。
-        const knownCharacters = [
-          'Mr.ゲーム&ウォッチ', 'ゲーム&ウォッチ', 'ドンキーコング', 'ディディーコング',
-          'リトル・マック', 'ロックマン', 'パックマン', 'クッパJr.', 'ロゼッタ&チコ',
-          'むらびと', 'しずえ', 'ダックハント', 'Wii Fit トレーナー', 'Mii 格闘タイプ',
-          'Mii 剣術タイプ', 'Mii 射撃タイプ', 'ホムラ', 'ヒカリ', 'ホムヒカ',
-          'スティーブ', 'アレックス', 'ゾンビ', 'エンダーマン', 'カズヤ', 'セフィロス',
-          'ソラ', 'ベレト', 'ベレス', 'ミェンミェン', 'テリー', 'バンジョー&カズーイ',
-          'バンカズ', '勇者', 'ジョーカー', 'パルテナ', 'ゼロスーツサムス', 'ゼルダ',
-          'シーク', 'サムス', 'ダークサムス', 'ピット', 'ブラックピット', 'キングクルール',
-          'リドリー', 'インクリング', 'クロム', 'ルキナ', 'ロイ', 'アイク', 'マルス',
-          'ルフレ', 'カムイ', 'ピカチュウ', 'ピチュー', 'プリン', 'ミュウツー',
-          'ルカリオ', 'ゲッコウガ', 'ガオガエン', 'フシギソウ', 'リザードン', 'ゼニガメ',
-          'マリオ', 'ルイージ', 'ピーチ', 'デイジー', 'クッパ', 'ヨッシー', 'ワリオ',
-          'リンク', 'こどもリンク', 'トゥーンリンク', 'ガノンドロフ', 'フォックス', 'ファルコ',
-          'ウルフ', 'ネス', 'リュカ', 'キャプテン・ファルコン', 'ファルコン', 'アイスクライマー',
-          'カービィ', 'デデデ', 'メタナイト', 'ピクミン&オリマー', 'オリマー', 'ルカリオ',
-          'ロボット', 'Mr.ゲーム＆ウォッチ', 'シュルク', 'リュウ', 'ケン', 'ダックハント',
-          'パックンフラワー', '勇者', 'カズヤ', 'リュウ', 'ソニック', 'シモン', 'リヒター',
-          'インクリング', 'ミェンミェン', 'キングクルール', 'パックマン'
-        ];
-        const uniqueCharacters = [...new Set(knownCharacters)].sort((a, b) => b.length - a.length);
-        const normalizedText = text.toLocaleLowerCase('ja');
-        const usedInTournament = new Set();
+        const normalizedText = String(comment.text || '').normalize('NFKC').toLocaleLowerCase('ja');
+        // 「6P」などの数字は無視し、コメント中にキャラ名があれば使用扱い。
         for (const character of uniqueCharacters) {
-          const escaped = character.replace(/[.*+?^${}()|[\]\\]/g, '\\        const text = String(comment.text || '').normalize('NFKC').replace(/[，、]/g, ',');
-        // 区切り記号ごとに分け、「スティーブ6P」「ウルフ 5ｐ」などを抽出する。
-        const matches = [...text.matchAll(/(?:^|[,/／\n])\s*([^,/／\n\d]+?)\s*(\d{1,2})\s*p(?=$|[\s,./／])/gi)];
-        for (const match of matches) {
-          const character = match[1].trim().replace(/[。．.\s]+$/g, '');
-          if (!character || character.length > 20 || /ありがとう|お願いします|運営|今回|決勝|準決勝|回戦/.test(character)) continue;
-          counts.set(character, (counts.get(character) || 0) + 1);
-          parsedComments += 1;
-          seenTournaments.add(Number(tournament.number));
-        }');
-          const occurrences = normalizedText.match(new RegExp(escaped.toLocaleLowerCase('ja'), 'g')) || [];
-          if (occurrences.length > 0) {
-            const canonicalCharacter = character.replace(/＆/g, '&');
-            if (!usedInTournament.has(canonicalCharacter)) {
-              counts.set(canonicalCharacter, (counts.get(canonicalCharacter) || 0) + 1);
-              parsedComments += 1;
-              usedInTournament.add(canonicalCharacter);
-              seenTournaments.add(Number(tournament.number));
-            }
+          const escaped = character.toLocaleLowerCase('ja').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const occurrences = normalizedText.match(new RegExp(escaped, 'g')) || [];
+          if (occurrences.length > 0 && !usedInTournament.has(character)) {
+            counts.set(character, (counts.get(character) || 0) + 1);
+            parsedComments += 1;
+            usedInTournament.add(character);
+            seenTournaments.add(Number(tournament.number));
           }
         }
       }
