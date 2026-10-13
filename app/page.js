@@ -886,7 +886,7 @@ export default function Home() {
       if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
       const results = json.results || [];
       setCharacterComments(results);
-      try { localStorage.setItem('ningyogeki-character-comments-v3', JSON.stringify(results)); } catch {}
+      try { localStorage.setItem('ningyogeki-character-comments-v4', JSON.stringify(results)); } catch {}
     } catch (e) {
       setCharacterError(e instanceof Error ? e.message : 'コメント取得に失敗しました');
     } finally {
@@ -896,7 +896,7 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('ningyogeki-character-comments-v3');
+      const saved = localStorage.getItem('ningyogeki-character-comments-v4');
       if (saved) setCharacterComments(JSON.parse(saved));
     } catch {}
   }, []);
@@ -1594,7 +1594,7 @@ export default function Home() {
                   <small>コメントにキャラ報告がない大会は使用キャラ不明として扱います。単騎判定は報告確認分のみです。</small>
                   <details className="characterDebug">
                     <summary>取得コメントの確認（原因調査用）</summary>
-                    {characterComments.filter((item) => item.comments?.length).slice(0, 5).map((tournament) => (
+                    {characterComments.slice(0, 5).map((tournament) => (
                       <div key={tournament.number}>
                         <strong>大会 #{tournament.number}</strong>
                         {(tournament.debug?.sampleComments || tournament.comments.slice(0, 3)).map((comment, index) => (
