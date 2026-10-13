@@ -50,13 +50,13 @@ async function getComments(tournament) {
     const commentNodes = $('.tournament-comment');
     commentNodes.each((_, element) => {
       const node = $(element);
-      const profile = node.find('a[href]').filter((__, a) =>
+        /\/user\/(\d+)\/?(?:[?#].*)?$/.test($(a).attr('href') || '')
         /\\/user\\/(\\d+)\\/?(?:[?#].*)?$/.test($(a).attr('href') || '')
       ).first();
-      const href = profile.attr('href') || '';
-      const userId = href.match(/\\/user\\/(\\d+)\\/?(?:[?#].*)?$/)?.[1] || '';
+      const userId = href.match(/\/user\/(\d+)\/?(?:[?#].*)?$/)?.[1] || '';
+      const name = profile.text().replace(/\s+/g, ' ').trim();
       const name = profile.text().replace(/\\s+/g, ' ').trim();
-      const clone = node.clone();
+      const text = clone.text().replace(/\s+/g, ' ').trim();
       clone.find('a[href]').remove();
       const text = clone.text().replace(/\\s+/g, ' ').trim();
       if (!text) return;
@@ -81,9 +81,9 @@ async function getComments(tournament) {
       }
     };
   } catch (error) {
-    return { number: tournament.number, comments: [], error: error instanceof Error ? error.message : String(error) };
-  }
-}
+        commentNodeCount: commentNodes.length,
+        sampleComments: comments.slice(0, 5).map(({ name, userId, text }) => ({ name, userId, text: text.slice(0, 300) })),
+        responsePreview: $.root().text().replace(/\s+/g, ' ').trim().slice(0, 1200),
 
 export async function POST(request) {
   try {
