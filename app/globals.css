@@ -1624,6 +1624,8 @@ footer span {
 .characterTopCard {
   display: flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   min-width: 0;
   min-height: 42px;
   box-sizing: border-box;
@@ -1633,11 +1635,6 @@ footer span {
   background: rgba(145, 185, 95, 0.12);
   font-weight: 700;
   overflow-wrap: anywhere;
-}
-
-.characterSoloAchievement {
-  margin: 8px 0;
-  font-weight: 800;
 }
 
 @media (max-width: 700px) {
