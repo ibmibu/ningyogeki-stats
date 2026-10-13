@@ -63,7 +63,11 @@ async function getComments(tournament) {
       number: tournament.number,
       bracketId: id,
       comments,
-      debug: { htmlLength: html.length, profileLinks: $('a[href]').filter((_, a) => /\/user\/\d+/.test($(a).attr('href') || '')).length }
+      debug: {
+        htmlLength: html.length,
+        profileLinks: $('a[href]').filter((_, a) => /\/user\/\d+/.test($(a).attr('href') || '')).length,
+        sampleComments: comments.slice(0, 3).map(({ name, text }) => ({ name, text: text.slice(0, 300) }))
+      }
     };
   } catch (error) {
     return { number: tournament.number, comments: [], error: error instanceof Error ? error.message : String(error) };
