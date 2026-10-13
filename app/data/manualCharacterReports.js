@@ -8,6 +8,7 @@
 // 手動登録した大会は、その大会のコメント集計より手動登録を優先します。
 
 export const MANUAL_CHARACTER_REPORTS = [
-  // { tournamentName: '人形劇 #1', characters: ['キャラクター名'] },
-  // { tournamentName: '人形劇 #2', characters: ['キャラクター名1', 'キャラクター名2'] },
+   { tournamentName: '人形劇 #4', characters: ['ホムヒカ'] },
+   { tournamentName: '人形劇 #6', characters: ['プリン', 'デデデ'] },
+   { tournamentName: '人形劇 #8', characters: ['ゼルダ', 'カズヤ'] },
 ];
