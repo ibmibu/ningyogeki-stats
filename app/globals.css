@@ -1755,13 +1755,6 @@ footer span {
   font-weight: 800;
   text-shadow: 0 1px 2px rgba(35, 21, 0, 0.85);
 }
-.characterSoloChevron {
-  flex-shrink: 0;
-  color: #f8dfa0;
-  font-size: 14px;
-  line-height: 1;
-  text-shadow: 0 1px 2px rgba(35, 21, 0, 0.8);
-}
 .characterSoloCount {
   color: #d9b85e;
   font-size: 12px;
