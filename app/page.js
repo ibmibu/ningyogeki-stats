@@ -1202,9 +1202,10 @@ export default function Home() {
       'バンジョー＆カズーイ', 'テリー', 'ベレト／ベレス', 'ミェンミェン', 'スティーブ',
       'セフィロス', 'ホムラ／ヒカリ', 'カズヤ', 'ソラ'
     ];
+    const normalizedKnownCharacters = new Set(knownCharacters.map((name) => name.normalize('NFKC')));
     const aliasEntries = Object.entries(CHARACTER_ALIASES)
-      .map(([alias, officialName]) => [String(alias).normalize('NFKC'), String(officialName).normalize('NFKC')])
-      .filter(([alias, officialName]) => alias && knownCharacters.includes(officialName));
+      .map(([alias, officialName]) => [String(alias).normalize('NFKC'), String(officialName)])
+      .filter(([alias, officialName]) => alias && normalizedKnownCharacters.has(officialName.normalize('NFKC')));
     const characterPatterns = [
       ...knownCharacters.map((name) => ({ match: name, officialName: name })),
       ...aliasEntries.map(([match, officialName]) => ({ match, officialName })),
