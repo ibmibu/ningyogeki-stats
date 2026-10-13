@@ -1208,15 +1208,18 @@ export default function Home() {
       ...knownCharacters.map((name) => ({ match: name, officialName: name })),
       ...aliasEntries.map(([match, officialName]) => ({ match, officialName })),
     ].sort((a, b) => b.match.length - a.match.length);
-    // 日本語の文字が直後に続く場合は別の単語とみなし、英数字や記号は許可する。
-    // 例：「ソラ4P」は認識するが、「ソラニン」は「ソラ」として認識しない。
+    // キャラ名の直後が文字列の続きなら誤認識を避ける。
+    // 単独名・空白・数字・記号の後に続く表記を認識し、「ソラニン」などは除外する。
     const isJapaneseWordChar = (char) => Boolean(char && /[ぁ-んァ-ヶ一-龯々ー]/u.test(char));
+    const isNameContinuation = (char) => Boolean(char && /[A-Za-zぁ-んァ-ヶ一-龯々ー]/u.test(char));
     const findExactName = (text, name) => {
       let fromIndex = 0;
       while (fromIndex <= text.length - name.length) {
         const index = text.indexOf(name, fromIndex);
         if (index === -1) return -1;
-        if (!isJapaneseWordChar(text[index + name.length])) return index;
+        const nextChar = text[index + name.length];
+        if (!isJapaneseWordChar(nextChar) && !(nextChar && /[A-Za-z]/u.test(nextChar))) return index;
+        // 数字・空白・記号は区切りとして認める。日本語や英字が続く場合だけ除外。
         fromIndex = index + name.length;
       }
       return -1;
@@ -1227,7 +1230,8 @@ export default function Home() {
       while (fromIndex < text.length) {
         const index = text.indexOf(name, fromIndex);
         if (index === -1) return result + text.slice(fromIndex);
-        if (isJapaneseWordChar(text[index + name.length])) {
+        const nextChar = text[index + name.length];
+        if (isNameContinuation(nextChar)) {
           result += text.slice(fromIndex, index + name.length);
           fromIndex = index + name.length;
         } else {
