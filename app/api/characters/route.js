@@ -30,9 +30,9 @@ function parseComments(html) {
     const node = $(element);
     const text = cleanText(node.text());
     if (!text || text.length > 2500) continue;
-    const profile = node.find('a[href]').toArray().map(a => $(a)).find(a => /\\/user\\/(\\d+)\\/?(?:[?#].*)?$/.test(a.attr('href') || ''));
+    const profile = node.find('a[href]').toArray().map(a => $(a)).find(a => /user\/(\d+)/.test(a.attr('href') || ''));
     const href = profile ? profile.attr('href') || '' : '';
-    const userId = href.match(/\\/user\\/(\\d+)\\/?(?:[?#].*)?$/)?.[1] || '';
+    const userId = href.match(/user\/(\d+)/)?.[1] || '';
     const name = profile ? cleanText(profile.text()) : '';
     const clone = node.clone();
     clone.find('a[href]').remove();
