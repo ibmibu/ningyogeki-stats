@@ -1164,6 +1164,8 @@ export default function Home() {
     if (!characterTargetPlayer || !characterComments) return { counts: [], total: 0, tournaments: 0 };
     const counts = new Map();
     const seenTournaments = new Set();
+    let matchedComments = 0;
+    let parsedComments = 0;
     const canonical = (id) => {
       const aliases = { '99450': '145071', '118591': '149650', '148400': '164481', '80108': '142959', '100389': '167992', '159344': '167992', '156108': '156414' };
       let value = String(id); const visited = new Set();
@@ -1173,17 +1175,19 @@ export default function Home() {
     for (const tournament of characterComments) {
       for (const comment of tournament.comments || []) {
         if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
-        const text = String(comment.text || '').replace(/[，、]/g, ',');
-        const matches = [...text.matchAll(/([^,，、\\n]+?)\\s*[0-9０-９]{1,2}\\s*[pPｐＰ]/g)];
+        matchedComments += 1;
+        const text = String(comment.text || '').normalize('NFKC').replace(/[，、]/g, ',');
+        const matches = [...text.matchAll(/([^,\\n]+?)\\s*\\d{1,2}\\s*p\\b/gi)];
         for (const match of matches) {
           const character = match[1].trim().replace(/[。．.\\s]+$/g, '');
           if (!character || character.length > 20 || /ありがとう|お願いします|運営|今回|決勝|準決勝|回戦/.test(character)) continue;
           counts.set(character, (counts.get(character) || 0) + 1);
+          parsedComments += 1;
           seenTournaments.add(Number(tournament.number));
         }
       }
     }
-    return { counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size };
+    return { counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size, matchedComments, parsedComments, targetId: String(characterTargetPlayer.id), fetchedComments: characterComments.reduce((sum, item) => sum + (item.comments?.length || 0), 0), fetchErrors: characterComments.filter((item) => item.error).length };
   }, [data, selected, characterComments]);
 
   const opponentRows = useMemo(() => {
