@@ -894,7 +894,7 @@ export default function Home() {
         results.push(...(json.results || []));
         setCharacterComments([...results]);
         setCharacterProgress({ done: results.length, total: tournaments.length });
-        try { localStorage.setItem('ningyogeki-character-comments-v6', JSON.stringify(results)); } catch {}
+        try { localStorage.setItem('ningyogeki-character-comments-v7', JSON.stringify(results)); } catch {}
       }
     } catch (e) {
       setCharacterError(e instanceof Error ? e.message : 'コメント取得に失敗しました');
@@ -905,7 +905,7 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('ningyogeki-character-comments-v6');
+      const saved = localStorage.getItem('ningyogeki-character-comments-v7');
       if (saved) setCharacterComments(JSON.parse(saved));
     } catch {}
   }, []);
