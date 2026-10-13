@@ -1672,6 +1672,22 @@ footer span {
     gap: 14px;
   }
 
+  .characterUsageSection:has(.characterTopList) {
+    width: 100%;
+  }
+
+  .characterUsageSection:has(.characterTopList) .characterTopList {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 6px;
+  }
+
+  .characterUsageSection:has(.characterTopList) .characterTopCard {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
   .characterTopList {
     gap: 6px;
   }
