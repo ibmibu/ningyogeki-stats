@@ -870,6 +870,7 @@ export default function Home() {
   const [sortKey, setSortKey] = useState('opponent');
   const [sortDir, setSortDir] = useState('asc');
   const [season, setSeason] = useState('current');
+  const [matrixSeason, setMatrixSeason] = useState('current');
   const [rateChartPlayers, setRateChartPlayers] = useState([]);
   const [characterComments, setCharacterComments] = useState(null);
   const [characterLoading, setCharacterLoading] = useState(false);
@@ -1208,10 +1209,12 @@ export default function Home() {
   const ranking = eloResult.ranking;
   const matchHistory = eloResult.history;
 
+  const matrixSelectedSeason = matrixSeason === 'current' ? currentSeason : matrixSeason;
+
   const matrixStats = useMemo(() => {
-    if (season === 'all') return data?.stats || {};
-    const firstTournament = (Number(selectedSeason) - 1) * 25 + 1;
-    const lastTournament = Number(selectedSeason) * 25;
+    if (matrixSeason === 'all') return data?.stats || {};
+    const firstTournament = (Number(matrixSelectedSeason) - 1) * 25 + 1;
+    const lastTournament = Number(matrixSelectedSeason) * 25;
     const stats = {};
 
     for (const record of data?.records || []) {
@@ -1235,7 +1238,28 @@ export default function Home() {
       }
     }
     return stats;
-  }, [data, season, selectedSeason]);
+  }, [data, matrixSeason, matrixSelectedSeason]);
+
+  const matrixPlayers = useMemo(() => {
+    if (matrixSeason === 'all') {
+      const participantIds = new Set();
+      for (const record of data?.records || []) {
+        participantIds.add(String(record.winnerId));
+        participantIds.add(String(record.loserId));
+      }
+      return sortedPlayers.filter((player) => participantIds.has(String(player.id)));
+    }
+    const firstTournament = (Number(matrixSelectedSeason) - 1) * 25 + 1;
+    const lastTournament = Number(matrixSelectedSeason) * 25;
+    const participantIds = new Set();
+    for (const record of data?.records || []) {
+      const number = Number(record.tournamentNumber) || 0;
+      if (number < firstTournament || number > lastTournament) continue;
+      participantIds.add(String(record.winnerId));
+      participantIds.add(String(record.loserId));
+    }
+    return sortedPlayers.filter((player) => participantIds.has(String(player.id)));
+  }, [data, matrixSeason, matrixSelectedSeason, sortedPlayers]);
 
   const selectedPlayer = data?.players.find(
     (player) =>
@@ -1860,10 +1884,10 @@ export default function Home() {
           {selected === 'all' && (
             <div className="matrixSeasonControl">
               <div className="seasonTabs" aria-label="対戦表のシーズン">
-                <button className={season === 'current' ? 'active' : ''} onClick={() => setSeason('current')}>現在</button>
-                <button className={season === 'all' ? 'active' : ''} onClick={() => setSeason('all')}>すべて</button>
+                <button className={matrixSeason === 'current' ? 'active' : ''} onClick={() => setMatrixSeason('current')}>現在</button>
+                <button className={matrixSeason === 'all' ? 'active' : ''} onClick={() => setMatrixSeason('all')}>すべて</button>
                 {seasons.map((s) => (
-                  <button key={s.key} className={season === s.key ? 'active' : ''} onClick={() => setSeason(s.key)}>
+                  <button key={s.key} className={matrixSeason === s.key ? 'active' : ''} onClick={() => setMatrixSeason(s.key)}>
                     {s.label}
                   </button>
                 ))}
@@ -1878,7 +1902,7 @@ export default function Home() {
                   <tr>
                     <th>PLAYER</th>
 
-                    {sortedPlayers.map(
+                    {matrixPlayers.map(
                       (player) => (
                         <th key={player.id}>
                           {player.name}
@@ -1889,11 +1913,11 @@ export default function Home() {
                 </thead>
 
                 <tbody>
-                  {sortedPlayers.map((row) => (
+                  {matrixPlayers.map((row) => (
                     <tr key={row.id}>
                       <th>{row.name}</th>
 
-                      {sortedPlayers.map(
+                      {matrixPlayers.map(
                         (col) => {
                           const stat =
                             matrixStats?.[
