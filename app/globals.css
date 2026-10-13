@@ -1804,7 +1804,9 @@ footer span {
 }
 
 .characterSoloSection { margin-top: 0; width: 100%; }
-.characterSoloList { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 10px; width: 100%; }
+/* PCでは単騎達成のファイターを横並びにする */
+.characterSoloList { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 10px 12px; width: 100%; }
+.characterSoloEntry { flex: 0 0 auto; }
 .characterSoloEntry { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; max-width: 100%; min-width: 0; }
 .characterSoloEntryHead { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; }
 .characterSoloCard {
@@ -1861,6 +1863,8 @@ footer span {
   white-space: nowrap;
 }
 @media (max-width: 700px) {
+  /* スマホではファイターごとに一列ずつ表示 */
+  .characterSoloList { flex-direction: column; flex-wrap: nowrap; gap: 10px; }
   .characterSoloCard { padding: 8px 10px; }
   .characterSoloCard strong { font-size: 14px; }
 }
