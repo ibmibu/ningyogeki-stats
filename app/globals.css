@@ -1723,13 +1723,15 @@ footer span {
 }
 
 .characterSoloSection { margin-top: 0; }
-.characterSoloList { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+.characterSoloList { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 14px; }
+.characterSoloEntry { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; max-width: 100%; min-width: 0; }
+.characterSoloEntryHead { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; }
 .characterSoloCard {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 9px;
   width: fit-content;
   max-width: 100%;
   min-width: 0;
@@ -1740,14 +1742,12 @@ footer span {
   color: #fff3c4;
   box-shadow: inset 0 1px 0 rgba(255, 239, 174, 0.65), inset 0 -2px 0 rgba(48, 29, 3, 0.55), 0 0 0 1px rgba(255, 214, 105, 0.16), 0 3px 12px rgba(190, 139, 34, 0.2);
   white-space: nowrap;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
 }
-.characterSoloCard span {
-  flex-shrink: 0;
-  color: #f8dfa0;
-  font-size: 0.85em;
-  opacity: 1;
-  text-shadow: 0 1px 2px rgba(35, 21, 0, 0.8);
-}
+.characterSoloCard:hover { filter: brightness(1.12); }
+.characterSoloCard:focus-visible { outline: 2px solid #ffe7a0; outline-offset: 3px; }
 .characterSoloCard strong {
   color: #fff8dc;
   white-space: nowrap;
@@ -1755,4 +1755,38 @@ footer span {
   font-weight: 800;
   text-shadow: 0 1px 2px rgba(35, 21, 0, 0.85);
 }
-@media (max-width: 700px) { .characterSoloCard strong { font-size: 14px; } }
+.characterSoloChevron {
+  flex-shrink: 0;
+  color: #f8dfa0;
+  font-size: 14px;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(35, 21, 0, 0.8);
+}
+.characterSoloCount {
+  color: #d9b85e;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.characterSoloNumbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding-left: 2px;
+}
+.characterSoloNumbers span {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border: 1px solid rgba(217, 173, 76, 0.32);
+  border-radius: 5px;
+  background: rgba(139, 104, 33, 0.16);
+  color: #f8dfa0;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .characterSoloCard { padding: 8px 10px; }
+  .characterSoloCard strong { font-size: 14px; }
+}
