@@ -1116,10 +1116,9 @@ export default function Home() {
     if (!query) return sortedPlayers;
     return sortedPlayers.filter((player) =>
       String(player.name).toLocaleLowerCase('ja').includes(query) ||
-      String(player.id).includes(query) ||
-      String(player.id) === String(selected)
+      String(player.id).includes(query)
     );
-  }, [sortedPlayers, playerSearch, selected]);
+  }, [sortedPlayers, playerSearch]);
 
   const seasons = useMemo(() => {
     if (!data?.tournaments?.length) return [];
@@ -1709,6 +1708,9 @@ export default function Home() {
               onChange={(e) => setSelected(e.target.value)}
             >
               <option value="all">全体（全選手）</option>
+              {selected !== 'all' && playerSearch.trim() && !filteredPlayers.some((player) => String(player.id) === String(selected)) && selectedPlayer && (
+                <option value={selected} hidden>{selectedPlayer.name}</option>
+              )}
               {filteredPlayers.map((player) => (
                 <option key={player.id} value={player.id}>
                   {player.name}
