@@ -886,7 +886,7 @@ export default function Home() {
       if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
       const results = json.results || [];
       setCharacterComments(results);
-      try { localStorage.setItem('ningyogeki-character-comments-v1', JSON.stringify(results)); } catch {}
+      try { localStorage.setItem('ningyogeki-character-comments-v2', JSON.stringify(results)); } catch {}
     } catch (e) {
       setCharacterError(e instanceof Error ? e.message : 'コメント取得に失敗しました');
     } finally {
@@ -896,7 +896,7 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('ningyogeki-character-comments-v1');
+      const saved = localStorage.getItem('ningyogeki-character-comments-v2');
       if (saved) setCharacterComments(JSON.parse(saved));
     } catch {}
   }, []);
@@ -1568,6 +1568,7 @@ export default function Home() {
                     {selectedCharacterStats.counts.length === 1 && <p className="characterSoloAchievement">🏆 {selectedCharacterStats.counts[0].name}単騎達成（報告確認分）</p>}
                     <small>報告確認：{selectedCharacterStats.tournaments}大会・キャラ報告{selectedCharacterStats.total}件</small>
                   </> : <p>この選手のコメントからキャラ報告を確認できませんでした。</p>}
+                  <small>確認情報：取得コメント {selectedCharacterStats.fetchedComments}件／選手ID一致 {selectedCharacterStats.matchedComments}件／キャラ形式一致 {selectedCharacterStats.parsedComments}件／取得エラー大会 {selectedCharacterStats.fetchErrors}件（選手ID: {selectedCharacterStats.targetId}）</small>
                   <small>コメントにキャラ報告がない大会は使用キャラ不明として扱います。単騎判定は報告確認分のみです。</small>
                 </>}
                 {characterError && <p className="error">{characterError}</p>}
