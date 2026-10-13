@@ -27,35 +27,50 @@ async function getComments(tournament) {
     const $ = cheerio.load(html);
     const comments = [];
     const seen = new Set();
+    const knownCharacters = [
+      'マリオ', 'ドンキーコング', 'リンク', 'サムス', 'ダークサムス', 'ヨッシー',
+      'カービィ', 'フォックス', 'ピカチュウ', 'ルイージ', 'ネス', 'キャプテン・ファルコン',
+      'プリン', 'ピーチ', 'デイジー', 'クッパ', 'アイスクライマー', 'シーク', 'ゼルダ',
+      'ドクターマリオ', 'ピチュー', 'ファルコ', 'マルス', 'ルキナ', 'こどもリンク',
+      'ガノンドロフ', 'ミュウツー', 'ロイ', 'クロム', 'Mr.ゲーム＆ウォッチ', 'メタナイト',
+      'ピット', 'ブラックピット', 'ゼロスーツサムス', 'ワリオ', 'スネーク', 'アイク',
+      'ポケモントレーナー', 'ディディーコング', 'リュカ', 'ソニック', 'デデデ',
+      'ピクミン＆オリマー', 'ルカリオ', 'ロボット', 'トゥーンリンク', 'ウルフ', 'むらびと',
+      'ロックマン', 'Wii Fit トレーナー', 'ロゼッタ＆チコ', 'リトル・マック', 'ゲッコウガ',
+      'Mii 格闘タイプ', 'Mii 剣術タイプ', 'Mii 射撃タイプ', 'パルテナ', 'パックマン',
+      'ルフレ', 'シュルク', 'クッパJr.', 'ダックハント', 'リュウ', 'ケン', 'クラウド',
+      'カムイ', 'ベヨネッタ', 'インクリング', 'リドリー', 'シモン', 'リヒター',
+      'キングクルール', 'しずえ', 'ガオガエン', 'パックンフラワー', 'ジョーカー', '勇者',
+      'バンジョー＆カズーイ', 'テリー', 'ベレト／ベレス', 'ミェンミェン', 'スティーブ',
+      'セフィロス', 'ホムラ／ヒカリ', 'カズヤ', 'ソラ'
+    ];
+    const containsFighter = (value) => knownCharacters.some((fighter) => value.includes(fighter));
 
-    // SmashmateのHTML構造変更に備え、ユーザープロフィールリンクを起点にコメント領域を探す。
-    $('a[href]').each((_, anchor) => {
-      const href = $(anchor).attr('href') || '';
-      const userId = href.match(/\/user\/(\d+)\/?(?:[?#].*)?$/)?.[1];
-      if (!userId) return;
+    // コメント本文を含む最小の要素を探す。プロフィール名だけの要素は本文として採用しない。
+    $('*').each((_, element) => {
+      const node = $(element);
+      if (node.children().length > 8) return;
+      const fullText = node.text().replace(/\\s+/g, ' ').trim();
+      if (!fullText || fullText.length > 500 || !containsFighter(fullText)) return;
 
-      const profile = $(anchor);
-      const name = profile.text().replace(/\s+/g, ' ').trim();
-      let container = profile;
-      let text = '';
-      let date = '';
+      const parent = node.parent();
+      if (parent.length && parent.text().replace(/\\s+/g, ' ').trim().length <= fullText.length + 40 &&
+          containsFighter(parent.text().replace(/\\s+/g, ' ').trim())) return;
 
-      for (let depth = 0; depth < 6 && container.length; depth += 1) {
-        const candidate = container.text().replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim();
-        const hasCharacterReport = /[0-9０-９]{1,2}\s*[pPｐＰ]/.test(candidate);
-        if (candidate.length > name.length && candidate.length < 1500 && (hasCharacterReport || depth >= 2)) {
-          text = container.find('.comment-area').text().trim() || container.find('p').text().trim() || candidate;
-          date = container.find('.text-right.gray, time, [datetime]').first().text().replace(/\s+/g, ' ').trim();
-          if (text && text !== name) break;
-        }
-        container = container.parent();
-      }
+      const profile = node.closest('li, .comment, .comment-item, .tournament-comment, .comment-area, tr, div')
+        .find('a[href]').filter((__, a) => /\\/user\\/(\\d+)\\/?(?:[?#].*)?$/.test($(a).attr('href') || '')).first();
+      const href = profile.attr('href') || '';
+      const userId = href.match(/\\/user\\/(\\d+)\\/?(?:[?#].*)?$/)?.[1] || '';
+      const name = profile.text().replace(/\\s+/g, ' ').trim();
+      let text = fullText;
+      if (name) text = text.replace(name, '').trim();
+      text = text.replace(/\\s+/g, ' ').trim();
+      if (!text || !containsFighter(text)) return;
 
-      text = text.replace(name, '').replace(/\s+/g, ' ').trim();
-      const key = userId + '|' + text;
-      if (text && text.length <= 1500 && !seen.has(key)) {
+      const key = [userId, text].join('|');
+      if (!seen.has(key)) {
         seen.add(key);
-        comments.push({ userId, name, date, text });
+        comments.push({ userId, name, date: '', text });
       }
     });
 
