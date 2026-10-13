@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { CHARACTER_ALIASES } from './data/characterAliases';
 
 const STORAGE_KEY = 'ningyogeki-stats-v4';
 
@@ -1200,21 +1201,29 @@ export default function Home() {
       'バンジョー＆カズーイ', 'テリー', 'ベレト／ベレス', 'ミェンミェン', 'スティーブ',
       'セフィロス', 'ホムラ／ヒカリ', 'カズヤ', 'ソラ'
     ];
-    const uniqueCharacters = [...knownCharacters].sort((a, b) => b.length - a.length);
+    const aliasEntries = Object.entries(CHARACTER_ALIASES)
+      .map(([alias, officialName]) => [String(alias).normalize('NFKC'), String(officialName).normalize('NFKC')])
+      .filter(([alias, officialName]) => alias && knownCharacters.includes(officialName));
+    const characterPatterns = [
+      ...knownCharacters.map((name) => ({ match: name, officialName: name })),
+      ...aliasEntries.map(([match, officialName]) => ({ match, officialName })),
+    ].sort((a, b) => b.match.length - a.match.length);
     for (const tournament of characterComments) {
       const usedInTournament = new Set();
       for (const comment of tournament.comments || []) {
         if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
         matchedComments += 1;
         let remainingText = String(comment.text || '').normalize('NFKC');
-        // 長い名前から先に一致させ、同じ文字列の一部を別ファイターとして二重計上しない。
-        for (const character of uniqueCharacters) {
-          if (remainingText.includes(character) && !usedInTournament.has(character)) {
-            counts.set(character, (counts.get(character) || 0) + 1);
+        // 正式名と辞書の別表記を同じ正式名に統一してから、大会ごとに重複を除く。
+        for (const pattern of characterPatterns) {
+          if (remainingText.includes(pattern.match) && !usedInTournament.has(pattern.officialName)) {
+            counts.set(pattern.officialName, (counts.get(pattern.officialName) || 0) + 1);
             parsedComments += 1;
-            usedInTournament.add(character);
+            usedInTournament.add(pattern.officialName);
             seenTournaments.add(Number(tournament.number));
-            remainingText = remainingText.split(character).join(' ');
+            remainingText = remainingText.split(pattern.match).join(' ');
+          } else if (remainingText.includes(pattern.match)) {
+            remainingText = remainingText.split(pattern.match).join(' ');
           }
         }
       }
