@@ -1661,17 +1661,20 @@ export default function Home() {
 
           {selected !== 'all' && selectedPlayer && (
             <div className="achievementPanel">
-              <div className="achievementItem">
-                <span>使用キャラ TOP3</span>
+              <div className="achievementItem characterUsageItem">
                 {characterLoading && <p>大会コメントからキャラ情報を取得しています… {characterProgress.done} / {characterProgress.total} 大会</p>}
                 {characterComments && <>
                   {selectedCharacterStats.counts.length > 0 ? <>
-                    <div className="characterTopList">{selectedCharacterStats.counts.slice(0, 3).map((item) => <div className="characterTopCard" key={item.name}>{item.name}</div>)}</div>
-                    {selectedCharacterStats.soloAchievements?.length > 0 && <div className="characterSoloSection"><strong>単騎達成</strong><div className="characterSoloList">{selectedCharacterStats.soloAchievements.map((item) => <div className="characterSoloCard" key={item.number}><span>大会 #{item.number}</span><strong>{item.character}</strong></div>)}</div></div>}
+                    <div className="characterUsageGrid">
+                      <section className="characterUsageSection">
+                        <span className="characterSectionTitle">使用キャラ TOP3</span>
+                        <div className="characterTopList">{selectedCharacterStats.counts.slice(0, 3).map((item) => <div className="characterTopCard" key={item.name}>{item.name}</div>)}</div>
+                      </section>
+                      {selectedCharacterStats.soloAchievements?.length > 0 && <section className="characterUsageSection characterSoloSection"><span className="characterSectionTitle">単騎達成</span><div className="characterSoloList">{selectedCharacterStats.soloAchievements.map((item) => <div className="characterSoloCard" key={item.number}><span>大会 #{item.number}</span><strong>{item.character}</strong></div>)}</div></section>}
+                    </div>
                   </> : <p>この選手のコメントからキャラ報告を確認できませんでした。</p>}
                 </>}
                 {characterError && <p className="error">{characterError}</p>}
-
               </div>
 
               <div className="achievementItem titleItem">
