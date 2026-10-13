@@ -66,7 +66,11 @@ async function getComments(tournament) {
       debug: {
         htmlLength: html.length,
         profileLinks: $('a[href]').filter((_, a) => /\/user\/\d+/.test($(a).attr('href') || '')).length,
-        sampleComments: comments.slice(0, 3).map(({ name, text }) => ({ name, text: text.slice(0, 300) }))
+        sampleComments: comments.slice(0, 3).map(({ name, text }) => ({ name, text: text.slice(0, 300) })),
+        sampleProfileHtml: (() => {
+          const link = $('a[href]').filter((_, a) => /\/user\/\d+/.test($(a).attr('href') || '')).first();
+          return link.length ? [link, link.parent(), link.parent().parent(), link.parent().parent().parent()].map((node) => node.toString().slice(0, 1200)) : [];
+        })()
       }
     };
   } catch (error) {
