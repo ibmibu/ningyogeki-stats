@@ -1707,7 +1707,7 @@ export default function Home() {
               <option value="all">全体（全選手）</option>
               {filteredPlayers.map((player) => (
                 <option key={player.id} value={player.id}>
-                  {player.name}（出場{playerTournamentStats.appearances.get(String(player.id))?.size || 0}回・優勝{playerTournamentStats.wins.get(String(player.id)) || 0}回）
+                  {player.name}
                 </option>
               ))}
             </select>
