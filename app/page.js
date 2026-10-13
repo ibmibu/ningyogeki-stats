@@ -901,31 +901,7 @@ export default function Home() {
     } catch {}
   }, []);
 
-  const selectedCharacterStats = useMemo(() => {
-    if (!selectedPlayer || !characterComments) return { counts: [], total: 0, tournaments: 0 };
-    const counts = new Map();
-    const seenTournaments = new Set();
-    const canonical = (id) => {
-      const aliases = { '99450': '145071', '118591': '149650', '148400': '164481', '80108': '142959', '100389': '167992', '159344': '167992', '156108': '156414' };
-      let value = String(id); const visited = new Set();
-      while (aliases[value] && !visited.has(value)) { visited.add(value); value = aliases[value]; }
-      return value;
-    };
-    for (const tournament of characterComments) {
-      for (const comment of tournament.comments || []) {
-        if (canonical(comment.userId) !== canonical(selectedPlayer.id)) continue;
-        const text = String(comment.text || '').replace(/[，、]/g, ',');
-        const matches = [...text.matchAll(/([^,，、\\n]+?)\\s*[0-9０-９]{1,2}\\s*[pPｐＰ]/g)];
-        for (const match of matches) {
-          const character = match[1].trim().replace(/[。．.\\s]+$/g, '');
-          if (!character || character.length > 20 || /ありがとう|お願いします|運営|今回|決勝|準決勝|回戦/.test(character)) continue;
-          counts.set(character, (counts.get(character) || 0) + 1);
-          seenTournaments.add(Number(tournament.number));
-        }
-      }
-    }
-    return { counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size };
-  }, [selectedPlayer, characterComments]);
+
 
   async function loadLatest(savedData = data, forceFull = false) {
     setLoading(true);
@@ -1176,6 +1152,32 @@ export default function Home() {
     () => getPlayerAchievements(data, selected),
     [data, selected]
   );
+
+  const selectedCharacterStats = useMemo(() => {
+    if (!selectedPlayer || !characterComments) return { counts: [], total: 0, tournaments: 0 };
+    const counts = new Map();
+    const seenTournaments = new Set();
+    const canonical = (id) => {
+      const aliases = { '99450': '145071', '118591': '149650', '148400': '164481', '80108': '142959', '100389': '167992', '159344': '167992', '156108': '156414' };
+      let value = String(id); const visited = new Set();
+      while (aliases[value] && !visited.has(value)) { visited.add(value); value = aliases[value]; }
+      return value;
+    };
+    for (const tournament of characterComments) {
+      for (const comment of tournament.comments || []) {
+        if (canonical(comment.userId) !== canonical(selectedPlayer.id)) continue;
+        const text = String(comment.text || '').replace(/[，、]/g, ',');
+        const matches = [...text.matchAll(/([^,，、\\n]+?)\\s*[0-9０-９]{1,2}\\s*[pPｐＰ]/g)];
+        for (const match of matches) {
+          const character = match[1].trim().replace(/[。．.\\s]+$/g, '');
+          if (!character || character.length > 20 || /ありがとう|お願いします|運営|今回|決勝|準決勝|回戦/.test(character)) continue;
+          counts.set(character, (counts.get(character) || 0) + 1);
+          seenTournaments.add(Number(tournament.number));
+        }
+      }
+    }
+    return { counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size };
+  }, [selectedPlayer, characterComments]);
 
   const opponentRows = useMemo(() => {
     if (!data || !selectedPlayer) return [];
