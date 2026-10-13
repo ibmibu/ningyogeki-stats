@@ -379,54 +379,93 @@ body {
 ========================= */
 
 .playerSelectWrap {
-  display: flex;
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 10px 12px;
   margin: 0 0 16px;
-  padding: 12px;
+  padding: 14px;
   background: #0e0d11;
   border: 1px solid #28242d;
   border-radius: 12px;
 }
 
 .playerSelectWrap label {
-  color: #817a88;
+  color: #aaa2b3;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: .08em;
+  letter-spacing: .04em;
   white-space: nowrap;
 }
 
-.playerSelectWrap select {
-  flex: 1;
+.playerSelectWrap select,
+.playerSearchInput {
+  width: 100%;
   min-width: 0;
   appearance: none;
   background-color: #17131b;
+  color: #eee;
+  border: 1px solid #39333f;
+  border-radius: 9px;
+  padding: 11px 13px;
+  font: 600 13px Inter, "Noto Sans JP", sans-serif;
+  outline: none;
+}
+
+.playerSelectWrap select {
   background-image:
-    linear-gradient(45deg, transparent 50%, #a760e8 50%),
-    linear-gradient(135deg, #a760e8 50%, transparent 50%);
+    linear-gradient(45deg, transparent 50%, #a7d957 50%),
+    linear-gradient(135deg, #a7d957 50%, transparent 50%);
   background-position:
     calc(100% - 17px) 48%,
     calc(100% - 12px) 48%;
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
-  color: #eee;
-  border: 1px solid #39333f;
-  border-radius: 9px;
-  padding: 11px 38px 11px 13px;
-  font: 600 13px Inter, "Noto Sans JP", sans-serif;
-  outline: none;
+  padding-right: 38px;
   cursor: pointer;
 }
 
-.playerSelectWrap select:focus {
-  border-color: #8952c5;
-  box-shadow: 0 0 0 3px #8952c522;
+.playerSearchInput::placeholder {
+  color: #817a88;
+  font-weight: 400;
+}
+
+.playerSelectWrap select:focus,
+.playerSearchInput:focus {
+  border-color: #9bcf54;
+  box-shadow: 0 0 0 3px #9bcf5422;
 }
 
 .playerSelectWrap select option {
   background: #17131b;
   color: #eee;
+}
+
+.playerSortHint {
+  grid-column: 2;
+  color: #8b8494;
+  font-size: 11px;
+  margin-top: -4px;
+}
+
+.playerSearchCount {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #aaa2b3;
+  font-size: 11px;
+}
+
+.playerSearchCount button {
+  border: 0;
+  padding: 3px 0;
+  background: transparent;
+  color: #b7df71;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 /* =========================
@@ -1783,4 +1822,22 @@ footer span {
 @media (max-width: 700px) {
   .characterSoloCard { padding: 8px 10px; }
   .characterSoloCard strong { font-size: 14px; }
+}
+
+
+@media (max-width: 600px) {
+  .playerSelectWrap {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .playerSortHint,
+  .playerSearchCount {
+    grid-column: 1;
+  }
+
+  .playerSortHint {
+    margin-top: -2px;
+  }
 }
