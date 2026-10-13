@@ -1674,7 +1674,7 @@ export default function Home() {
                     <p>大会URL由来のID: {selectedCharacterStats.diagnosticTournament6.bracketId || 'なし'} / コメント数: {selectedCharacterStats.diagnosticTournament6.comments?.length || 0} / エラー: {selectedCharacterStats.diagnosticTournament6.error || 'なし'}</p>
                     {(selectedCharacterStats.diagnosticTournament6.comments || []).map((comment, index) => {
                       const diagnostic = (selectedCharacterStats.diagnosticComments || []).find((item) => item.userId === String(comment.userId ?? '') && item.name === String(comment.name ?? '') && item.text === String(comment.text ?? ''));
-                      return <div className="characterDebugComment" key={index}><strong>{comment.name || '投稿者名なし'}（ID: {comment.userId || 'なし'}）</strong><p>{comment.text || '本文なし'}</p><small>対象選手とID一致: {diagnostic ? (diagnostic.matchedTarget ? 'はい' : 'いいえ')} / 検出キャラ: {diagnostic?.detectedCharacters?.join('、') || 'なし（対象選手以外の場合も含む）'}</small></div>;
+                      return <div className="characterDebugComment" key={index}><strong>{comment.name || '投稿者名なし'}（ID: {comment.userId || 'なし'}）</strong><p>{comment.text || '本文なし'}</p><small>対象選手とID一致: {diagnostic ? (diagnostic.matchedTarget ? 'はい' : 'いいえ') : '未判定'} / 検出キャラ: {diagnostic?.detectedCharacters?.join('、') || 'なし（対象選手以外の場合も含む）'}</small></div>;
                     })}
                     {selectedCharacterStats.diagnosticTournament6.debug && <pre>{JSON.stringify(selectedCharacterStats.diagnosticTournament6.debug, null, 2)}</pre>}
                   </> : <p>人形劇#6の取得データがありません。コメント取得データが古い可能性もあります。</p>}
