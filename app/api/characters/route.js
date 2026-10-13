@@ -58,9 +58,9 @@ async function getComments(tournament) {
           containsFighter(parent.text().replace(/\s+/g, ' ').trim())) return;
 
       const profile = node.closest('li, .comment, .comment-item, .tournament-comment, .comment-area, tr, div')
-        .find('a[href]').filter((__, a) => /\\/user\\/(\d+)\\/?(?:[?#].*)?$/.test($(a).attr('href') || '')).first();
+        .find('a[href]').filter((__, a) => /\/user\/(\d+)\/?(?:[?#].*)?$/.test($(a).attr('href') || '')).first();
       const href = profile.attr('href') || '';
-      const userId = href.match(/\\/user\\/(\d+)\\/?(?:[?#].*)?$/)?.[1] || '';
+      const userId = href.match(/\/user\/(\d+)\/?(?:[?#].*)?$/)?.[1] || '';
       const name = profile.text().replace(/\s+/g, ' ').trim();
       let text = fullText;
       if (name) text = text.replace(name, '').trim();
