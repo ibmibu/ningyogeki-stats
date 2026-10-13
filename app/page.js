@@ -1208,6 +1208,35 @@ export default function Home() {
   const ranking = eloResult.ranking;
   const matchHistory = eloResult.history;
 
+  const matrixStats = useMemo(() => {
+    if (season === 'all') return data?.stats || {};
+    const firstTournament = (Number(selectedSeason) - 1) * 25 + 1;
+    const lastTournament = Number(selectedSeason) * 25;
+    const stats = {};
+
+    for (const record of data?.records || []) {
+      const tournamentNumber = Number(record.tournamentNumber) || 0;
+      if (tournamentNumber < firstTournament || tournamentNumber > lastTournament) continue;
+
+      const winnerId = String(record.winnerId);
+      const loserId = String(record.loserId);
+      if (!stats[winnerId]) stats[winnerId] = {};
+      if (!stats[loserId]) stats[loserId] = {};
+      if (!stats[winnerId][loserId]) stats[winnerId][loserId] = { wins: 0, losses: 0 };
+      if (!stats[loserId][winnerId]) stats[loserId][winnerId] = { wins: 0, losses: 0 };
+      stats[winnerId][loserId].wins += 1;
+      stats[loserId][winnerId].losses += 1;
+    }
+
+    for (const playerStats of Object.values(stats)) {
+      for (const stat of Object.values(playerStats)) {
+        const total = stat.wins + stat.losses;
+        stat.rate = total ? Math.round((stat.wins / total) * 1000) / 10 : 0;
+      }
+    }
+    return stats;
+  }, [data, season, selectedSeason]);
+
   const selectedPlayer = data?.players.find(
     (player) =>
       String(player.id) === String(selected)
@@ -1828,6 +1857,20 @@ export default function Home() {
             </div>
           )}
 
+          {selected === 'all' && (
+            <div className="matrixSeasonControl">
+              <div className="seasonTabs" aria-label="対戦表のシーズン">
+                <button className={season === 'current' ? 'active' : ''} onClick={() => setSeason('current')}>現在</button>
+                <button className={season === 'all' ? 'active' : ''} onClick={() => setSeason('all')}>すべて</button>
+                {seasons.map((s) => (
+                  <button key={s.key} className={season === s.key ? 'active' : ''} onClick={() => setSeason(s.key)}>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {selected === 'all' ? (
             <div className="matrixWrap">
               <table className="matrix">
@@ -1853,7 +1896,7 @@ export default function Home() {
                       {sortedPlayers.map(
                         (col) => {
                           const stat =
-                            data.stats?.[
+                            matrixStats?.[
                               row.id
                             ]?.[col.id];
 
