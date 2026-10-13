@@ -1291,14 +1291,14 @@ export default function Home() {
     const manualReportsByTournament = new Map();
     if (canonical(characterTargetPlayer.id) === '81727') {
       const normalizeTournamentName = (value) =>
-        String(value || '').normalize('NFKC').replace(/[\\s#＃]/gu, '');
+        String(value || '').normalize('NFKC').replace(/[\s#＃]/gu, '');
       for (const report of MANUAL_CHARACTER_REPORTS) {
         const reportName = String(report.tournamentName || '');
         let tournament = (data.tournaments || []).find(
           (item) => normalizeTournamentName(item.name) === normalizeTournamentName(reportName)
         );
         if (!tournament) {
-          const numberMatch = reportName.match(/人形劇\\s*#?\\s*(\\d+)/u);
+          const numberMatch = reportName.match(/人形劇\s*#?\s*(\d+)/u);
           if (numberMatch) {
             tournament = (data.tournaments || []).find(
               (item) => Number(item.number) === Number(numberMatch[1])
