@@ -47,7 +47,7 @@ function parseComments(html) {
 
   // Diagnostic only: return strings and numbers, never Cheerio nodes.
   const profileLinks = $('a[href]').toArray().filter(a => /\\/user\\/\\d+/.test($(a).attr('href') || '')).length;
-  const responsePreview = cleanText(root.text()).slice(0, 1200);
+  const profileLinks = $('a[href]').toArray().filter(a => /\/user\/\d+/.test($(a).attr('href') || '')).length;
   return {
     comments,
     debug: {
