@@ -46,32 +46,24 @@ async function getComments(tournament) {
     ];
     const containsFighter = (value) => knownCharacters.some((fighter) => value.includes(fighter));
 
-    // コメント本文を含む最小の要素を探す。プロフィール名だけの要素は本文として採用しない。
-    $('*').each((_, element) => {
+    // コメント単位の要素から投稿者と本文を取得する。本文にキャラ名がなくても診断用にコメント自体は保持する。
+    const commentNodes = $('.tournament-comment');
+    commentNodes.each((_, element) => {
       const node = $(element);
-      if (node.children().length > 8) return;
-      const fullText = node.text().replace(/\s+/g, ' ').trim();
-      if (!fullText || fullText.length > 500 || !containsFighter(fullText)) return;
-
-      const parent = node.parent();
-      if (parent.length && parent.text().replace(/\s+/g, ' ').trim().length <= fullText.length + 40 &&
-          containsFighter(parent.text().replace(/\s+/g, ' ').trim())) return;
-
-      const profile = node.closest('li, .comment, .comment-item, .tournament-comment, .comment-area, tr, div')
-        .find('a[href]').filter((__, a) => /\/user\/(\d+)\/?(?:[?#].*)?$/.test($(a).attr('href') || '')).first();
+      const profile = node.find('a[href]').filter((__, a) =>
+        /\\/user\\/(\\d+)\\/?(?:[?#].*)?$/.test($(a).attr('href') || '')
+      ).first();
       const href = profile.attr('href') || '';
-      const userId = href.match(/\/user\/(\d+)\/?(?:[?#].*)?$/)?.[1] || '';
-      const name = profile.text().replace(/\s+/g, ' ').trim();
-      let text = fullText;
-      if (name) text = text.replace(name, '').trim();
-      text = text.replace(/\s+/g, ' ').trim();
-      if (!text || !containsFighter(text)) return;
-
-      const key = [userId, text].join('|');
-      if (!seen.has(key)) {
-        seen.add(key);
-        comments.push({ userId, name, date: '', text });
-      }
+      const userId = href.match(/\\/user\\/(\\d+)\\/?(?:[?#].*)?$/)?.[1] || '';
+      const name = profile.text().replace(/\\s+/g, ' ').trim();
+      const clone = node.clone();
+      clone.find('a[href]').remove();
+      const text = clone.text().replace(/\\s+/g, ' ').trim();
+      if (!text) return;
+      const key = [userId, name, text].join('|');
+      if (seen.has(key)) return;
+      seen.add(key);
+      comments.push({ userId, name, date: '', text });
     });
 
     return {
@@ -81,7 +73,7 @@ async function getComments(tournament) {
       debug: {
         htmlLength: html.length,
         profileLinks: $('a[href]').filter((_, a) => /\/user\/\d+/.test($(a).attr('href') || '')).length,
-        sampleComments: comments.slice(0, 3).map(({ name, text }) => ({ name, text: text.slice(0, 300) })),
+        commentNodeCount: commentNodes.length,\n        sampleComments: comments.slice(0, 5).map(({ name, userId, text }) => ({ name, userId, text: text.slice(0, 300) })),\n        responsePreview: $.root().text().replace(/\\s+/g, ' ').trim().slice(0, 1200),
         sampleProfileHtml: (() => {
           const link = $('a[href]').filter((_, a) => /\/user\/\d+/.test($(a).attr('href') || '')).first();
           return link.length ? [link, link.parent(), link.parent().parent(), link.parent().parent().parent()].map((node) => node.toString().slice(0, 1200)) : [];
