@@ -1,6 +1,5 @@
 import * as cheerio from 'cheerio';
 import { smashmateFetch } from '../../../lib/smashmate-request';
-import { saveTournamentToSharedStore } from '../../../lib/shared-store';
 
 const BASE = 'https://smashmate.net';
 const USER_ID = 81727;
@@ -345,23 +344,6 @@ export async function GET(request) {
         records: tournamentRecords,
       });
     });
-
-    // Redisへの保存は追加機能。失敗しても従来の大会取得レスポンスは返す。
-    await Promise.all(
-      persistableTournaments.map(async (tournament) => {
-        try {
-          const saveResult = await saveTournamentToSharedStore(tournament);
-          if (!saveResult.saved && saveResult.reason) {
-            console.warn('人形劇データの共有保存をスキップしました:', saveResult.reason);
-          }
-        } catch (error) {
-          console.warn(
-            `人形劇#${tournament.number} の共有保存に失敗しました:`,
-            error instanceof Error ? error.message : String(error)
-          );
-        }
-      })
-    );
 
     // 初回読み込みを速くするため、選手プロフィールページの追加取得は行わず、
     // トーナメント表から取得した選手名を使用する。
