@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { smashmateFetch } from '../../../lib/smashmate-request';
 
 function validUrl(value) {
   try { const u = new URL(value); return u.hostname === 'smashmate.net' && /^\/bracket\/\d+\/?$/.test(u.pathname); } catch { return false; }
@@ -8,7 +9,7 @@ export async function POST(req) {
   try {
     const { url } = await req.json();
     if (!validUrl(url)) return Response.json({error:'Smashmateの /bracket/番号/ URLを入力してください。'}, {status:400});
-    const res = await fetch(url, { headers:{'User-Agent':'Mozilla/5.0 (compatible; NingyogekiStats/1.0)'}, cache:'no-store' });
+    const res = await smashmateFetch(url, { headers:{'User-Agent':'Mozilla/5.0 (compatible; NingyogekiStats/1.0)'}, cache:'no-store' });
     if (!res.ok) return Response.json({error:`Smashmateから取得できませんでした（${res.status}）`},{status:502});
     const html = await res.text();
     const $ = cheerio.load(html);
