@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import { smashmateFetch } from '../../../lib/smashmate-request';
+import { smashmateFetch } from '../../../lib/smashmate-request';
 
 const BASE = 'https://smashmate.net';
 const USER_ID = 81727;
