@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CHARACTER_ALIASES } from './data/characterAliases';
 import { MANUAL_CHARACTER_REPORTS } from './data/manualCharacterReports';
 
@@ -896,6 +896,7 @@ export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const loadingRef = useRef(false);
   const [selected, setSelected] = useState(() => {
     if (typeof window === 'undefined') return 'all';
     return localStorage.getItem('ningyogeki-selected-player') || 'all';
@@ -961,6 +962,9 @@ export default function Home() {
 
 
   async function loadLatest(savedData = data, forceFull = false) {
+    // React state updates are asynchronous, so also guard against rapid double-clicks.
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
     setError('');
 
@@ -1003,6 +1007,7 @@ export default function Home() {
           : 'データの取得に失敗しました'
       );
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
   }
