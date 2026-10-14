@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { smashmateFetch } from '../../../lib/smashmate-request';
 
 const BASE = 'https://smashmate.net';
 const USER_ID = 81727;
@@ -35,7 +36,7 @@ async function html(url, referer = `${BASE}/`) {
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const response = await fetch(url, {
+      const response = await smashmateFetch(url, {
         headers: {
           'User-Agent': UA,
           Accept:
