@@ -1,6 +1,5 @@
 import * as cheerio from 'cheerio';
 import { smashmateFetch } from '../../../lib/smashmate-request';
-import { smashmateFetch } from '../../../lib/smashmate-request';
 
 const BASE = 'https://smashmate.net';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
