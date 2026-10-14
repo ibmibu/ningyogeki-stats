@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { smashmateFetch } from '../../../lib/smashmate-request';
 
 const BASE = 'https://smashmate.net';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
@@ -69,7 +70,7 @@ async function getComments(tournament) {
     const timeout = setTimeout(() => controller.abort(), 12000);
     let response;
     try {
-      response = await fetch(BASE + '/php/ajax/tournament_comment/', { method: 'POST', headers: { 'User-Agent': UA, 'Accept': '*/*', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest', 'Referer': tournament.bracketUrl }, body: new URLSearchParams({ id, fl: '' }), cache: 'no-store', signal: controller.signal });
+      response = await smashmateFetch(BASE + '/php/ajax/tournament_comment/', { method: 'POST', headers: { 'User-Agent': UA, 'Accept': '*/*', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest', 'Referer': tournament.bracketUrl }, body: new URLSearchParams({ id, fl: '' }), cache: 'no-store', signal: controller.signal });
     } finally {
       clearTimeout(timeout);
     }
