@@ -1583,7 +1583,7 @@ export default function Home() {
             remainingText = removeExactName(remainingText, pattern.match);
           }
         }
-        if (Number(tournament.number) === 6) diagnosticComments.push({ userId: String(comment.userId ?? ''), name: String(comment.name ?? ''), text: String(comment.text ?? ''), matchedTarget: canonical(comment.userId) === canonical(characterTargetPlayer.id), detectedCharacters: detectedForComment, detectionTrace, remainingAfterParsing: remainingText });
+        if (Number(tournament.number) === 134) diagnosticComments.push({ userId: String(comment.userId ?? ''), name: String(comment.name ?? ''), text: String(comment.text ?? ''), matchedTarget: matchesById || matchesByName, detectedCharacters: detectedForComment, detectionTrace, remainingAfterParsing: remainingText });
       }
       if (usedInTournament.size) reportedByTournament.set(Number(tournament.number), new Set([...(reportedByTournament.get(Number(tournament.number)) || []), ...usedInTournament]));
     }
@@ -1623,7 +1623,7 @@ export default function Home() {
       .filter(([number, characters]) => champions.get(number) === playerId && characters.size === 1)
       .map(([number, characters]) => ({ number, character: [...characters][0] }))
       .sort((a, b) => b.number - a.number);
-    return { diagnosticTournament6: characterComments.find((item) => Number(item.number) === 6) || null, diagnosticComments, counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size, soloAchievements, matchedComments, parsedComments, targetId: String(characterTargetPlayer.id), fetchedComments: characterComments.reduce((sum, item) => sum + (item.comments?.length || 0), 0), fetchErrors: characterComments.filter((item) => item.error).length };
+    return { diagnosticTournament134: characterComments.find((item) => Number(item.number) === 134) || null, diagnosticComments, counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size, soloAchievements, matchedComments, parsedComments, targetId: String(characterTargetPlayer.id), fetchedComments: characterComments.reduce((sum, item) => sum + (item.comments?.length || 0), 0), fetchErrors: characterComments.filter((item) => item.error).length };
   }, [data, selected, characterComments]);
 
   const opponentRows = useMemo(() => {
@@ -2053,6 +2053,22 @@ export default function Home() {
                   </> : <p>この選手のコメントからキャラ報告を確認できませんでした。</p>}
                 </>}
                 {characterError && <p className="error">{characterError}</p>}
+                {String(selected) === '142959' && (() => {
+                  const debugTournament = selectedCharacterStats.diagnosticTournament134;
+                  const debugComments = selectedCharacterStats.diagnosticComments || [];
+                  return <section style={{ marginTop: 12, padding: 12, border: '1px dashed #d97706', borderRadius: 8, background: 'rgba(217,119,6,0.06)', color: 'inherit', fontSize: 12, overflowWrap: 'anywhere' }}>
+                    <strong>【一時確認用】#134 キャラ取得結果（あとで削除）</strong>
+                    <p style={{ margin: '6px 0' }}>取得状態：{debugTournament ? (debugTournament.error || '取得済み') : 'キャッシュに#134がありません'} ／ コメント件数：{debugTournament?.comments?.length ?? 0}</p>
+                    <p style={{ margin: '6px 0' }}>選手一致コメント：{debugComments.length}件 ／ キャラ検出数：{debugComments.reduce((sum, item) => sum + item.detectedCharacters.length, 0)}件</p>
+                    {debugComments.length > 0 ? debugComments.map((item, index) => <div key={index} style={{ borderTop: '1px solid #d97706', paddingTop: 6, marginTop: 6 }}>
+                      <div>投稿者：{item.name || '名前なし'}（ID: {item.userId || '取得なし'}）</div>
+                      <div>元コメント：{item.text || '本文なし'}</div>
+                      <div><strong>取得キャラ：</strong>{item.detectedCharacters.length ? item.detectedCharacters.join('、') : '検出なし'}</div>
+                      {item.detectionTrace.length > 0 && <div>検出詳細：{item.detectionTrace.map((trace) => trace.matchedText + '→' + trace.officialName).join('、')}</div>}
+                    </div>) : <p style={{ margin: '6px 0' }}>スンドゥブ本人と一致するコメントがありません。</p>}
+                    {debugTournament?.debug?.responsePreview && <details style={{ marginTop: 8 }}><summary>取得レスポンス（先頭）</summary><pre style={{ whiteSpace: 'pre-wrap', margin: '6px 0' }}>{debugTournament.debug.responsePreview}</pre></details>}
+                  </section>;
+                })()}
               </div>
 
               <div className="achievementItem titleItem">
