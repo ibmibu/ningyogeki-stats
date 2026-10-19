@@ -960,7 +960,9 @@ export default function Home() {
         const recentCacheIsStale =
           recentTournamentNumbers.has(number) &&
           (!Number.isFinite(fetchedAt) || Date.now() - fetchedAt >= refreshAfterMs);
-        return (!existing || existing.error || recentCacheIsStale) &&
+        // #134 のキャラ報告の取りこぼし調査のため、旧キャッシュを一度だけ再取得する。
+        const refreshTournament134 = number === 134 && existing?.parserVersion !== 2;
+        return (!existing || existing.error || recentCacheIsStale || refreshTournament134) &&
           !attemptedCharacterTournaments.current.has(number);
       })
       .sort((a, b) => Number(a.number) - Number(b.number));
@@ -996,7 +998,11 @@ export default function Home() {
         if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
 
         for (const item of json.results || []) {
-          latestByNumber.set(Number(item.number), { ...item, fetchedAt: Date.now() });
+          latestByNumber.set(Number(item.number), {
+            ...item,
+            fetchedAt: Date.now(),
+            ...(Number(item.number) === 134 ? { parserVersion: 2 } : {}),
+          });
         }
         const mergedResults = [...latestByNumber.values()].sort((a, b) => Number(a.number) - Number(b.number));
         setCharacterComments(mergedResults);
