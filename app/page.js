@@ -1540,7 +1540,18 @@ export default function Home() {
       if (manualReportsByTournament.has(Number(tournament.number))) continue;
       const usedInTournament = new Set();
       for (const comment of tournament.comments || []) {
-        if (canonical(comment.userId) !== canonical(characterTargetPlayer.id)) continue;
+        const commentUserId = String(comment.userId || '').trim();
+        const matchesById =
+          Boolean(commentUserId) &&
+          canonical(commentUserId) === canonical(characterTargetPlayer.id);
+        // コメントHTMLの形式によって投稿者IDが取得できない場合に限り、名前の完全一致で補完する。
+        // IDが取得できているコメントは、従来どおりIDを優先して誤判定を避ける。
+        const normalizePlayerName = (value) =>
+          String(value || '').normalize('NFKC').replace(/\s+/gu, '').trim();
+        const matchesByName =
+          !commentUserId &&
+          normalizePlayerName(comment.name) === normalizePlayerName(characterTargetPlayer.name);
+        if (!matchesById && !matchesByName) continue;
         matchedComments += 1;
         let remainingText = String(comment.text || '').normalize('NFKC');
         const detectedForComment = [];
