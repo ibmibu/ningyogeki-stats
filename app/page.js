@@ -1829,7 +1829,7 @@ export default function Home() {
 
             <p>
               {loading
-                ? '保存済みデータがあれば、それを表示したうえで未取得の大会だけ確認しています。'
+                ? '保存済みデータを表示しながら、取得間隔を守るため最大約2分かけて最新大会を確認しています。'
                 : '大会一覧とトーナメント表を取得します。'}
             </p>
 
@@ -2651,7 +2651,7 @@ export default function Home() {
               disabled={loading}
             >
               {loading
-                ? '未取得大会を確認中…'
+                ? '最新大会を確認中（最大約2分）…'
                 : '最新データを確認'}
             </button>
 
@@ -2666,7 +2666,7 @@ export default function Home() {
 
           <div className="hint">
             {loading
-              ? '既存の大会は再取得しません。'
+              ? '既存の大会は再取得せず、取得間隔を守るため最大約2分かかります。'
               : '未取得の大会がある場合だけ追加で読み込みます。'}
           </div>
         </section>
