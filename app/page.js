@@ -1035,15 +1035,56 @@ export default function Home() {
             .sort((a, b) => a - b)
             .join(',');
 
-      const url = known
-        ? `/api/series?known=${encodeURIComponent(known)}`
-        : '/api/series';
+      // 1回のAPI実行でSmashmateのページを1つだけ取得する。
+      // Vercelの実行時間上限を避けるため、各アクセスの間は61秒待つ。
+      const discoverUrl = known
+        ? `/api/series?step=discover&known=${encodeURIComponent(known)}`
+        : '/api/series?step=discover';
+      const discoverResponse = await fetch(discoverUrl, { cache: 'no-store' });
+      const discovery = await readApiJson(
+        discoverResponse,
+        '大会一覧を読み取れませんでした'
+      );
 
-      const response = await fetch(url, { cache: 'no-store' });
-      const json = await readApiJson(response, 'APIの応答を読み取れませんでした');
+      if (!discoverResponse.ok) {
+        throw new Error(discovery.error || '大会一覧の取得に失敗しました');
+      }
 
-      if (!response.ok) {
-        throw new Error(json.error || '取得に失敗しました');
+      if (discovery.upToDate || !discovery.target) {
+        if (!savedData && !data) {
+          setError('保存データがありません。');
+        }
+        return;
+      }
+
+      const target = discovery.target;
+      setLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 61_000));
+
+      const tournamentUrl =
+        `/api/series?step=tournament&number=${target.number}&tournamentId=${encodeURIComponent(target.tournamentId)}`;
+      const tournamentResponse = await fetch(tournamentUrl, { cache: 'no-store' });
+      const tournamentInfo = await readApiJson(
+        tournamentResponse,
+        '大会ページを読み取れませんでした'
+      );
+
+      if (!tournamentResponse.ok) {
+        throw new Error(tournamentInfo.error || '大会ページの取得に失敗しました');
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 61_000));
+
+      const bracketUrl =
+        `/api/series?step=bracket&number=${target.number}&tournamentId=${encodeURIComponent(target.tournamentId)}&bracketUrl=${encodeURIComponent(tournamentInfo.bracketUrl)}`;
+      const bracketResponse = await fetch(bracketUrl, { cache: 'no-store' });
+      const json = await readApiJson(
+        bracketResponse,
+        'トーナメント表を読み取れませんでした'
+      );
+
+      if (!bracketResponse.ok) {
+        throw new Error(json.error || 'トーナメント表の取得に失敗しました');
       }
 
       if (json.failed?.length) {
@@ -1051,14 +1092,6 @@ export default function Home() {
         throw new Error(
           `人形劇#${failed.number}の取得に失敗しました。${failed.error || '時間をおいて再試行してください。'}`
         );
-      }
-
-      // 未取得大会がなければ、保存済みデータをそのまま維持する。
-      if (!json.tournaments || json.tournaments.length === 0) {
-        if (!savedData && !data) {
-          setError('保存データがありません。未取得の大会を1件ずつ読み込んでください。');
-        }
-        return;
       }
 
       setData((current) => mergeData(current || savedData, json));
