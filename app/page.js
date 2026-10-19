@@ -930,22 +930,46 @@ export default function Home() {
   const [matrixSeason, setMatrixSeason] = useState('current');
   const [rateChartPlayers, setRateChartPlayers] = useState([]);
   const [characterComments, setCharacterComments] = useState(null);
+  const [characterCacheLoaded, setCharacterCacheLoaded] = useState(false);
   const [characterLoading, setCharacterLoading] = useState(false);
   const [characterProgress, setCharacterProgress] = useState({ done: 0, total: 0 });
   const [characterError, setCharacterError] = useState('');
   const [expandedSoloCharacters, setExpandedSoloCharacters] = useState([]);
+  const characterLoadInFlight = useRef(false);
+  const attemptedCharacterTournaments = useRef(new Set());
 
   async function loadCharacterComments() {
-    if (!data?.tournaments?.length) return;
+    if (!data?.tournaments?.length || characterLoadInFlight.current) return;
+
+    const cached = Array.isArray(characterComments) ? characterComments : [];
+    const cachedByNumber = new Map(cached.map((item) => [Number(item.number), item]));
+    const missing = [...data.tournaments]
+      .filter((tournament) => {
+        const number = Number(tournament.number);
+        const existing = cachedByNumber.get(number);
+        return (!existing || existing.error) && !attemptedCharacterTournaments.current.has(number);
+      })
+      .sort((a, b) => Number(a.number) - Number(b.number));
+
+    if (!missing.length) {
+      setCharacterProgress({ done: data.tournaments.length, total: data.tournaments.length });
+      return;
+    }
+
+    characterLoadInFlight.current = true;
     setCharacterLoading(true);
     setCharacterError('');
-    const tournaments = [...data.tournaments].sort((a, b) => Number(a.number) - Number(b.number));
-    const results = [];
-    setCharacterProgress({ done: 0, total: tournaments.length });
+    setCharacterProgress({
+      done: data.tournaments.length - missing.length,
+      total: data.tournaments.length,
+    });
+
     try {
-      const batchSize = 10;
-      for (let offset = 0; offset < tournaments.length; offset += batchSize) {
-        const batch = tournaments.slice(offset, offset + batchSize);
+      const batchSize = 5;
+      for (let offset = 0; offset < missing.length; offset += batchSize) {
+        const batch = missing.slice(offset, offset + batchSize);
+        batch.forEach((tournament) => attemptedCharacterTournaments.current.add(Number(tournament.number)));
+
         const response = await fetch('/api/characters', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -953,14 +977,26 @@ export default function Home() {
         });
         const json = await readApiJson(response, 'APIの応答を読み取れませんでした');
         if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
-        results.push(...(json.results || []));
-        setCharacterComments([...results]);
-        setCharacterProgress({ done: results.length, total: tournaments.length });
-        try { localStorage.setItem('ningyogeki-character-comments-v7', JSON.stringify(results)); } catch {}
+
+        const latestByNumber = new Map(
+          (Array.isArray(characterComments) ? characterComments : []).map((item) => [Number(item.number), item])
+        );
+        for (const item of json.results || []) latestByNumber.set(Number(item.number), item);
+        const mergedResults = [...latestByNumber.values()].sort((a, b) => Number(a.number) - Number(b.number));
+        setCharacterComments(mergedResults);
+        try {
+          localStorage.setItem('ningyogeki-character-comments-v7', JSON.stringify(mergedResults));
+        } catch {}
+
+        setCharacterProgress({
+          done: Math.min(data.tournaments.length, data.tournaments.length - missing.length + offset + batch.length),
+          total: data.tournaments.length,
+        });
       }
     } catch (e) {
       setCharacterError(e instanceof Error ? e.message : 'コメント取得に失敗しました');
     } finally {
+      characterLoadInFlight.current = false;
       setCharacterLoading(false);
     }
   }
@@ -970,13 +1006,14 @@ export default function Home() {
       const saved = localStorage.getItem('ningyogeki-character-comments-v7');
       if (saved) setCharacterComments(JSON.parse(saved));
     } catch {}
+    setCharacterCacheLoaded(true);
   }, []);
 
   useEffect(() => {
-    if (data?.tournaments?.length && characterComments === null && !characterLoading) {
+    if (characterCacheLoaded && data?.tournaments?.length && !characterLoading) {
       loadCharacterComments();
     }
-  }, [data, characterComments, characterLoading]);
+  }, [data, characterComments, characterCacheLoaded, characterLoading]);
 
 
 
