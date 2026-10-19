@@ -1024,43 +1024,61 @@ export default function Home() {
     setLoading(true);
     setError('');
 
+    let workingData = savedData || null;
+    let forceFullRequest = forceFull;
+
     try {
-      const known = forceFull
-        ? ''
-        : [...(savedData?.tournaments || [])]
-            .map((t) => Number(t.number))
-            .filter(Number.isFinite)
-            .sort((a, b) => a - b)
-            .join(',');
+      while (true) {
+        const known = forceFullRequest
+          ? ''
+          : [...(workingData?.tournaments || [])]
+              .map((t) => Number(t.number))
+              .filter(Number.isFinite)
+              .sort((a, b) => a - b)
+              .join(',');
 
-      const url = known
-        ? `/api/series?known=${encodeURIComponent(known)}`
-        : '/api/series';
+        const url = known
+          ? `/api/series?known=${encodeURIComponent(known)}`
+          : '/api/series';
 
-      const response = await fetch(url, {
-        cache: 'no-store',
-      });
+        const response = await fetch(url, {
+          cache: 'no-store',
+        });
 
-      const json = await readApiJson(response, 'APIの応答を読み取れませんでした');
+        const json = await readApiJson(response, 'APIの応答を読み取れませんでした');
 
-      if (!response.ok) {
-        throw new Error(json.error || '取得に失敗しました');
+        if (!response.ok) {
+          throw new Error(json.error || '取得に失敗しました');
+        }
+
+        // 取得に失敗した大会は無限リトライせず、部分データを保存して停止する。
+        if (json.failed?.length) {
+          const failed = json.failed[0];
+          throw new Error(
+            `人形劇#${failed.number}の取得に失敗しました。${failed.error || '時間をおいて再試行してください。'}`
+          );
+        }
+
+        // 取得済みなら終了。空の初回データでも空配列で上書きしない。
+        if (!json.tournaments || json.tournaments.length === 0) {
+          if (workingData) setData(workingData);
+          break;
+        }
+
+        workingData = mergeData(workingData, json);
+        forceFullRequest = false;
+        setData(workingData);
+
+        // 次の大会へ進む前にブラウザ側でも60秒待つ。
+        // Vercelの別実行環境に移っても、連続アクセス間隔を確保するため。
+        await new Promise((resolve) => setTimeout(resolve, 60_000));
       }
-
-      if (
-        savedData &&
-        (!json.tournaments || json.tournaments.length === 0)
-      ) {
-        return;
-      }
-
-      setData((current) => mergeData(current || savedData, json));
     } catch (e) {
       console.error(e);
       setError(
         e instanceof Error
           ? e.message
-          : 'データの取得に失敗しました'
+          : '取得に失敗しました。時間をおいて再試行してください。'
       );
     } finally {
       loadingRef.current = false;
