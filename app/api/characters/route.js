@@ -69,7 +69,7 @@ async function getComments(tournament) {
     // 60秒間隔の順番待ちが終わってから通信タイムアウトを開始する。
     const response = await smashmateFetch(
       BASE + '/php/ajax/tournament_comment/',
-      { method: 'POST', headers: { 'User-Agent': UA, 'Accept': '*/*', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest', 'Referer': tournament.bracketUrl }, body: new URLSearchParams({ id, fl: '' }), cache: 'no-store' }
+      { method: 'POST', headers: { 'User-Agent': UA, 'Accept': '*/*', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest', 'Referer': tournament.bracketUrl }, body: new URLSearchParams({ id, fl: '' }), cache: 'no-store', timeoutMs: 30000 }
     );
     if (!response.ok) throw new Error('HTTP ' + response.status);
     const html = await response.text();
