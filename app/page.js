@@ -1476,12 +1476,6 @@ export default function Home() {
         if (characters.length > 0) manualReportsByTournament.set(number, characters);
       }
     }
-    // 人形劇#134のスンドゥブ選手は、コメント取得・投稿者照合で漏れているため手動補完する。
-    // 対象選手と大会を限定し、使用キャラ集計と単騎実績の両方に反映する。
-    if (String(characterTargetPlayer.name || '').normalize('NFKC').replace(/\s+/gu, '') === 'スンドゥブ') {
-      const tournament134 = (data.tournaments || []).find((item) => Number(item.number) === 134);
-      if (tournament134) manualReportsByTournament.set(134, ['ウルフ']);
-    }
     // ファイター名は、一覧にある正式表記との一致だけを集計する。表記ゆれ対応は後で追加する。
     const knownCharacters = [
       'マリオ', 'ドンキーコング', 'リンク', 'サムス', 'ダークサムス', 'ヨッシー',
@@ -1554,8 +1548,9 @@ export default function Home() {
         // IDが取得できているコメントは、従来どおりIDを優先して誤判定を避ける。
         const normalizePlayerName = (value) =>
           String(value || '').normalize('NFKC').replace(/\s+/gu, '').trim();
+        // IDが一致しない場合も、投稿者名が正規化後に完全一致するなら同一選手として扱う。
+        // 旧アカウントIDなどで登録IDとコメントIDが異なるケースを取りこぼさない。
         const matchesByName =
-          !commentUserId &&
           normalizePlayerName(comment.name) === normalizePlayerName(characterTargetPlayer.name);
         if (!matchesById && !matchesByName) continue;
         matchedComments += 1;
