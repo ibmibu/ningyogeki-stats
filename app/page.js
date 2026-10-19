@@ -965,6 +965,9 @@ export default function Home() {
     });
 
     try {
+      const latestByNumber = new Map(
+        (Array.isArray(characterComments) ? characterComments : []).map((item) => [Number(item.number), item])
+      );
       const batchSize = 5;
       for (let offset = 0; offset < missing.length; offset += batchSize) {
         const batch = missing.slice(offset, offset + batchSize);
@@ -978,9 +981,6 @@ export default function Home() {
         const json = await readApiJson(response, 'APIの応答を読み取れませんでした');
         if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
 
-        const latestByNumber = new Map(
-          (Array.isArray(characterComments) ? characterComments : []).map((item) => [Number(item.number), item])
-        );
         for (const item of json.results || []) latestByNumber.set(Number(item.number), item);
         const mergedResults = [...latestByNumber.values()].sort((a, b) => Number(a.number) - Number(b.number));
         setCharacterComments(mergedResults);
