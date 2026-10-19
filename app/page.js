@@ -1020,61 +1020,48 @@ export default function Home() {
 
 
   async function loadLatest(savedData = data, forceFull = false) {
-    // React state updates are asynchronous, so also guard against rapid double-clicks.
+    // 1回の操作につき大会一覧を確認し、未取得大会を最大1件だけ取得する。
     if (loadingRef.current) return;
     loadingRef.current = true;
     setLoading(true);
     setError('');
 
-    let workingData = savedData || null;
-    let forceFullRequest = forceFull;
-
     try {
-      while (true) {
-        const known = forceFullRequest
-          ? ''
-          : [...(workingData?.tournaments || [])]
-              .map((t) => Number(t.number))
-              .filter(Number.isFinite)
-              .sort((a, b) => a - b)
-              .join(',');
+      const known = forceFull
+        ? ''
+        : [...(savedData?.tournaments || [])]
+            .map((t) => Number(t.number))
+            .filter(Number.isFinite)
+            .sort((a, b) => a - b)
+            .join(',');
 
-        const url = known
-          ? `/api/series?known=${encodeURIComponent(known)}`
-          : '/api/series';
+      const url = known
+        ? `/api/series?known=${encodeURIComponent(known)}`
+        : '/api/series';
 
-        const response = await fetch(url, {
-          cache: 'no-store',
-        });
+      const response = await fetch(url, { cache: 'no-store' });
+      const json = await readApiJson(response, 'APIの応答を読み取れませんでした');
 
-        const json = await readApiJson(response, 'APIの応答を読み取れませんでした');
-
-        if (!response.ok) {
-          throw new Error(json.error || '取得に失敗しました');
-        }
-
-        // 取得に失敗した大会は無限リトライせず、部分データを保存して停止する。
-        if (json.failed?.length) {
-          const failed = json.failed[0];
-          throw new Error(
-            `人形劇#${failed.number}の取得に失敗しました。${failed.error || '時間をおいて再試行してください。'}`
-          );
-        }
-
-        // 取得済みなら終了。空の初回データでも空配列で上書きしない。
-        if (!json.tournaments || json.tournaments.length === 0) {
-          if (workingData) setData(workingData);
-          break;
-        }
-
-        workingData = mergeData(workingData, json);
-        forceFullRequest = false;
-        setData(workingData);
-
-        // 次の大会へ進む前にブラウザ側でも60秒待つ。
-        // Vercelの別実行環境に移っても、連続アクセス間隔を確保するため。
-        await new Promise((resolve) => setTimeout(resolve, 60_000));
+      if (!response.ok) {
+        throw new Error(json.error || '取得に失敗しました');
       }
+
+      if (json.failed?.length) {
+        const failed = json.failed[0];
+        throw new Error(
+          `人形劇#${failed.number}の取得に失敗しました。${failed.error || '時間をおいて再試行してください。'}`
+        );
+      }
+
+      // 未取得大会がなければ、保存済みデータをそのまま維持する。
+      if (!json.tournaments || json.tournaments.length === 0) {
+        if (!savedData && !data) {
+          setError('保存データがありません。未取得の大会を1件ずつ読み込んでください。');
+        }
+        return;
+      }
+
+      setData((current) => mergeData(current || savedData, json));
     } catch (e) {
       console.error(e);
       setError(
