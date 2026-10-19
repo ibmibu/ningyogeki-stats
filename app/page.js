@@ -10,6 +10,25 @@ function rate(stat) {
   return stat ? `${stat.rate}%` : '—';
 }
 
+async function readApiJson(response, fallbackMessage) {
+  const body = await response.text();
+
+  try {
+    return JSON.parse(body);
+  } catch {
+    if (response.status === 504) {
+      throw new Error('サーバーの処理がタイムアウトしました。保存済みの戦績データはそのままなので、時間をおいて再試行してください。');
+    }
+
+    const detail = body.replace(/\s+/g, ' ').trim().slice(0, 160);
+    throw new Error(
+      detail
+        ? `${fallbackMessage} (HTTP ${response.status}): ${detail}`
+        : `${fallbackMessage} (HTTP ${response.status})`
+    );
+  }
+}
+
 function getPlayerAchievements(data, playerId) {
   if (!data?.tournaments?.length || !playerId) {
     return {
@@ -932,7 +951,7 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tournaments: batch }),
         });
-        const json = await response.json();
+        const json = await readApiJson(response, 'APIの応答を読み取れませんでした');
         if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
         results.push(...(json.results || []));
         setCharacterComments([...results]);
@@ -985,7 +1004,7 @@ export default function Home() {
         cache: 'no-store',
       });
 
-      const json = await response.json();
+      const json = await readApiJson(response, 'APIの応答を読み取れませんでした');
 
       if (!response.ok) {
         throw new Error(json.error || '取得に失敗しました');
