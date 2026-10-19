@@ -1607,10 +1607,16 @@ export default function Home() {
     }
     const champions = new Map();
     for (const [number, records] of recordsByTournament) {
-      const losers = new Set(records.map((record) => String(record.loserId)));
-      const participants = new Set(records.flatMap((record) => [String(record.winnerId), String(record.loserId)]));
+      // 同一選手の旧IDと統合後IDが混在していても、同一選手として優勝判定する。
+      const losers = new Set(records.map((record) => canonical(record.loserId)));
+      const participants = new Set(
+        records.flatMap((record) => [
+          canonical(record.winnerId),
+          canonical(record.loserId),
+        ])
+      );
       const unbeaten = [...participants].filter((id) => !losers.has(id));
-      if (unbeaten.length === 1) champions.set(number, canonical(unbeaten[0]));
+      if (unbeaten.length === 1) champions.set(number, unbeaten[0]);
     }
     const playerId = canonical(characterTargetPlayer.id);
     const soloAchievements = [...reportedByTournament.entries()]
