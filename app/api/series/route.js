@@ -251,6 +251,117 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
 
+    // Smashmateへのアクセスは最低60秒間隔が必要なため、
+    // 1回のVercel実行につき外部ページを1つだけ取得する段階式APIを用意する。
+    const step = searchParams.get('step');
+
+    if (step === 'discover') {
+      const known = new Set(
+        (searchParams.get('known') || '')
+          .split(',')
+          .map((value) => Number(value))
+          .filter((value) => Number.isFinite(value) && value > 0)
+      );
+      const allTournaments = await discoverFromUserPage();
+      const missingTournaments = allTournaments.filter(
+        (tournament) => !known.has(tournament.number)
+      );
+      const target = missingTournaments.at(-1) || null;
+
+      console.log(
+        `人形劇: 大会一覧${allTournaments.length}件 / 未取得${missingTournaments.length}件 / 今回取得${target ? 1 : 0}件`
+      );
+
+      return Response.json({
+        step,
+        discoveredOnUserPage: allTournaments.length,
+        target,
+        upToDate: !target,
+      });
+    }
+
+    if (step === 'tournament') {
+      const tournamentId = searchParams.get('tournamentId');
+      const number = Number(searchParams.get('number'));
+      if (!tournamentId || !Number.isFinite(number) || number <= 0) {
+        return Response.json({ error: '大会情報が不足しています。' }, { status: 400 });
+      }
+
+      const tournamentUrl = `${BASE}/tournament/${tournamentId}/`;
+      const page = await html(
+        tournamentUrl,
+        `${BASE}/user_add_tournament/?user=${USER_ID}`
+      );
+      const $ = cheerio.load(page);
+      let href = '';
+      $('a[href*="/bracket/"]').each((_, element) => {
+        const candidate = $(element).attr('href') || '';
+        if (!href && /\/bracket\/\d+\/?/.test(candidate)) href = candidate;
+      });
+      const bracketId = href.match(/\/bracket\/(\d+)\/?/)?.[1];
+
+      if (!bracketId) {
+        return Response.json({
+          error: `人形劇#${number}のトーナメント表URLが見つかりません。`,
+        }, { status: 502 });
+      }
+
+      return Response.json({
+        step,
+        number,
+        tournamentId,
+        tournamentUrl,
+        bracketUrl: `${BASE}/bracket/${bracketId}/`,
+      });
+    }
+
+    if (step === 'bracket') {
+      const number = Number(searchParams.get('number'));
+      const tournamentId = searchParams.get('tournamentId');
+      const bracketUrl = searchParams.get('bracketUrl');
+      const tournamentUrl = `${BASE}/tournament/${tournamentId}/`;
+      if (!Number.isFinite(number) || number <= 0 || !tournamentId || !bracketUrl) {
+        return Response.json({ error: '大会情報が不足しています。' }, { status: 400 });
+      }
+
+      const parsed = parseBracket(
+        await html(bracketUrl, tournamentUrl),
+        `人形劇#${number}`
+      );
+      const players = parsed.players.map((player) => ({
+        ...player,
+        id: canonicalId(player.id),
+      }));
+      const records = parsed.records.map((record) => ({
+        ...record,
+        tournamentNumber: number,
+        tournament: parsed.tournamentName,
+      }));
+      const stats = {};
+      addStats(stats, records);
+      finishStats(stats);
+      const tournamentSummary = {
+        number,
+        name: parsed.tournamentName,
+        tournamentUrl,
+        bracketUrl,
+        matches: records.length,
+        players: players.length,
+      };
+
+      return Response.json({
+        seriesName: '人形劇',
+        tournaments: [tournamentSummary],
+        players,
+        records,
+        matches: records.length,
+        stats,
+        discoveredOnUserPage: null,
+        failed: [],
+        upToDate: false,
+      });
+    }
+
     // ブラウザが既に保存している大会番号。
     // 大会一覧そのものは毎回1回だけ確認し、ここにない大会だけ取得する。
     const known = new Set(
