@@ -1455,10 +1455,15 @@ export default function Home() {
     };
     // いぶ選手の過去大会は手動登録を優先し、同じ大会のコメント集計と二重計上しない。
     const manualReportsByTournament = new Map();
-    if (canonical(characterTargetPlayer.id) === '81727') {
+    {
+      const targetCanonicalId = canonical(characterTargetPlayer.id);
       const normalizeTournamentName = (value) =>
         String(value || '').normalize('NFKC').replace(/[\s#＃]/gu, '');
       for (const report of MANUAL_CHARACTER_REPORTS) {
+        // playerId なしの既存手動データは「いぶ」専用。playerId ありは指定選手だけに適用。
+        if (report.playerId
+          ? canonical(report.playerId) !== targetCanonicalId
+          : targetCanonicalId !== '81727') continue;
         const reportName = String(report.tournamentName || '');
         let tournament = (data.tournaments || []).find(
           (item) => normalizeTournamentName(item.name) === normalizeTournamentName(reportName)
