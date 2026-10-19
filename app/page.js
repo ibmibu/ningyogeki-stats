@@ -1079,7 +1079,11 @@ export default function Home() {
     let savedData = null;
 
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      // v4がなければ、以前のバージョンで保存したv3の戦績も引き継ぐ。
+      // 保存キーを変更しただけで既存大会が未取得扱いになるのを防ぐ。
+      const saved =
+        localStorage.getItem(STORAGE_KEY) ||
+        localStorage.getItem('ningyogeki-stats-v3');
 
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -1091,6 +1095,8 @@ export default function Home() {
         ) {
           savedData = parsed;
           setData(parsed);
+          // 新しいキーへ移行し、次回からはv4を使用する。
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
         }
       }
     } catch (e) {
