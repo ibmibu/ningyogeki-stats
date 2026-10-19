@@ -268,7 +268,8 @@ export async function GET(request) {
 
     // 1回のVercel実行で大量の大会を処理すると、Smashmateへのアクセス間隔
     // （最低60秒）によって実行時間上限に達するため、1大会ずつ処理する。
-    const targets = missingTournaments.slice(0, 1);
+    // 最新の未取得大会を1件だけ取得する。古い大会を全件一括で処理しない。
+    const targets = missingTournaments.slice(-1);
 
     console.log(
       `人形劇: 大会一覧${allTournaments.length}件 / 未取得${missingTournaments.length}件 / 今回取得${targets.length}件`
