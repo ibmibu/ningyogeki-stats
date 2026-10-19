@@ -1476,6 +1476,12 @@ export default function Home() {
         if (characters.length > 0) manualReportsByTournament.set(number, characters);
       }
     }
+    // 人形劇#134のスンドゥブ選手は、コメント取得・投稿者照合で漏れているため手動補完する。
+    // 対象選手と大会を限定し、使用キャラ集計と単騎実績の両方に反映する。
+    if (String(characterTargetPlayer.name || '').normalize('NFKC').replace(/\s+/gu, '') === 'スンドゥブ') {
+      const tournament134 = (data.tournaments || []).find((item) => Number(item.number) === 134);
+      if (tournament134) manualReportsByTournament.set(134, ['ウルフ']);
+    }
     // ファイター名は、一覧にある正式表記との一致だけを集計する。表記ゆれ対応は後で追加する。
     const knownCharacters = [
       'マリオ', 'ドンキーコング', 'リンク', 'サムス', 'ダークサムス', 'ヨッシー',
