@@ -1010,10 +1010,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (characterCacheLoaded && data?.tournaments?.length && !characterLoading) {
+    // 大会戦績の取得中にキャラコメントを並行取得すると、
+    // Smashmateへのアクセス間隔が重なるため、戦績取得後に開始する。
+    if (characterCacheLoaded && data?.tournaments?.length && !characterLoading && !loading) {
       loadCharacterComments();
     }
-  }, [data, characterComments, characterCacheLoaded, characterLoading]);
+  }, [data, characterComments, characterCacheLoaded, characterLoading, loading]);
 
 
 
