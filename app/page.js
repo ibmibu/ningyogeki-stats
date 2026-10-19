@@ -2067,6 +2067,7 @@ export default function Home() {
                       {item.detectionTrace.length > 0 && <div>検出詳細：{item.detectionTrace.map((trace) => trace.matchedText + '→' + trace.officialName).join('、')}</div>}
                     </div>) : <p style={{ margin: '6px 0' }}>スンドゥブ本人と一致するコメントがありません。</p>}
                     {debugTournament?.debug?.responsePreview && <details style={{ marginTop: 8 }}><summary>取得レスポンス（先頭）</summary><pre style={{ whiteSpace: 'pre-wrap', margin: '6px 0' }}>{debugTournament.debug.responsePreview}</pre></details>}
+                    {debugTournament?.debug?.profileLinksPreview?.length > 0 && <details style={{ marginTop: 8 }}><summary>投稿者リンクの解析結果（確認用）</summary><pre style={{ whiteSpace: 'pre-wrap', margin: '6px 0' }}>{JSON.stringify(debugTournament.debug.profileLinksPreview, null, 2)}</pre></details>}
                   </section>;
                 })()}
               </div>
