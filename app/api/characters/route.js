@@ -34,7 +34,15 @@ function parseComments(html) {
     const profile = node.find('a[href]').toArray().map(a => $(a)).find(a => /user\/(\d+)/.test(a.attr('href') || ''));
     const href = profile ? profile.attr('href') || '' : '';
     const userId = href.match(/user\/(\d+)/)?.[1] || '';
-    const name = profile ? cleanText(profile.text()) : '';
+    const name = profile ? cleanText(
+      profile.text() ||
+      profile.attr('title') ||
+      profile.attr('aria-label') ||
+      profile.find('img').attr('alt') ||
+      profile.find('[title]').first().attr('title') ||
+      profile.find('[aria-label]').first().attr('aria-label') ||
+      ''
+    ) : '';
     const clone = node.clone();
     clone.find('a[href]').remove();
     let body = cleanText(clone.text());
@@ -48,12 +56,22 @@ function parseComments(html) {
 
   // Diagnostic only: return strings and numbers, never Cheerio nodes.
   const responsePreview = cleanText(root.text()).slice(0, 1200);
-  const profileLinks = $('a[href]').toArray().filter(a => /\/user\/\d+/.test($(a).attr('href') || '')).length;
+  const profileLinkNodes = $('a[href]').toArray().filter(a => /\/user\/\d+/.test($(a).attr('href') || ''));
+  const profileLinks = profileLinkNodes.length;
+  const profileLinksPreview = profileLinkNodes.slice(0, 20).map(a => ({
+    href: $(a).attr('href') || '',
+    text: cleanText($(a).text()),
+    title: $(a).attr('title') || '',
+    ariaLabel: $(a).attr('aria-label') || '',
+    imageAlt: $(a).find('img').attr('alt') || '',
+    html: $.html(a).slice(0, 500)
+  }));
   return {
     comments,
     debug: {
       htmlLength: html.length,
       profileLinks,
+      profileLinksPreview,
       commentNodeCount: candidates.length,
       sampleComments: comments.slice(0, 8).map(({ name, userId, text }) => ({ name, userId, text: text.slice(0, 300) })),
       responsePreview,
