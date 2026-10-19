@@ -58,5 +58,4 @@ export const MANUAL_CHARACTER_REPORTS = [
   { tournamentName: '人形劇 #128', characters: ['ロゼッタ＆チコ'] },
   { tournamentName: '人形劇 #129', characters: ['ソニック'] },
   { tournamentName: '人形劇 #130', characters: ['ソニック', 'ゼロスーツサムス', 'ロゼッタ＆チコ', 'ファルコ'] },
-  { playerId: '142959', tournamentName: '人形劇 #134', characters: ['ウルフ'] },
 ];
