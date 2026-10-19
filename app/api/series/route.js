@@ -262,12 +262,16 @@ export async function GET(request) {
 
     const allTournaments = await discoverFromUserPage();
 
-    const targets = allTournaments.filter(
+    const missingTournaments = allTournaments.filter(
       (tournament) => !known.has(tournament.number)
     );
 
+    // 1回のVercel実行で大量の大会を処理すると、Smashmateへのアクセス間隔
+    // （最低60秒）によって実行時間上限に達するため、1大会ずつ処理する。
+    const targets = missingTournaments.slice(0, 1);
+
     console.log(
-      `人形劇: 大会一覧${allTournaments.length}件 / 未取得${targets.length}件`
+      `人形劇: 大会一覧${allTournaments.length}件 / 未取得${missingTournaments.length}件 / 今回取得${targets.length}件`
     );
 
     // 未取得大会が1件もなければ、ここで終了。
