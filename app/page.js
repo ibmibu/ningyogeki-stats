@@ -943,10 +943,13 @@ export default function Home() {
 
     const cached = Array.isArray(characterComments) ? characterComments : [];
     const cachedByNumber = new Map(cached.map((item) => [Number(item.number), item]));
-    // 最新大会のコメントは、キャラ報告が後から投稿されることがあるため定期的に再取得する。
-    // fetchedAt がない旧キャッシュも、最新大会に限って一度更新する。
-    const latestTournamentNumber = Math.max(
-      ...data.tournaments.map((tournament) => Number(tournament.number)).filter(Number.isFinite)
+    // 直近大会のコメントは、キャラ報告が後から投稿されることがあるため定期的に再取得する。
+    // fetchedAt がない旧キャッシュも、直近3大会に限って一度更新する。
+    const recentTournamentNumbers = new Set(
+      [...data.tournaments]
+        .sort((a, b) => Number(b.number) - Number(a.number))
+        .slice(0, 3)
+        .map((tournament) => Number(tournament.number))
     );
     const refreshAfterMs = 6 * 60 * 60 * 1000;
     const missing = [...data.tournaments]
@@ -954,10 +957,10 @@ export default function Home() {
         const number = Number(tournament.number);
         const existing = cachedByNumber.get(number);
         const fetchedAt = Number(existing?.fetchedAt);
-        const latestCacheIsStale =
-          number === latestTournamentNumber &&
+        const recentCacheIsStale =
+          recentTournamentNumbers.has(number) &&
           (!Number.isFinite(fetchedAt) || Date.now() - fetchedAt >= refreshAfterMs);
-        return (!existing || existing.error || latestCacheIsStale) &&
+        return (!existing || existing.error || recentCacheIsStale) &&
           !attemptedCharacterTournaments.current.has(number);
       })
       .sort((a, b) => Number(a.number) - Number(b.number));
