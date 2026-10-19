@@ -943,11 +943,22 @@ export default function Home() {
 
     const cached = Array.isArray(characterComments) ? characterComments : [];
     const cachedByNumber = new Map(cached.map((item) => [Number(item.number), item]));
+    // 最新大会のコメントは、キャラ報告が後から投稿されることがあるため定期的に再取得する。
+    // fetchedAt がない旧キャッシュも、最新大会に限って一度更新する。
+    const latestTournamentNumber = Math.max(
+      ...data.tournaments.map((tournament) => Number(tournament.number)).filter(Number.isFinite)
+    );
+    const refreshAfterMs = 6 * 60 * 60 * 1000;
     const missing = [...data.tournaments]
       .filter((tournament) => {
         const number = Number(tournament.number);
         const existing = cachedByNumber.get(number);
-        return (!existing || existing.error) && !attemptedCharacterTournaments.current.has(number);
+        const fetchedAt = Number(existing?.fetchedAt);
+        const latestCacheIsStale =
+          number === latestTournamentNumber &&
+          (!Number.isFinite(fetchedAt) || Date.now() - fetchedAt >= refreshAfterMs);
+        return (!existing || existing.error || latestCacheIsStale) &&
+          !attemptedCharacterTournaments.current.has(number);
       })
       .sort((a, b) => Number(a.number) - Number(b.number));
 
@@ -981,7 +992,9 @@ export default function Home() {
         const json = await readApiJson(response, 'APIの応答を読み取れませんでした');
         if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
 
-        for (const item of json.results || []) latestByNumber.set(Number(item.number), item);
+        for (const item of json.results || []) {
+          latestByNumber.set(Number(item.number), { ...item, fetchedAt: Date.now() });
+        }
         const mergedResults = [...latestByNumber.values()].sort((a, b) => Number(a.number) - Number(b.number));
         setCharacterComments(mergedResults);
         try {
