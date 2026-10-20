@@ -21,20 +21,27 @@ function parseComments(html) {
   const $ = cheerio.load(html);
   const comments = [];
   const seen = new Set();
-  // Smashmate's AJAX response is a sequence of author name + timestamp + comment body,
-  // rather than elements with a dedicated comment CSS class.
-  const root = $('body').length ? $('body') : $.root();
-  const blocks = root.find('li, .comment, [class*="comment"], tr').toArray();
-  const candidates = blocks.length ? blocks : [root.get(0)].filter(Boolean);
+
+  // 1件のコメント全体を包む要素を優先する。
+  // Smashmateでは投稿者名と本文が別要素に入っている。
+  let candidates = $('.comment-body').toArray();
+  if (!candidates.length) {
+    const root = $('body').length ? $('body') : $.root();
+    const blocks = root.find('li, .comment, [class*="comment"], tr').toArray();
+    candidates = blocks.length ? blocks : [root.get(0)].filter(Boolean);
+  }
 
   for (const element of candidates) {
     const node = $(element);
     const text = cleanText(node.text());
     if (!text || text.length > 2500) continue;
-    const profile = node.find('a[href]').toArray().map(a => $(a)).find(a => /user\/(\d+)/.test(a.attr('href') || ''));
+
+    const profile = node.find('a[href]').toArray()
+      .map(a => $(a))
+      .find(a => /user\/(\d+)/.test(a.attr('href') || ''));
     const href = profile ? profile.attr('href') || '' : '';
     const userId = href.match(/user\/(\d+)/)?.[1] || '';
-    let name = profile ? cleanText(
+    const name = profile ? cleanText(
       profile.text() ||
       profile.attr('title') ||
       profile.attr('aria-label') ||
@@ -43,22 +50,18 @@ function parseComments(html) {
       profile.find('[aria-label]').first().attr('aria-label') ||
       ''
     ) : '';
-    const clone = node.clone();
-    clone.find('a[href]').remove();
-    let body = cleanText(clone.text());
-    if (name && body.startsWith(name)) body = cleanText(body.slice(name.length));
 
-    // 一部のスマメイト応答では投稿者名がリンクではなく、
-    // 「スンドゥブ10月19日 21時47分本文」のようにプレーンテキストで返る。
-    // その場合はタイムスタンプより前を投稿者名として分離する。
-    if (!name) {
-      const timestampMatch = text.match(/^(.+?)(\d{1,2}月\d{1,2}日\s*\d{1,2}:\d{2})(.*)$/u);
-      if (timestampMatch && timestampMatch[1].length <= 80) {
-        name = cleanText(timestampMatch[1]);
-        body = cleanText(timestampMatch[3]);
-      }
+    // コメント本文の領域を優先し、投稿者名・日時を本文に混ぜない。
+    const commentArea = node.find('.comment-area').first();
+    let body = commentArea.length ? cleanText(commentArea.text()) : '';
+    if (!body) {
+      const clone = node.clone();
+      clone.find('a[href], .gray, .comment-header, .comment-date').remove();
+      body = cleanText(clone.text());
+      if (name && body.startsWith(name)) body = cleanText(body.slice(name.length));
     }
     if (!body || body === text) continue;
+
     const key = [userId, name, body].join('|');
     if (seen.has(key)) continue;
     seen.add(key);
@@ -66,6 +69,7 @@ function parseComments(html) {
   }
 
   // Diagnostic only: return strings and numbers, never Cheerio nodes.
+  const root = $('body').length ? $('body') : $.root();
   const responsePreview = cleanText(root.text()).slice(0, 1200);
   const profileLinkNodes = $('a[href]').toArray().filter(a => /\/user\/\d+/.test($(a).attr('href') || ''));
   const profileLinks = profileLinkNodes.length;
