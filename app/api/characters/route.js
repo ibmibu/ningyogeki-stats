@@ -76,31 +76,7 @@ function parseComments(html) {
     comments.push({ userId, name, date: '', text: body });
   }
 
-  // Diagnostic only: return strings and numbers, never Cheerio nodes.
-  const root = $('body').length ? $('body') : $.root();
-  const responsePreview = cleanText(root.text()).slice(0, 1200);
-  const profileLinkNodes = $('a[href]').toArray().filter(a => /\/user\/\d+/.test($(a).attr('href') || ''));
-  const profileLinks = profileLinkNodes.length;
-  const profileLinksPreview = profileLinkNodes.slice(0, 20).map(a => ({
-    href: $(a).attr('href') || '',
-    text: cleanText($(a).text()),
-    title: $(a).attr('title') || '',
-    ariaLabel: $(a).attr('aria-label') || '',
-    imageAlt: $(a).find('img').attr('alt') || '',
-    html: $.html(a).slice(0, 500)
-  }));
-  return {
-    comments,
-    debug: {
-      htmlLength: html.length,
-      profileLinks,
-      profileLinksPreview,
-      commentNodeCount: candidates.length,
-      sampleComments: comments.slice(0, 8).map(({ name, userId, text }) => ({ name, userId, text: text.slice(0, 300) })),
-      responsePreview,
-      commentHtmlPreview: candidates.slice(0, 3).map(element => $.html(element).slice(0, 1000))
-    }
-  };
+  return { comments };
 }
 
 async function getComments(tournament) {
