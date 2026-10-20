@@ -819,25 +819,42 @@ function calculateTournamentTierScores(data) {
   const records = Array.isArray(data?.records) ? data.records : [];
   if (!tournaments.length || !records.length) return {};
 
-  const ratingCache = new Map();
-  const getSeasonRatings = (seasonNumber, beforeTournamentNumber = Infinity) => {
-    const cacheKey = `${seasonNumber}:${beforeTournamentNumber}`;
-    if (ratingCache.has(cacheKey)) return ratingCache.get(cacheKey);
+  const maxTournamentNumber = Math.max(
+    ...tournaments.map((tournament) => Number(tournament.number) || 0)
+  );
+  const currentSeason = Math.floor((maxTournamentNumber - 1) / 25) + 1;
+  const seasonRatingsCache = new Map();
 
-    const seasonRecords = records.filter((record) => {
-      const n = Number(record.tournamentNumber) || 0;
-      return n < beforeTournamentNumber;
-    });
-    const result = calculateElo(
-      { ...data, records: seasonRecords },
-      String(seasonNumber)
-    );
+  // 大会規模は「その大会が属するシーズン」のレートで算出する。
+  // 終了済みシーズンは最終レート、開催中シーズンは最新レートを全大会に適用する。
+  // 「すべて」のランキングのレートは大会規模の計算には使用しない。
+  const getSeasonFinalRatings = (seasonNumber) => {
+    if (seasonRatingsCache.has(seasonNumber)) {
+      return seasonRatingsCache.get(seasonNumber);
+    }
+
+    const result = calculateElo(data, String(seasonNumber));
     const ratings = new Map(
-      result.ranking.map((player) => [String(player.id), Number(player.rating) || ELO_INITIAL_RATING])
+      result.ranking.map((player) => [
+        String(player.id),
+        Number(player.rating) || ELO_INITIAL_RATING,
+      ])
     );
-    ratingCache.set(cacheKey, ratings);
+    seasonRatingsCache.set(seasonNumber, ratings);
     return ratings;
   };
+
+  const participantsByTournament = new Map();
+  for (const record of records) {
+    const tournamentNumber = Number(record.tournamentNumber) || 0;
+    if (!tournamentNumber) continue;
+    if (!participantsByTournament.has(tournamentNumber)) {
+      participantsByTournament.set(tournamentNumber, new Set());
+    }
+    const participants = participantsByTournament.get(tournamentNumber);
+    if (record.winnerId != null) participants.add(String(record.winnerId));
+    if (record.loserId != null) participants.add(String(record.loserId));
+  }
 
   const scores = {};
   for (const tournament of tournaments) {
@@ -845,22 +862,8 @@ function calculateTournamentTierScores(data) {
     if (!tournamentNumber) continue;
 
     const seasonNumber = Math.floor((tournamentNumber - 1) / 25) + 1;
-    const positionInSeason = ((tournamentNumber - 1) % 25) + 1;
-    const usePreviousSeason = seasonNumber > 1 && positionInSeason <= 5;
-
-    let ratings;
-    if (usePreviousSeason) {
-      ratings = getSeasonRatings(seasonNumber - 1, (seasonNumber - 1) * 25 + 1);
-    } else {
-      ratings = getSeasonRatings(seasonNumber, tournamentNumber);
-    }
-
-    const participants = new Set();
-    for (const record of records) {
-      if ((Number(record.tournamentNumber) || 0) !== tournamentNumber) continue;
-      if (record.winnerId != null) participants.add(String(record.winnerId));
-      if (record.loserId != null) participants.add(String(record.loserId));
-    }
+    const ratings = getSeasonFinalRatings(seasonNumber);
+    const participants = participantsByTournament.get(tournamentNumber) || new Set();
 
     let total = 0;
     for (const playerId of participants) {
