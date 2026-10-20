@@ -1779,6 +1779,11 @@ footer span {
     min-height: 36px;
     padding: 7px 10px;
   }
+
+  /* モバイル版は従来どおり上位3体まで表示 */
+  .characterTopList .characterTopCard:nth-child(n + 4) {
+    display: none;
+  }
 }
 
 
