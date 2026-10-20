@@ -961,7 +961,7 @@ export default function Home() {
           recentTournamentNumbers.has(number) &&
           (!Number.isFinite(fetchedAt) || Date.now() - fetchedAt >= refreshAfterMs);
         // #134 のキャラ報告の取りこぼし調査のため、旧キャッシュを一度だけ再取得する。
-        const refreshTournament134 = number === 134 && existing?.parserVersion !== 3;
+        const refreshTournament134 = number === 134 && existing?.parserVersion !== 4;
         return (!existing || existing.error || recentCacheIsStale || refreshTournament134) &&
           !attemptedCharacterTournaments.current.has(number);
       })
@@ -1001,7 +1001,7 @@ export default function Home() {
           latestByNumber.set(Number(item.number), {
             ...item,
             fetchedAt: Date.now(),
-            ...(Number(item.number) === 134 ? { parserVersion: 3 } : {}),
+            ...(Number(item.number) === 134 ? { parserVersion: 4 } : {}),
           });
         }
         const mergedResults = [...latestByNumber.values()].sort((a, b) => Number(a.number) - Number(b.number));
