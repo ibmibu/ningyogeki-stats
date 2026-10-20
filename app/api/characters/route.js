@@ -34,7 +34,7 @@ function parseComments(html) {
     const profile = node.find('a[href]').toArray().map(a => $(a)).find(a => /user\/(\d+)/.test(a.attr('href') || ''));
     const href = profile ? profile.attr('href') || '' : '';
     const userId = href.match(/user\/(\d+)/)?.[1] || '';
-    const name = profile ? cleanText(
+    let name = profile ? cleanText(
       profile.text() ||
       profile.attr('title') ||
       profile.attr('aria-label') ||
@@ -47,6 +47,17 @@ function parseComments(html) {
     clone.find('a[href]').remove();
     let body = cleanText(clone.text());
     if (name && body.startsWith(name)) body = cleanText(body.slice(name.length));
+
+    // 一部のスマメイト応答では投稿者名がリンクではなく、
+    // 「スンドゥブ10月19日 21時47分本文」のようにプレーンテキストで返る。
+    // その場合はタイムスタンプより前を投稿者名として分離する。
+    if (!name) {
+      const timestampMatch = text.match(/^(.+?)(\d{1,2}月\d{1,2}日\s*\d{1,2}:\d{2})(.*)$/u);
+      if (timestampMatch && timestampMatch[1].length <= 80) {
+        name = cleanText(timestampMatch[1]);
+        body = cleanText(timestampMatch[3]);
+      }
+    }
     if (!body || body === text) continue;
     const key = [userId, name, body].join('|');
     if (seen.has(key)) continue;
