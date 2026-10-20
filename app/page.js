@@ -2046,18 +2046,6 @@ export default function Home() {
                         <span className="characterSectionTitle">メインファイター</span>
                         <div className="characterTopList">{selectedCharacterStats.counts.slice(0, 3).map((item) => <div className="characterTopCard" key={item.name}>{item.name}</div>)}</div>
                       </section>
-                      <section className="characterUsageSection" style={{ gridColumn: '1 / -1', marginTop: '12px', padding: '12px', border: '1px dashed #d97706', borderRadius: '8px' }}>
-                        <span className="characterSectionTitle">【確認用・あとで削除】キャラ報告の全件集計</span>
-                        <p style={{ fontSize: '12px', margin: '6px 0 10px' }}>集計単位：同じ大会で同じキャラは1回。実際の試合での使用回数ではなく、コメントから確認できた「報告のあった大会数」です。</p>
-                        <p style={{ fontSize: '12px', margin: '4px 0 10px' }}>対象選手ID：{selectedCharacterStats.targetId} ／ 投稿者一致コメント：{selectedCharacterStats.matchedComments}件 ／ キャラ名検出：{selectedCharacterStats.parsedComments}件 ／ 取得コメント：{selectedCharacterStats.fetchedComments}件 ／ 取得エラー大会：{selectedCharacterStats.fetchErrors}件</p>
-                        <div style={{ overflowX: 'auto' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                            <thead><tr><th style={{ textAlign: 'left', padding: '6px', borderBottom: '1px solid #ccc' }}>順位</th><th style={{ textAlign: 'left', padding: '6px', borderBottom: '1px solid #ccc' }}>キャラ</th><th style={{ textAlign: 'right', padding: '6px', borderBottom: '1px solid #ccc' }}>報告大会数</th></tr></thead>
-                            <tbody>{selectedCharacterStats.counts.map((item, index) => <tr key={item.name}><td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{index + 1}</td><td style={{ padding: '6px', borderBottom: '1px solid #eee' }}>{item.name}</td><td style={{ padding: '6px', textAlign: 'right', borderBottom: '1px solid #eee', fontVariantNumeric: 'tabular-nums' }}>{item.count}</td></tr>)}</tbody>
-                          </table>
-                        </div>
-                        <p style={{ fontSize: '12px', marginTop: '8px' }}>合計：{selectedCharacterStats.total}キャラ報告カウント ／ 報告が見つかった大会：{selectedCharacterStats.tournaments}大会</p>
-                      </section>
                       {selectedCharacterStats.soloAchievements?.length > 0 && <section className="characterUsageSection characterSoloSection"><span className="characterSectionTitle">単騎達成</span><div className="characterSoloList">{[...selectedCharacterStats.soloAchievements.reduce((grouped, item) => { if (!grouped.has(item.character)) grouped.set(item.character, []); grouped.get(item.character).push(item.number); return grouped; }, new Map())].map(([character, numbers]) => <div className="characterSoloEntry" key={character}><div className="characterSoloEntryHead"><button type="button" className="characterSoloCard" aria-expanded={expandedSoloCharacters.includes(character)} onClick={() => setExpandedSoloCharacters((current) => current.includes(character) ? current.filter((item) => item !== character) : [...current, character])}><strong>{character}</strong></button>{numbers.length > 1 && <span className="characterSoloCount">×{numbers.length}</span>}</div>{expandedSoloCharacters.includes(character) && <div className="characterSoloNumbers" aria-label={character + 'の達成大会'}>{numbers.map((number) => <span key={number}>#{number}</span>)}</div>}</div>)}</div></section>}
                     </div>
                   </> : <p>この選手のコメントからキャラ報告を確認できませんでした。</p>}
