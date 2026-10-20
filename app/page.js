@@ -961,7 +961,7 @@ export default function Home() {
           recentTournamentNumbers.has(number) &&
           (!Number.isFinite(fetchedAt) || Date.now() - fetchedAt >= refreshAfterMs);
         // #134 のキャラ報告の取りこぼし調査のため、旧キャッシュを一度だけ再取得する。
-        const refreshTournament134 = number === 134 && existing?.parserVersion !== 4;
+        const refreshTournament134 = number === 134 && existing?.parserVersion !== 5;
         return (!existing || existing.error || recentCacheIsStale || refreshTournament134) &&
           !attemptedCharacterTournaments.current.has(number);
       })
@@ -1001,7 +1001,7 @@ export default function Home() {
           latestByNumber.set(Number(item.number), {
             ...item,
             fetchedAt: Date.now(),
-            ...(Number(item.number) === 134 ? { parserVersion: 4 } : {}),
+            ...(Number(item.number) === 134 ? { parserVersion: 5 } : {}),
           });
         }
         const mergedResults = [...latestByNumber.values()].sort((a, b) => Number(a.number) - Number(b.number));
@@ -2067,6 +2067,7 @@ export default function Home() {
                       {item.detectionTrace.length > 0 && <div>検出詳細：{item.detectionTrace.map((trace) => trace.matchedText + '→' + trace.officialName).join('、')}</div>}
                     </div>) : <p style={{ margin: '6px 0' }}>スンドゥブ本人と一致するコメントがありません。</p>}
                     {debugTournament?.debug?.responsePreview && <details style={{ marginTop: 8 }}><summary>取得レスポンス（先頭）</summary><pre style={{ whiteSpace: 'pre-wrap', margin: '6px 0' }}>{debugTournament.debug.responsePreview}</pre></details>}
+                    {debugTournament?.debug?.sampleComments?.length > 0 && <details style={{ marginTop: 8 }}><summary>APIが解析したコメント一覧（確認用）</summary><pre style={{ whiteSpace: 'pre-wrap', margin: '6px 0', maxHeight: 420, overflow: 'auto' }}>{JSON.stringify(debugTournament.debug.sampleComments, null, 2)}</pre></details>}
                     {debugTournament?.debug?.profileLinksPreview?.length > 0 && <details style={{ marginTop: 8 }}><summary>投稿者リンクの解析結果（確認用）</summary><pre style={{ whiteSpace: 'pre-wrap', margin: '6px 0' }}>{JSON.stringify(debugTournament.debug.profileLinksPreview, null, 2)}</pre></details>}
                     {debugTournament?.debug?.commentHtmlPreview?.length > 0 && <details style={{ marginTop: 8 }}><summary>コメントHTML構造（確認用）</summary><pre style={{ whiteSpace: 'pre-wrap', margin: '6px 0', maxHeight: 420, overflow: 'auto' }}>{JSON.stringify(debugTournament.debug.commentHtmlPreview, null, 2)}</pre></details>}
                   </section>;
