@@ -36,9 +36,11 @@ function parseComments(html) {
     const text = cleanText(node.text());
     if (!text || text.length > 2500) continue;
 
-    const profile = node.find('a[href]').toArray()
+    const profileLinks = node.find('a[href]').toArray()
       .map(a => $(a))
-      .find(a => /user\/(\d+)/.test(a.attr('href') || ''));
+      .filter(a => /user\/(\d+)/.test(a.attr('href') || ''));
+    // 画像だけのリンクが先にあるため、表示名のテキストを持つリンクを優先する。
+    const profile = profileLinks.find(a => cleanText(a.text())) || profileLinks[0] || null;
     const href = profile ? profile.attr('href') || '' : '';
     const userId = href.match(/user\/(\d+)/)?.[1] || '';
     const name = profile ? cleanText(
