@@ -862,7 +862,14 @@ function calculateTournamentTierScores(data) {
     if (!tournamentNumber) continue;
 
     const seasonNumber = Math.floor((tournamentNumber - 1) / 25) + 1;
-    const ratings = getSeasonFinalRatings(seasonNumber);
+    const positionInSeason = ((tournamentNumber - 1) % 25) + 1;
+    // シーズン最初の5大会は前シーズンの最終レートで規模を算出する。
+    // それ以降は、その大会が属するシーズンのレートを使う。
+    const ratingSeason =
+      seasonNumber > 1 && positionInSeason <= 5
+        ? seasonNumber - 1
+        : seasonNumber;
+    const ratings = getSeasonFinalRatings(ratingSeason);
     const participants = participantsByTournament.get(tournamentNumber) || new Set();
 
     let total = 0;
