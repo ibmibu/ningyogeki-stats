@@ -39,19 +39,25 @@ function parseComments(html) {
     const profileLinks = node.find('a[href]').toArray()
       .map(a => $(a))
       .filter(a => /user\/(\d+)/.test(a.attr('href') || ''));
-    // 画像だけのリンクが先にあるため、表示名のテキストを持つリンクを優先する。
-    const profile = profileLinks.find(a => cleanText(a.text())) || profileLinks[0] || null;
+    // アイコン画像のリンクではなく、表示名が入っているリンクを優先する。
+    const namedProfile = profileLinks.find(a => cleanText(a.text()));
+    const profile = namedProfile || profileLinks[0] || null;
     const href = profile ? profile.attr('href') || '' : '';
     const userId = href.match(/user\/(\d+)/)?.[1] || '';
-    const name = profile ? cleanText(
-      profile.text() ||
-      profile.attr('title') ||
-      profile.attr('aria-label') ||
-      profile.find('img').attr('alt') ||
-      profile.find('[title]').first().attr('title') ||
-      profile.find('[aria-label]').first().attr('aria-label') ||
+    // リンクのtext()が空になるHTML差異に備え、同じ行のテキストセルも確認する。
+    const rowText = profile ? cleanText(profile.closest('tr').text()) : '';
+    const cells = profile ? profile.closest('tr').find('td').toArray().map(td => cleanText($(td).text())) : [];
+    const name = cleanText(
+      (namedProfile && namedProfile.text()) ||
+      profile?.attr('title') ||
+      profile?.attr('aria-label') ||
+      profile?.find('img').attr('alt') ||
+      profile?.find('[title]').first().attr('title') ||
+      profile?.find('[aria-label]').first().attr('aria-label') ||
+      cells.find(cell => cell && cell !== rowText) ||
+      cells.find(Boolean) ||
       ''
-    ) : '';
+    );
 
     // コメント本文の領域を優先し、投稿者名・日時を本文に混ぜない。
     const commentArea = node.find('.comment-area').first();
