@@ -533,6 +533,56 @@ export default function Home() {
     URL.revokeObjectURL(url);
   }
 
+  async function importArchive(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const archive = JSON.parse(await file.text());
+      if (archive?.archiveFormat !== 'ningyogeki-stats-archive' ||
+          !archive?.data?.players || !archive?.data?.tournaments ||
+          !archive?.data?.records) {
+        throw new Error('人形劇戦績サイトのバックアップJSONではありません。');
+      }
+      const importedData = archive.data;
+      const message = 'バックアップを読み込みます。大会：' +
+        importedData.tournaments.length + '件、対戦記録：' +
+        importedData.records.length + '件。現在の保存データを置き換えます。よろしいですか？';
+      if (!window.confirm(message)) return;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(importedData));
+      if (Array.isArray(archive.characterComments)) {
+        localStorage.setItem('ningyogeki-character-comments-v7', JSON.stringify(archive.characterComments));
+        setCharacterComments(archive.characterComments);
+      }
+      localStorage.setItem('ningyogeki-offline-mode', 'true');
+      setData(importedData);
+      setOfflineMode(true);
+      setSelected('all');
+      setSeason('current');
+      setMatrixSeason('current');
+      setError('');
+      setCharacterError('');
+      setCharacterCacheLoaded(true);
+      setCharacterProgress({ done: importedData.tournaments.length, total: importedData.tournaments.length });
+      setOverlaySyncStatus('バックアップを読み込みました。オフラインモード中はSmashmateへ接続しません。');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'バックアップを読み込めませんでした。');
+    }
+  }
+
+  function toggleOfflineMode() {
+    const next = !offlineMode;
+    if (!next && !window.confirm('オンラインモードに戻すと、最新データ確認時にSmashmateへ接続します。よろしいですか？')) return;
+    localStorage.setItem('ningyogeki-offline-mode', String(next));
+    setOfflineMode(next);
+    if (next) {
+      setError('');
+      setOverlaySyncStatus('オフラインモード中です。Smashmateへ接続しません。');
+    } else {
+      loadLatest();
+    }
+  }
+
   function resetData() {
     if (
       !window.confirm(
