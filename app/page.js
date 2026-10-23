@@ -6,6 +6,16 @@ import { MANUAL_CHARACTER_REPORTS } from './data/manualCharacterReports';
 
 const STORAGE_KEY = 'ningyogeki-stats-v4';
 
+const ACCOUNT_ALIASES = {
+  '99450': '145071',
+  '118591': '149650',
+  '148400': '164481',
+  '80108': '142959',
+  '100389': '167992',
+  '159344': '167992',
+  '156108': '156414',
+};
+
 function rate(stat) {
   return stat ? `${stat.rate}%` : '—';
 }
@@ -1540,10 +1550,9 @@ export default function Home() {
     const reportedByTournament = new Map();
     let matchedComments = 0;
     let parsedComments = 0;
-    const aliases = { '99450': '145071', '118591': '149650', '148400': '164481', '80108': '142959', '100389': '167992', '159344': '167992', '156108': '156414' };
     const canonical = (id) => {
       let value = String(id); const visited = new Set();
-      while (aliases[value] && !visited.has(value)) { visited.add(value); value = aliases[value]; }
+      while (ACCOUNT_ALIASES[value] && !visited.has(value)) { visited.add(value); value = ACCOUNT_ALIASES[value]; }
       return value;
     };
     // いぶ選手の過去大会は手動登録を優先し、同じ大会のコメント集計と二重計上しない。
