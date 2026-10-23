@@ -2046,11 +2046,11 @@ export default function Home() {
             <button
               className="primary"
               onClick={() => loadLatest()}
-              disabled={loading}
+              disabled={loading || offlineMode}
             >
               {loading
                 ? '最新大会を確認中（最大約2分）…'
-                : '最新データを確認'}
+                : offlineMode ? 'オフライン中（接続停止）' : '最新データを確認'}
             </button>
 
             <button
