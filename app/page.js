@@ -1363,7 +1363,7 @@ export default function Home() {
       }
     }
 
-    return { appearances, wins };
+    return { appearances, wins, recordsByTournament };
   }, [data]);
 
   const sortedPlayers = useMemo(
@@ -1433,21 +1433,12 @@ export default function Home() {
   );
 
   const tournamentChampions = useMemo(() => {
-    const recordsByTournament = new Map();
-
-    for (const record of data?.records || []) {
-      const number = Number(record.tournamentNumber);
-      if (!Number.isFinite(number)) continue;
-      if (!recordsByTournament.has(number)) recordsByTournament.set(number, []);
-      recordsByTournament.get(number).push(record);
-    }
-
     const playerNames = new Map(
       (data?.players || []).map((player) => [String(player.id), player.name])
     );
     const champions = new Map();
 
-    for (const [number, records] of recordsByTournament) {
+    for (const [number, records] of playerTournamentStats.recordsByTournament) {
       const losers = new Set(records.map((record) => String(record.loserId)));
       const participants = new Set(
         records.flatMap((record) => [
@@ -1463,7 +1454,7 @@ export default function Home() {
     }
 
     return champions;
-  }, [data]);
+  }, [data, playerTournamentStats]);
 
   const maxTournament = data?.tournaments?.length
     ? Math.max(
