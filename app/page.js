@@ -120,45 +120,6 @@ async function readApiJson(response, fallbackMessage) {
   }
 }
 
-function getRecentResults(records, playerId, opponentId) {
-  if (!Array.isArray(records)) return [];
-
-  const player = String(playerId);
-  const opponent = String(opponentId);
-
-  return records
-    .filter((record) => {
-      const winnerId = record?.winnerId;
-      const loserId = record?.loserId;
-
-      if (winnerId == null || loserId == null) {
-        return false;
-      }
-
-      const winner = String(winnerId);
-      const loser = String(loserId);
-
-      return (
-        (winner === player && loser === opponent) ||
-        (winner === opponent && loser === player)
-      );
-    })
-    .sort(
-      (a, b) =>
-        (Number(b.tournamentNumber) || 0) -
-        (Number(a.tournamentNumber) || 0)
-    )
-    .slice(0, 5)
-    .map((record) => ({
-      result:
-        String(record.winnerId) === player
-          ? 'W'
-          : 'L',
-      tournamentNumber:
-        Number(record.tournamentNumber) || 0,
-    }));
-}
-
 export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
