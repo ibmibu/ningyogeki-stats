@@ -476,6 +476,59 @@ export default function Home() {
       : '';
   }
 
+  function exportArchive() {
+    if (!data) return;
+
+    let savedData = data;
+    let savedCharacterComments = Array.isArray(characterComments) ? characterComments : [];
+
+    try {
+      const storedData =
+        localStorage.getItem(STORAGE_KEY) ||
+        localStorage.getItem('ningyogeki-stats-v3');
+      if (storedData) savedData = JSON.parse(storedData);
+    } catch (e) {
+      console.warn('保存済み戦績の読み取りに失敗しました。画面上のデータを出力します。', e);
+    }
+
+    try {
+      const storedComments = localStorage.getItem('ningyogeki-character-comments-v7');
+      if (storedComments) savedCharacterComments = JSON.parse(storedComments);
+    } catch (e) {
+      console.warn('保存済みコメントの読み取りに失敗しました。画面上のデータを出力します。', e);
+    }
+
+    const archive = {
+      archiveFormat: 'ningyogeki-stats-archive',
+      archiveVersion: 1,
+      exportedAt: new Date().toISOString(),
+      source: 'https://ningyogeki-stats.vercel.app/',
+      description: '人形劇戦績サイトのローカル保存用アーカイブ。元データを保持し、再集計できるようにする。',
+      data: savedData,
+      characterComments: savedCharacterComments,
+      manualCharacterReports: MANUAL_CHARACTER_REPORTS,
+      characterAliases: CHARACTER_ALIASES,
+      notes: [
+        'dataにはエクスポート時点でブラウザに保存されていた大会・選手・対戦記録が含まれます。',
+        'characterCommentsは取得済みコメントのキャッシュです。未取得大会のコメントは含まれません。',
+        '手動登録キャラ報告と表記ゆれ辞書は、当時の集計結果を再現するために含めています。',
+      ],
+    };
+
+    const blob = new Blob([JSON.stringify(archive, null, 2)], {
+      type: 'application/json;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const date = new Date().toLocaleDateString('sv-SE');
+    link.href = url;
+    link.download = `ningyogeki-archive-${date}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function resetData() {
     if (
       !window.confirm(
@@ -1952,6 +2005,14 @@ export default function Home() {
               disabled={!data}
             >
               ローカル連携へ同期
+            </button>
+
+            <button
+              className="secondary"
+              onClick={exportArchive}
+              disabled={!data}
+            >
+              全データを保存（JSON）
             </button>
 
             <button
