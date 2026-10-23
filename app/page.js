@@ -103,7 +103,6 @@ const removeExactName = (text, name) => {
 
 export default function Home() {
   const [data, setData] = useState(null);
-  const [offlineMode, setOfflineMode] = useState(false);
   const archiveInputRef = useRef(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -174,7 +173,6 @@ export default function Home() {
     // 起動時はブラウザに保存済みのデータだけを表示する。
     // Smashmateへはアクセスしない。GitHubバックアップは必要なときに手動で読み込む。
     localStorage.setItem('ningyogeki-offline-mode', 'true');
-    setOfflineMode(true);
     setCharacterProgress({
       done: savedData?.tournaments?.length || 0,
       total: savedData?.tournaments?.length || 0,
