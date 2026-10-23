@@ -953,15 +953,33 @@ export default function Home() {
 
     const cached = Array.isArray(characterComments) ? characterComments : [];
     const cachedByNumber = new Map(cached.map((item) => [Number(item.number), item]));
-    // 未取得または取得失敗の大会だけを取得する。取得済み大会は定期的に再取得しない。
-    const missing = [...data.tournaments]
+    const sortedTournaments = [...data.tournaments].sort(
+      (a, b) => Number(a.number) - Number(b.number)
+    );
+    const latestTournament = sortedTournaments[sortedTournaments.length - 1];
+    const latestNumber = Number(latestTournament?.number);
+    const latestCache = cachedByNumber.get(latestNumber);
+    const today = new Date().toLocaleDateString('sv-SE');
+    const latestFetchedDay = latestCache?.fetchedAt
+      ? new Date(Number(latestCache.fetchedAt)).toLocaleDateString('sv-SE')
+      : '';
+    // 最新大会だけ、取得日が変わった後の初回アクセスで一度だけ最終確認する。
+    // これはコメント報告期限の0時以降を想定し、過去大会は再取得しない。
+    const shouldFinalizeLatest =
+      latestTournament &&
+      latestCache &&
+      !latestCache.error &&
+      !latestCache.finalCheckDone &&
+      latestFetchedDay &&
+      latestFetchedDay < today;
+    const missing = sortedTournaments
       .filter((tournament) => {
         const number = Number(tournament.number);
         const existing = cachedByNumber.get(number);
-        return (!existing || existing.error) &&
-          !attemptedCharacterTournaments.current.has(number);
-      })
-      .sort((a, b) => Number(a.number) - Number(b.number));
+        const needsFetch = !existing || existing.error ||
+          (number === latestNumber && shouldFinalizeLatest);
+        return needsFetch && !attemptedCharacterTournaments.current.has(number);
+      });
 
     if (!missing.length) {
       setCharacterProgress({ done: data.tournaments.length, total: data.tournaments.length });
@@ -994,10 +1012,29 @@ export default function Home() {
         if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
 
         for (const item of json.results || []) {
-          latestByNumber.set(Number(item.number), {
+          const number = Number(item.number);
+          const previous = latestByNumber.get(number);
+          const isLatestFinalCheck = number === latestNumber && shouldFinalizeLatest;
+          if (item.error) {
+            latestByNumber.set(number, {
+              ...previous,
+              ...item,
+              error: item.error,
+            });
+            continue;
+          }
+
+          const commentsChanged = JSON.stringify(previous?.comments || []) !==
+            JSON.stringify(item.comments || []);
+          latestByNumber.set(number, {
             ...item,
+            // 最新大会の最終確認でコメントが同じなら、保存済みのコメント内容を維持する。
+            comments: isLatestFinalCheck && !commentsChanged
+              ? (previous?.comments || [])
+              : (item.comments || []),
             fetchedAt: Date.now(),
-            ...(Number(item.number) === 134 ? { parserVersion: 7 } : {}),
+            ...(isLatestFinalCheck ? { finalCheckDone: true } : {}),
+            ...(number === 134 ? { parserVersion: 7 } : {}),
           });
         }
         const mergedResults = [...latestByNumber.values()].sort((a, b) => Number(a.number) - Number(b.number));
