@@ -275,13 +275,8 @@ export default function Home() {
     setCharacterCacheLoaded(true);
   }, []);
 
-  useEffect(() => {
-    // 大会戦績の取得中にキャラコメントを並行取得すると、
-    // Smashmateへのアクセス間隔が重なるため、戦績取得後に開始する。
-    if (characterCacheLoaded && data?.tournaments?.length && !characterLoading && !loading) {
-      loadCharacterComments();
-    }
-  }, [data, characterComments, characterCacheLoaded, characterLoading, loading]);
+  // キャラクターコメントはバックアップに保存されたキャッシュのみを使用する。
+  // Smashmateへの自動アクセスは行わない。
 
 
 
@@ -409,9 +404,14 @@ export default function Home() {
       );
     }
 
-    const savedOfflineMode = localStorage.getItem('ningyogeki-offline-mode') === 'true';
-    setOfflineMode(savedOfflineMode);
-    if (!savedOfflineMode) loadLatest(savedData);
+    // 起動時はブラウザに保存済みのデータだけを表示する。
+    // Smashmateへはアクセスしない。GitHubバックアップは必要なときに手動で読み込む。
+    localStorage.setItem('ningyogeki-offline-mode', 'true');
+    setOfflineMode(true);
+    setCharacterProgress({
+      done: savedData?.tournaments?.length || 0,
+      total: savedData?.tournaments?.length || 0,
+    });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1268,28 +1268,34 @@ export default function Home() {
           <section className="empty card">
             <div className="spinner" />
 
-            <h2>
-              {loading
-                ? '人形劇のデータを確認しています'
-                : '人形劇のデータを取得します'}
-            </h2>
+            <h2>保存済みデータがありません</h2>
 
             <p>
-              {loading
-                ? '保存済みデータを表示しながら、取得間隔を守るため最大約2分かけて最新大会を確認しています。'
-                : '大会一覧とトーナメント表を取得します。'}
+              GitHubのバックアップを読み込むか、保存済みのバックアップJSONを選択してください。
+              Smashmateへのアクセスは行いません。
             </p>
 
-            {!loading && (
-              <button
-                className="primary"
-                onClick={() =>
-                  loadLatest(null, true)
-                }
-              >
-                データを取得
-              </button>
-            )}
+            <button
+              className="primary"
+              onClick={loadGitHubArchive}
+              disabled={loading}
+            >
+              GitHubのバックアップを読み込む
+            </button>
+            <button
+              className="secondary"
+              onClick={() => archiveInputRef.current?.click()}
+              disabled={loading}
+            >
+              バックアップJSONを読み込む
+            </button>
+            <input
+              ref={archiveInputRef}
+              type="file"
+              accept="application/json,.json"
+              onChange={importArchive}
+              style={{ display: 'none' }}
+            />
 
             {error && (
               <p className="error">
@@ -2077,27 +2083,17 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 全対戦履歴の下 */}
+        {/* バックアップ管理 */}
         <section className="control card" style={{ marginTop: '18px' }}>
           <div>
-            <h2>人形劇全体を集計</h2>
+            <h2>データ管理</h2>
 
             <p>
-              ページを開くたびに大会一覧だけを確認し、まだ読み込んでいない大会がある場合だけ取得します。
+              起動時はこのブラウザの保存済みデータを使用します。必要なときだけGitHubまたはJSONのバックアップを読み込めます。
             </p>
           </div>
 
           <div className="buttonGroup">
-            <button
-              className="primary"
-              onClick={() => loadLatest()}
-              disabled={loading || offlineMode}
-            >
-              {loading
-                ? '最新大会を確認中（最大約2分）…'
-                : offlineMode ? 'オフライン中（接続停止）' : '最新データを確認'}
-            </button>
-
             <button
               className="secondary"
               onClick={() => syncToOverlay()}
@@ -2135,29 +2131,11 @@ export default function Home() {
               onChange={importArchive}
               style={{ display: 'none' }}
             />
-            <button
-              className="secondary"
-              onClick={toggleOfflineMode}
-              disabled={loading}
-            >
-              {offlineMode ? 'オンラインモードに戻す' : 'オフラインモードにする'}
-            </button>
 
-            <button
-              className="secondary"
-              onClick={resetData}
-              disabled={loading}
-            >
-              保存データをリセット
-            </button>
           </div>
 
           <div className="hint">
-            {offlineMode
-              ? 'オフラインモード中：保存済みデータだけで集計し、Smashmateへは接続しません。'
-              : loading
-                ? '既存の大会は再取得せず、取得間隔を守るため最大約2分かかります。'
-                : '未取得の大会がある場合だけ追加で読み込みます。'}
+            保存済みデータとバックアップだけを使用します。Smashmateへの通信は行いません。
           </div>
           <div className="hint" role="status" aria-live="polite">
             {overlaySyncStatus}
@@ -2166,7 +2144,7 @@ export default function Home() {
 
         <footer>
           NINGYOGEKI STATS <span>—</span>{' '}
-          Smashmate tournament results
+          Historical tournament results
         </footer>
       </div>
     </main>
