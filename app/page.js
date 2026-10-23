@@ -825,6 +825,47 @@ export default function Home() {
     return { counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size, soloAchievements, matchedComments, parsedComments, targetId: String(characterTargetPlayer.id), fetchedComments: characterComments.reduce((sum, item) => sum + (item.comments?.length || 0), 0), fetchErrors: characterComments.filter((item) => item.error).length };
   }, [data, selected, characterComments, playerTournamentStats]);
 
+  const recentResultsByOpponent = useMemo(() => {
+    const results = new Map();
+    if (!data?.records || !selectedPlayer) return results;
+
+    const playerId = String(selectedPlayer.id);
+    for (const record of data.records) {
+      if (record?.winnerId == null || record?.loserId == null) continue;
+      const winnerId = String(record.winnerId);
+      const loserId = String(record.loserId);
+      let opponentId;
+      let result;
+
+      if (winnerId === playerId) {
+        opponentId = loserId;
+        result = 'W';
+      } else if (loserId === playerId) {
+        opponentId = winnerId;
+        result = 'L';
+      } else {
+        continue;
+      }
+
+      if (!results.has(opponentId)) results.set(opponentId, []);
+      results.get(opponentId).push({
+        result,
+        tournamentNumber: Number(record.tournamentNumber) || 0,
+      });
+    }
+
+    for (const [opponentId, matches] of results) {
+      results.set(
+        opponentId,
+        matches
+          .sort((a, b) => b.tournamentNumber - a.tournamentNumber)
+          .slice(0, 5)
+      );
+    }
+
+    return results;
+  }, [data, selectedPlayer]);
+
   const opponentRows = useMemo(() => {
     if (!data || !selectedPlayer) return [];
 
@@ -1494,11 +1535,7 @@ export default function Home() {
                           </div>
 
                           <div className="recentResults">
-                            {getRecentResults(
-                              data.records,
-                              selectedPlayer.id,
-                              player.id
-                            ).map((result, index) => (
+                            {(recentResultsByOpponent.get(String(player.id)) || []).map((result, index) => (
                               <div
                                 key={`${player.id}-${result.tournamentNumber}-${index}`}
                                 className={`recentResult ${
