@@ -404,7 +404,9 @@ export default function Home() {
       );
     }
 
-    loadLatest(savedData);
+    const savedOfflineMode = localStorage.getItem('ningyogeki-offline-mode') === 'true';
+    setOfflineMode(savedOfflineMode);
+    if (!savedOfflineMode) loadLatest(savedData);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
