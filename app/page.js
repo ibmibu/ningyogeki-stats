@@ -597,12 +597,6 @@ export default function Home() {
         localStorage.setItem('ningyogeki-character-comments-v7', JSON.stringify(archive.characterComments));
         setCharacterComments(archive.characterComments);
       }
-      if (Array.isArray(archive.manualCharacterReports)) {
-        localStorage.setItem('ningyogeki-manual-character-reports-v1', JSON.stringify(archive.manualCharacterReports));
-      }
-      if (Array.isArray(archive.characterAliases)) {
-        localStorage.setItem('ningyogeki-character-aliases-v1', JSON.stringify(archive.characterAliases));
-      }
       localStorage.setItem('ningyogeki-offline-mode', 'true');
       setData(importedData);
       setOfflineMode(true);
