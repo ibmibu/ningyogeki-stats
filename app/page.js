@@ -510,6 +510,7 @@ export default function Home() {
   const playerTournamentStats = useMemo(() => {
     const appearances = new Map();
     const wins = new Map();
+    const champions = new Map();
     const recordsByTournament = new Map();
 
     for (const record of data?.records || []) {
@@ -534,11 +535,12 @@ export default function Home() {
       const unbeaten = [...participants].filter((id) => !losers.has(id));
       if (unbeaten.length === 1) {
         const key = unbeaten[0];
+        champions.set(number, key);
         wins.set(key, (wins.get(key) || 0) + 1);
       }
     }
 
-    return { appearances, wins, recordsByTournament };
+    return { appearances, wins, champions, recordsByTournament };
   }, [data]);
 
   const sortedPlayers = useMemo(
@@ -702,8 +704,8 @@ export default function Home() {
   );
 
   const selectedAchievements = useMemo(
-    () => getPlayerAchievements(data, selected),
-    [data, selected]
+    () => getPlayerAchievements(data, selected, playerTournamentStats.champions),
+    [data, selected, playerTournamentStats]
   );
 
   const selectedCharacterStats = useMemo(() => {
