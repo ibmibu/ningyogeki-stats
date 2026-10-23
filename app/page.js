@@ -359,7 +359,6 @@ export default function Home() {
       }
       localStorage.setItem('ningyogeki-offline-mode', 'true');
       setData(importedData);
-      setOfflineMode(true);
       setSelected('all');
       setSeason('current');
       setMatrixSeason('current');
