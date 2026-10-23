@@ -124,6 +124,7 @@ export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [overlaySyncStatus, setOverlaySyncStatus] = useState('ローカル連携は未確認です。');
   const loadingRef = useRef(false);
   const [selected, setSelected] = useState(() => {
     if (typeof window === 'undefined') return 'all';
@@ -414,6 +415,27 @@ export default function Home() {
     }
   }, [selected]);
 
+  async function syncToOverlay(payload = data) {
+    if (!payload) return;
+    setOverlaySyncStatus('ローカル連携へ同期中…');
+    try {
+      const response = await fetch('http://127.0.0.1:4173/api/sync-stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        cache: 'no-store',
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || `HTTP ${response.status}`);
+      }
+      setOverlaySyncStatus(`ローカル連携へ同期済み（${result.tournaments}大会）`);
+    } catch (e) {
+      console.warn('ローカル連携への同期に失敗しました', e);
+      setOverlaySyncStatus('ローカル連携サーバーに接続できません。起動後に再試行してください。');
+    }
+  }
+
   useEffect(() => {
     if (!data) return;
 
@@ -428,6 +450,9 @@ export default function Home() {
         e
       );
     }
+
+    syncToOverlay(data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
   function toggleSort(key) {
@@ -1923,6 +1948,14 @@ export default function Home() {
 
             <button
               className="secondary"
+              onClick={() => syncToOverlay()}
+              disabled={!data}
+            >
+              ローカル連携へ同期
+            </button>
+
+            <button
+              className="secondary"
               onClick={resetData}
               disabled={loading}
             >
@@ -1934,6 +1967,9 @@ export default function Home() {
             {loading
               ? '既存の大会は再取得せず、取得間隔を守るため最大約2分かかります。'
               : '未取得の大会がある場合だけ追加で読み込みます。'}
+          </div>
+          <div className="hint" role="status" aria-live="polite">
+            {overlaySyncStatus}
           </div>
         </section>
 
