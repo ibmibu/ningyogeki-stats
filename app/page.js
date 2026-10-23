@@ -10,6 +10,67 @@ function rate(stat) {
   return stat ? `${stat.rate}%` : '—';
 }
 
+// ファイター名は、一覧にある正式表記との一致だけを集計する。表記ゆれ対応は後で追加する。
+const knownCharacters = [
+  'マリオ', 'ドンキーコング', 'リンク', 'サムス', 'ダークサムス', 'ヨッシー',
+  'カービィ', 'フォックス', 'ピカチュウ', 'ルイージ', 'ネス', 'キャプテン・ファルコン',
+  'プリン', 'ピーチ', 'デイジー', 'クッパ', 'アイスクライマー', 'シーク', 'ゼルダ',
+  'ドクターマリオ', 'ピチュー', 'ファルコ', 'マルス', 'ルキナ', 'こどもリンク',
+  'ガノンドロフ', 'ミュウツー', 'ロイ', 'クロム', 'Mr.ゲーム＆ウォッチ', 'メタナイト',
+  'ピット', 'ブラックピット', 'ゼロスーツサムス', 'ワリオ', 'スネーク', 'アイク',
+  'ポケモントレーナー', 'ディディーコング', 'リュカ', 'ソニック', 'デデデ',
+  'ピクミン＆オリマー', 'ルカリオ', 'ロボット', 'トゥーンリンク', 'ウルフ', 'むらびと',
+  'ロックマン', 'Wii Fit トレーナー', 'ロゼッタ＆チコ', 'リトル・マック', 'ゲッコウガ',
+  'Mii 格闘タイプ', 'Mii 剣術タイプ', 'Mii 射撃タイプ', 'パルテナ', 'パックマン',
+  'ルフレ', 'シュルク', 'クッパJr.', 'ダックハント', 'リュウ', 'ケン', 'クラウド',
+  'カムイ', 'ベヨネッタ', 'インクリング', 'リドリー', 'シモン', 'リヒター',
+  'キングクルール', 'しずえ', 'ガオガエン', 'パックンフラワー', 'ジョーカー', '勇者',
+  'バンジョー＆カズーイ', 'テリー', 'ベレト／ベレス', 'ミェンミェン', 'スティーブ',
+  'セフィロス', 'ホムラ／ヒカリ', 'カズヤ', 'ソラ'
+];
+const normalizedKnownCharacters = new Set(knownCharacters.map((name) => name.normalize('NFKC')));
+const aliasEntries = Object.entries(CHARACTER_ALIASES)
+  .map(([alias, officialName]) => [String(alias).normalize('NFKC'), String(officialName)])
+  .filter(([alias, officialName]) => alias && normalizedKnownCharacters.has(officialName.normalize('NFKC')));
+const characterPatterns = [
+  ...knownCharacters.map((name) => ({ match: name.normalize('NFKC'), officialName: name })),
+  ...aliasEntries.map(([match, officialName]) => ({ match, officialName })),
+].sort((a, b) => b.match.length - a.match.length);
+// キャラ名の直後が文字列の続きなら誤認識を避ける。
+// 単独名・空白・数字・記号の後に続く表記を認識し、「ソラニン」などは除外する。
+const isJapaneseWordChar = (char) => Boolean(char && /[ぁ-んァ-ヶ一-龯々ー]/u.test(char));
+const isNameContinuation = (char) => Boolean(char && /[A-Za-zぁ-んァ-ヶ一-龯々ー]/u.test(char));
+const findExactName = (text, name) => {
+  let fromIndex = 0;
+  while (fromIndex <= text.length - name.length) {
+    const index = text.indexOf(name, fromIndex);
+    if (index === -1) return -1;
+    const nextChar = text[index + name.length];
+    if (!isJapaneseWordChar(nextChar) && !(nextChar && /[A-Za-z]/u.test(nextChar))) return index;
+    // 数字・空白・記号は区切りとして認める。日本語や英字が続く場合だけ除外。
+    fromIndex = index + name.length;
+  }
+  return -1;
+};
+const removeExactName = (text, name) => {
+  let result = '';
+  let fromIndex = 0;
+  while (fromIndex < text.length) {
+    const index = text.indexOf(name, fromIndex);
+    if (index === -1) return result + text.slice(fromIndex);
+    const nextChar = text[index + name.length];
+    if (isNameContinuation(nextChar)) {
+      result += text.slice(fromIndex, index + name.length);
+      fromIndex = index + name.length;
+    } else {
+      result += text.slice(fromIndex, index) + ' ';
+      fromIndex = index + name.length;
+    }
+  }
+  return result;
+};
+
+
 async function readApiJson(response, fallbackMessage) {
   const body = await response.text();
 
@@ -1519,65 +1580,6 @@ export default function Home() {
         if (characters.length > 0) manualReportsByTournament.set(number, characters);
       }
     }
-    // ファイター名は、一覧にある正式表記との一致だけを集計する。表記ゆれ対応は後で追加する。
-    const knownCharacters = [
-      'マリオ', 'ドンキーコング', 'リンク', 'サムス', 'ダークサムス', 'ヨッシー',
-      'カービィ', 'フォックス', 'ピカチュウ', 'ルイージ', 'ネス', 'キャプテン・ファルコン',
-      'プリン', 'ピーチ', 'デイジー', 'クッパ', 'アイスクライマー', 'シーク', 'ゼルダ',
-      'ドクターマリオ', 'ピチュー', 'ファルコ', 'マルス', 'ルキナ', 'こどもリンク',
-      'ガノンドロフ', 'ミュウツー', 'ロイ', 'クロム', 'Mr.ゲーム＆ウォッチ', 'メタナイト',
-      'ピット', 'ブラックピット', 'ゼロスーツサムス', 'ワリオ', 'スネーク', 'アイク',
-      'ポケモントレーナー', 'ディディーコング', 'リュカ', 'ソニック', 'デデデ',
-      'ピクミン＆オリマー', 'ルカリオ', 'ロボット', 'トゥーンリンク', 'ウルフ', 'むらびと',
-      'ロックマン', 'Wii Fit トレーナー', 'ロゼッタ＆チコ', 'リトル・マック', 'ゲッコウガ',
-      'Mii 格闘タイプ', 'Mii 剣術タイプ', 'Mii 射撃タイプ', 'パルテナ', 'パックマン',
-      'ルフレ', 'シュルク', 'クッパJr.', 'ダックハント', 'リュウ', 'ケン', 'クラウド',
-      'カムイ', 'ベヨネッタ', 'インクリング', 'リドリー', 'シモン', 'リヒター',
-      'キングクルール', 'しずえ', 'ガオガエン', 'パックンフラワー', 'ジョーカー', '勇者',
-      'バンジョー＆カズーイ', 'テリー', 'ベレト／ベレス', 'ミェンミェン', 'スティーブ',
-      'セフィロス', 'ホムラ／ヒカリ', 'カズヤ', 'ソラ'
-    ];
-    const normalizedKnownCharacters = new Set(knownCharacters.map((name) => name.normalize('NFKC')));
-    const aliasEntries = Object.entries(CHARACTER_ALIASES)
-      .map(([alias, officialName]) => [String(alias).normalize('NFKC'), String(officialName)])
-      .filter(([alias, officialName]) => alias && normalizedKnownCharacters.has(officialName.normalize('NFKC')));
-    const characterPatterns = [
-      ...knownCharacters.map((name) => ({ match: name.normalize('NFKC'), officialName: name })),
-      ...aliasEntries.map(([match, officialName]) => ({ match, officialName })),
-    ].sort((a, b) => b.match.length - a.match.length);
-    // キャラ名の直後が文字列の続きなら誤認識を避ける。
-    // 単独名・空白・数字・記号の後に続く表記を認識し、「ソラニン」などは除外する。
-    const isJapaneseWordChar = (char) => Boolean(char && /[ぁ-んァ-ヶ一-龯々ー]/u.test(char));
-    const isNameContinuation = (char) => Boolean(char && /[A-Za-zぁ-んァ-ヶ一-龯々ー]/u.test(char));
-    const findExactName = (text, name) => {
-      let fromIndex = 0;
-      while (fromIndex <= text.length - name.length) {
-        const index = text.indexOf(name, fromIndex);
-        if (index === -1) return -1;
-        const nextChar = text[index + name.length];
-        if (!isJapaneseWordChar(nextChar) && !(nextChar && /[A-Za-z]/u.test(nextChar))) return index;
-        // 数字・空白・記号は区切りとして認める。日本語や英字が続く場合だけ除外。
-        fromIndex = index + name.length;
-      }
-      return -1;
-    };
-    const removeExactName = (text, name) => {
-      let result = '';
-      let fromIndex = 0;
-      while (fromIndex < text.length) {
-        const index = text.indexOf(name, fromIndex);
-        if (index === -1) return result + text.slice(fromIndex);
-        const nextChar = text[index + name.length];
-        if (isNameContinuation(nextChar)) {
-          result += text.slice(fromIndex, index + name.length);
-          fromIndex = index + name.length;
-        } else {
-          result += text.slice(fromIndex, index) + ' ';
-          fromIndex = index + name.length;
-        }
-      }
-      return result;
-    };
     const normalizePlayerName = (value) =>
       String(value || '').normalize('NFKC').replace(/\\s+/gu, '').trim();
     for (const tournament of characterComments) {
