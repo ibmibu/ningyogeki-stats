@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CHARACTER_ALIASES } from './data/characterAliases';
 import { MANUAL_CHARACTER_REPORTS } from './data/manualCharacterReports';
 import { calculateElo, calculateTournamentTierScores } from '../lib/ratings';
-import { getPlayerAchievements, getTopFourTournamentNumbers, mergeData } from '../lib/stats-data';
+import { getPlayerAchievements, mergeData } from '../lib/stats-data';
 
 const STORAGE_KEY = 'ningyogeki-stats-v4';
 
@@ -883,21 +883,11 @@ export default function Home() {
     if (!chartPlayerIds.length) return [];
     return chartPlayerIds.map((rateChartPlayer, playerIndex) => {
 
-    const startTournament =
-      selectedSeason === 'all'
-        ? 0
-        : (Number(selectedSeason) - 1) * 25;
     const playerId = String(rateChartPlayer);
-    const matchesByTournament = new Map();
     const playerMatches = [];
 
     for (const match of matchHistory) {
       const tournamentNumber = Number(match.tournamentNumber) || 0;
-      if (!matchesByTournament.has(tournamentNumber)) {
-        matchesByTournament.set(tournamentNumber, []);
-      }
-      matchesByTournament.get(tournamentNumber).push(match);
-
       const isWinner = String(match.winnerId) === playerId;
       const isLoser = String(match.loserId) === playerId;
       if (!isWinner && !isLoser) continue;
