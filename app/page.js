@@ -885,7 +885,7 @@ function calculateElo(data, season = 'all') {
   return { ranking, history };
 }
 
-function calculateTournamentTierScores(data) {
+function calculateTournamentTierScores(data, getEloResult = (season) => calculateElo(data, season)) {
   const tournaments = Array.isArray(data?.tournaments) ? data.tournaments : [];
   const records = Array.isArray(data?.records) ? data.records : [];
   if (!tournaments.length || !records.length) return {};
@@ -904,7 +904,7 @@ function calculateTournamentTierScores(data) {
       return seasonRatingsCache.get(seasonNumber);
     }
 
-    const result = calculateElo(data, String(seasonNumber));
+    const result = getEloResult(String(seasonNumber));
     const ratings = new Map(
       result.ranking.map((player) => [
         String(player.id),
@@ -1415,9 +1415,21 @@ export default function Home() {
     );
   }, [data]);
 
+  // 同じデータに対するシーズン別Elo計算を共有し、重複計算を避ける。
+  const getEloResult = useMemo(() => {
+    const cache = new Map();
+    return (targetSeason) => {
+      const key = String(targetSeason);
+      if (!cache.has(key)) {
+        cache.set(key, calculateElo(data, key));
+      }
+      return cache.get(key);
+    };
+  }, [data]);
+
   const tournamentTierScores = useMemo(
-    () => calculateTournamentTierScores(data),
-    [data]
+    () => calculateTournamentTierScores(data, getEloResult),
+    [data, getEloResult]
   );
 
   const tournamentChampions = useMemo(() => {
@@ -1470,8 +1482,8 @@ export default function Home() {
     : season;
 
   const eloResult = useMemo(
-    () => calculateElo(data, selectedSeason),
-    [data, selectedSeason]
+    () => getEloResult(selectedSeason),
+    [getEloResult, selectedSeason]
   );
 
   // Eloはここで1回だけ計算し、
