@@ -459,7 +459,9 @@ export default function Home() {
       const latestByNumber = new Map(
         (Array.isArray(characterComments) ? characterComments : []).map((item) => [Number(item.number), item])
       );
-      const batchSize = 5;
+      // コメントAPIはSmashmateへのアクセス間隔により複数大会をまとめると
+      // Vercelの実行時間上限に達するため、1リクエストにつき1大会だけ取得する。
+      const batchSize = 1;
       for (let offset = 0; offset < missing.length; offset += batchSize) {
         const batch = missing.slice(offset, offset + batchSize);
         batch.forEach((tournament) => attemptedCharacterTournaments.current.add(Number(tournament.number)));
@@ -469,6 +471,8 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tournaments: batch }),
         });
+        // 次の大会の取得開始まで最低61秒あけ、API実行を分割してタイムアウトを防ぐ。
+        // 各大会の結果は取得ごとに保存するため、途中で失敗しても進捗を失わない。
         const json = await readApiJson(response, 'APIの応答を読み取れませんでした');
         if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
 
@@ -508,6 +512,10 @@ export default function Home() {
           done: Math.min(data.tournaments.length, data.tournaments.length - missing.length + offset + batch.length),
           total: data.tournaments.length,
         });
+
+        if (offset + batch.length < missing.length) {
+          await new Promise((resolve) => setTimeout(resolve, 61_000));
+        }
       }
     } catch (e) {
       setCharacterError(e instanceof Error ? e.message : 'コメント取得に失敗しました');
