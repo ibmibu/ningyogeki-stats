@@ -1183,7 +1183,6 @@ export default function Home() {
           {selected !== 'all' && selectedPlayer && (
             <div className="achievementPanel">
               <div className="achievementItem characterUsageItem">
-                {characterLoading && <p>大会コメントからキャラ情報を取得しています… {characterProgress.done} / {characterProgress.total} 大会</p>}
                 {characterComments && <>
                   {selectedCharacterStats.counts.length > 0 ? <>
                     <div className="characterUsageGrid">
