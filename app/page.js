@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CHARACTER_ALIASES } from './data/characterAliases';
 import { MANUAL_CHARACTER_REPORTS } from './data/manualCharacterReports';
 import { calculateElo, calculateTournamentTierScores } from '../lib/ratings';
-import { getPlayerAchievements, mergeData } from '../lib/stats-data';
+import { getPlayerAchievements } from '../lib/stats-data';
 
 const STORAGE_KEY = 'ningyogeki-stats-v4';
 
@@ -101,25 +101,6 @@ const removeExactName = (text, name) => {
 };
 
 
-async function readApiJson(response, fallbackMessage) {
-  const body = await response.text();
-
-  try {
-    return JSON.parse(body);
-  } catch {
-    if (response.status === 504) {
-      throw new Error('サーバーの処理がタイムアウトしました。保存済みの戦績データはそのままなので、時間をおいて再試行してください。');
-    }
-
-    const detail = body.replace(/\s+/g, ' ').trim().slice(0, 160);
-    throw new Error(
-      detail
-        ? `${fallbackMessage} (HTTP ${response.status}): ${detail}`
-        : `${fallbackMessage} (HTTP ${response.status})`
-    );
-  }
-}
-
 export default function Home() {
   const [data, setData] = useState(null);
   const [offlineMode, setOfflineMode] = useState(false);
@@ -127,7 +108,6 @@ export default function Home() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [overlaySyncStatus, setOverlaySyncStatus] = useState('ローカル連携は未確認です。');
-  const loadingRef = useRef(false);
   const [selected, setSelected] = useState(() => {
     if (typeof window === 'undefined') return 'all';
     return localStorage.getItem('ningyogeki-selected-player') || 'all';
@@ -143,129 +123,9 @@ export default function Home() {
   const [rateChartPlayers, setRateChartPlayers] = useState([]);
   const [characterComments, setCharacterComments] = useState(null);
   const [characterCacheLoaded, setCharacterCacheLoaded] = useState(false);
-  const [characterLoading, setCharacterLoading] = useState(false);
   const [characterProgress, setCharacterProgress] = useState({ done: 0, total: 0 });
   const [characterError, setCharacterError] = useState('');
   const [expandedSoloCharacters, setExpandedSoloCharacters] = useState([]);
-  const characterLoadInFlight = useRef(false);
-  const attemptedCharacterTournaments = useRef(new Set());
-
-  async function loadCharacterComments() {
-    if (localStorage.getItem('ningyogeki-offline-mode') === 'true') return;
-    if (!data?.tournaments?.length || characterLoadInFlight.current) return;
-
-    const cached = Array.isArray(characterComments) ? characterComments : [];
-    const cachedByNumber = new Map(cached.map((item) => [Number(item.number), item]));
-    const sortedTournaments = [...data.tournaments].sort(
-      (a, b) => Number(a.number) - Number(b.number)
-    );
-    const latestTournament = sortedTournaments[sortedTournaments.length - 1];
-    const latestNumber = Number(latestTournament?.number);
-    const latestCache = cachedByNumber.get(latestNumber);
-    const today = new Date().toLocaleDateString('sv-SE');
-    const latestFetchedDay = latestCache?.fetchedAt
-      ? new Date(Number(latestCache.fetchedAt)).toLocaleDateString('sv-SE')
-      : '';
-    // 最新大会だけ、取得日が変わった後の初回アクセスで一度だけ最終確認する。
-    // これはコメント報告期限の0時以降を想定し、過去大会は再取得しない。
-    const shouldFinalizeLatest =
-      latestTournament &&
-      latestCache &&
-      !latestCache.error &&
-      !latestCache.finalCheckDone &&
-      latestFetchedDay &&
-      latestFetchedDay < today;
-    const missing = sortedTournaments
-      .filter((tournament) => {
-        const number = Number(tournament.number);
-        const existing = cachedByNumber.get(number);
-        const needsFetch = !existing || existing.error ||
-          (number === latestNumber && shouldFinalizeLatest);
-        return needsFetch && !attemptedCharacterTournaments.current.has(number);
-      });
-
-    if (!missing.length) {
-      setCharacterProgress({ done: data.tournaments.length, total: data.tournaments.length });
-      return;
-    }
-
-    characterLoadInFlight.current = true;
-    setCharacterLoading(true);
-    setCharacterError('');
-    setCharacterProgress({
-      done: data.tournaments.length - missing.length,
-      total: data.tournaments.length,
-    });
-
-    try {
-      const latestByNumber = new Map(
-        (Array.isArray(characterComments) ? characterComments : []).map((item) => [Number(item.number), item])
-      );
-      // コメントAPIはSmashmateへのアクセス間隔により複数大会をまとめると
-      // Vercelの実行時間上限に達するため、1リクエストにつき1大会だけ取得する。
-      const batchSize = 1;
-      for (let offset = 0; offset < missing.length; offset += batchSize) {
-        const batch = missing.slice(offset, offset + batchSize);
-        batch.forEach((tournament) => attemptedCharacterTournaments.current.add(Number(tournament.number)));
-
-        const response = await fetch('/api/characters', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tournaments: batch }),
-        });
-        // 次の大会の取得開始まで最低61秒あけ、API実行を分割してタイムアウトを防ぐ。
-        // 各大会の結果は取得ごとに保存するため、途中で失敗しても進捗を失わない。
-        const json = await readApiJson(response, 'APIの応答を読み取れませんでした');
-        if (!response.ok) throw new Error(json.error || 'コメント取得に失敗しました');
-
-        for (const item of json.results || []) {
-          const number = Number(item.number);
-          const previous = latestByNumber.get(number);
-          const isLatestFinalCheck = number === latestNumber && shouldFinalizeLatest;
-          if (item.error) {
-            latestByNumber.set(number, {
-              ...previous,
-              ...item,
-              error: item.error,
-            });
-            continue;
-          }
-
-          const commentsChanged = JSON.stringify(previous?.comments || []) !==
-            JSON.stringify(item.comments || []);
-          latestByNumber.set(number, {
-            ...item,
-            // 最新大会の最終確認でコメントが同じなら、保存済みのコメント内容を維持する。
-            comments: isLatestFinalCheck && !commentsChanged
-              ? (previous?.comments || [])
-              : (item.comments || []),
-            fetchedAt: Date.now(),
-            ...(isLatestFinalCheck ? { finalCheckDone: true } : {}),
-            ...(number === 134 ? { parserVersion: 7 } : {}),
-          });
-        }
-        const mergedResults = [...latestByNumber.values()].sort((a, b) => Number(a.number) - Number(b.number));
-        setCharacterComments(mergedResults);
-        try {
-          localStorage.setItem('ningyogeki-character-comments-v7', JSON.stringify(mergedResults));
-        } catch {}
-
-        setCharacterProgress({
-          done: Math.min(data.tournaments.length, data.tournaments.length - missing.length + offset + batch.length),
-          total: data.tournaments.length,
-        });
-
-        if (offset + batch.length < missing.length) {
-          await new Promise((resolve) => setTimeout(resolve, 61_000));
-        }
-      }
-    } catch (e) {
-      setCharacterError(e instanceof Error ? e.message : 'コメント取得に失敗しました');
-    } finally {
-      characterLoadInFlight.current = false;
-      setCharacterLoading(false);
-    }
-  }
 
   useEffect(() => {
     try {
@@ -279,99 +139,6 @@ export default function Home() {
   // Smashmateへの自動アクセスは行わない。
 
 
-
-  async function loadLatest(savedData = data, forceFull = false) {
-    if (localStorage.getItem('ningyogeki-offline-mode') === 'true') {
-      setOfflineMode(true);
-      return;
-    }
-    // 1回の操作につき大会一覧を確認し、未取得大会を最大1件だけ取得する。
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    setLoading(true);
-    setError('');
-
-    try {
-      const known = forceFull
-        ? ''
-        : [...(savedData?.tournaments || [])]
-            .map((t) => Number(t.number))
-            .filter(Number.isFinite)
-            .sort((a, b) => a - b)
-            .join(',');
-
-      // 1回のAPI実行でSmashmateのページを1つだけ取得する。
-      // Vercelの実行時間上限を避けるため、各アクセスの間は61秒待つ。
-      const discoverUrl = known
-        ? `/api/series?step=discover&known=${encodeURIComponent(known)}`
-        : '/api/series?step=discover';
-      const discoverResponse = await fetch(discoverUrl, { cache: 'no-store' });
-      const discovery = await readApiJson(
-        discoverResponse,
-        '大会一覧を読み取れませんでした'
-      );
-
-      if (!discoverResponse.ok) {
-        throw new Error(discovery.error || '大会一覧の取得に失敗しました');
-      }
-
-      if (discovery.upToDate || !discovery.target) {
-        if (!savedData && !data) {
-          setError('保存データがありません。');
-        }
-        return;
-      }
-
-      const target = discovery.target;
-      setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 61_000));
-
-      const tournamentUrl =
-        `/api/series?step=tournament&number=${target.number}&tournamentId=${encodeURIComponent(target.tournamentId)}`;
-      const tournamentResponse = await fetch(tournamentUrl, { cache: 'no-store' });
-      const tournamentInfo = await readApiJson(
-        tournamentResponse,
-        '大会ページを読み取れませんでした'
-      );
-
-      if (!tournamentResponse.ok) {
-        throw new Error(tournamentInfo.error || '大会ページの取得に失敗しました');
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 61_000));
-
-      const bracketUrl =
-        `/api/series?step=bracket&number=${target.number}&tournamentId=${encodeURIComponent(target.tournamentId)}&bracketUrl=${encodeURIComponent(tournamentInfo.bracketUrl)}`;
-      const bracketResponse = await fetch(bracketUrl, { cache: 'no-store' });
-      const json = await readApiJson(
-        bracketResponse,
-        'トーナメント表を読み取れませんでした'
-      );
-
-      if (!bracketResponse.ok) {
-        throw new Error(json.error || 'トーナメント表の取得に失敗しました');
-      }
-
-      if (json.failed?.length) {
-        const failed = json.failed[0];
-        throw new Error(
-          `人形劇#${failed.number}の取得に失敗しました。${failed.error || '時間をおいて再試行してください。'}`
-        );
-      }
-
-      setData((current) => mergeData(current || savedData, json));
-    } catch (e) {
-      console.error(e);
-      setError(
-        e instanceof Error
-          ? e.message
-          : '取得に失敗しました。時間をおいて再試行してください。'
-      );
-    } finally {
-      loadingRef.current = false;
-      setLoading(false);
-    }
-  }
 
   useEffect(() => {
     let savedData = null;
@@ -613,36 +380,6 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function toggleOfflineMode() {
-    const next = !offlineMode;
-    if (!next && !window.confirm('オンラインモードに戻すと、最新データ確認時にSmashmateへ接続します。よろしいですか？')) return;
-    localStorage.setItem('ningyogeki-offline-mode', String(next));
-    setOfflineMode(next);
-    if (next) {
-      setError('');
-      setOverlaySyncStatus('オフラインモード中です。Smashmateへ接続しません。');
-    } else {
-      loadLatest();
-    }
-  }
-
-  function resetData() {
-    if (
-      !window.confirm(
-        '保存データを削除して、全大会を最初から取得し直しますか？'
-      )
-    ) {
-      return;
-    }
-
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem('ningyogeki-selected-player');
-    setData(null);
-    setSelected('all');
-    setSeason('current');
-    setError('');
   }
 
   const playerTournamentStats = useMemo(() => {
