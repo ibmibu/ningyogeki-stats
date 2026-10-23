@@ -2075,6 +2075,27 @@ export default function Home() {
 
             <button
               className="secondary"
+              onClick={() => archiveInputRef.current?.click()}
+            >
+              バックアップJSONを読み込む
+            </button>
+            <input
+              ref={archiveInputRef}
+              type="file"
+              accept="application/json,.json"
+              onChange={importArchive}
+              style={{ display: 'none' }}
+            />
+            <button
+              className="secondary"
+              onClick={toggleOfflineMode}
+              disabled={loading}
+            >
+              {offlineMode ? 'オンラインモードに戻す' : 'オフラインモードにする'}
+            </button>
+
+            <button
+              className="secondary"
               onClick={resetData}
               disabled={loading}
             >
@@ -2083,9 +2104,11 @@ export default function Home() {
           </div>
 
           <div className="hint">
-            {loading
-              ? '既存の大会は再取得せず、取得間隔を守るため最大約2分かかります。'
-              : '未取得の大会がある場合だけ追加で読み込みます。'}
+            {offlineMode
+              ? 'オフラインモード中：保存済みデータだけで集計し、Smashmateへは接続しません。'
+              : loading
+                ? '既存の大会は再取得せず、取得間隔を守るため最大約2分かかります。'
+                : '未取得の大会がある場合だけ追加で読み込みます。'}
           </div>
           <div className="hint" role="status" aria-live="polite">
             {overlaySyncStatus}
