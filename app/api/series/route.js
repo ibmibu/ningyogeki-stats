@@ -7,7 +7,6 @@ const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
 
 const CONCURRENCY = 3;
-const NAME_CONCURRENCY = 5;
 
 const ACCOUNT_ALIASES = {
   '99450': '145071',
