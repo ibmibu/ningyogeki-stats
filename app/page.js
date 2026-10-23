@@ -953,26 +953,12 @@ export default function Home() {
 
     const cached = Array.isArray(characterComments) ? characterComments : [];
     const cachedByNumber = new Map(cached.map((item) => [Number(item.number), item]));
-    // 直近大会のコメントは、キャラ報告が後から投稿されることがあるため定期的に再取得する。
-    // fetchedAt がない旧キャッシュも、直近3大会に限って一度更新する。
-    const recentTournamentNumbers = new Set(
-      [...data.tournaments]
-        .sort((a, b) => Number(b.number) - Number(a.number))
-        .slice(0, 3)
-        .map((tournament) => Number(tournament.number))
-    );
-    const refreshAfterMs = 6 * 60 * 60 * 1000;
+    // 未取得または取得失敗の大会だけを取得する。取得済み大会は定期的に再取得しない。
     const missing = [...data.tournaments]
       .filter((tournament) => {
         const number = Number(tournament.number);
         const existing = cachedByNumber.get(number);
-        const fetchedAt = Number(existing?.fetchedAt);
-        const recentCacheIsStale =
-          recentTournamentNumbers.has(number) &&
-          (!Number.isFinite(fetchedAt) || Date.now() - fetchedAt >= refreshAfterMs);
-        // #134 のキャラ報告の取りこぼし調査のため、旧キャッシュを一度だけ再取得する。
-        const refreshTournament134 = number === 134 && existing?.parserVersion !== 7;
-        return (!existing || existing.error || recentCacheIsStale || refreshTournament134) &&
+        return (!existing || existing.error) &&
           !attemptedCharacterTournaments.current.has(number);
       })
       .sort((a, b) => Number(a.number) - Number(b.number));
