@@ -1479,8 +1479,8 @@ export default function Home() {
     const reportedByTournament = new Map();
     let matchedComments = 0;
     let parsedComments = 0;
+    const aliases = { '99450': '145071', '118591': '149650', '148400': '164481', '80108': '142959', '100389': '167992', '159344': '167992', '156108': '156414' };
     const canonical = (id) => {
-      const aliases = { '99450': '145071', '118591': '149650', '148400': '164481', '80108': '142959', '100389': '167992', '159344': '167992', '156108': '156414' };
       let value = String(id); const visited = new Set();
       while (aliases[value] && !visited.has(value)) { visited.add(value); value = aliases[value]; }
       return value;
@@ -1578,6 +1578,8 @@ export default function Home() {
       }
       return result;
     };
+    const normalizePlayerName = (value) =>
+      String(value || '').normalize('NFKC').replace(/\\s+/gu, '').trim();
     for (const tournament of characterComments) {
       // 過去大会を手動登録している場合、その大会のコメントは集計対象から外す。
       if (manualReportsByTournament.has(Number(tournament.number))) continue;
@@ -1589,8 +1591,6 @@ export default function Home() {
           canonical(commentUserId) === canonical(characterTargetPlayer.id);
         // コメントHTMLの形式によって投稿者IDが取得できない場合に限り、名前の完全一致で補完する。
         // IDが取得できているコメントは、従来どおりIDを優先して誤判定を避ける。
-        const normalizePlayerName = (value) =>
-          String(value || '').normalize('NFKC').replace(/\s+/gu, '').trim();
         // IDが一致しない場合も、投稿者名が正規化後に完全一致するなら同一選手として扱う。
         // 旧アカウントIDなどで登録IDとコメントIDが異なるケースを取りこぼさない。
         const matchesByName =
