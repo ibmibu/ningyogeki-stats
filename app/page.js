@@ -121,8 +121,6 @@ export default function Home() {
   const [matrixSeason, setMatrixSeason] = useState('current');
   const [rateChartPlayers, setRateChartPlayers] = useState([]);
   const [characterComments, setCharacterComments] = useState(null);
-  const [characterCacheLoaded, setCharacterCacheLoaded] = useState(false);
-  const [characterProgress, setCharacterProgress] = useState({ done: 0, total: 0 });
   const [characterError, setCharacterError] = useState('');
   const [expandedSoloCharacters, setExpandedSoloCharacters] = useState([]);
 
@@ -131,7 +129,6 @@ export default function Home() {
       const saved = localStorage.getItem('ningyogeki-character-comments-v7');
       if (saved) setCharacterComments(JSON.parse(saved));
     } catch {}
-    setCharacterCacheLoaded(true);
   }, []);
 
   // キャラクターコメントはバックアップに保存されたキャッシュのみを使用する。
@@ -173,10 +170,6 @@ export default function Home() {
     // 起動時はブラウザに保存済みのデータだけを表示する。
     // Smashmateへはアクセスしない。GitHubバックアップは必要なときに手動で読み込む。
     localStorage.setItem('ningyogeki-offline-mode', 'true');
-    setCharacterProgress({
-      done: savedData?.tournaments?.length || 0,
-      total: savedData?.tournaments?.length || 0,
-    });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -332,8 +325,6 @@ export default function Home() {
       setMatrixSeason('current');
       setError('');
       setCharacterError('');
-      setCharacterCacheLoaded(true);
-      setCharacterProgress({ done: importedData.tournaments.length, total: importedData.tournaments.length });
       setOverlaySyncStatus('バックアップを読み込みました。オフラインモード中はSmashmateへ接続しません。');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'バックアップを読み込めませんでした。');
@@ -370,8 +361,6 @@ export default function Home() {
       setMatrixSeason('current');
       setError('');
       setCharacterError('');
-      setCharacterCacheLoaded(true);
-      setCharacterProgress({ done: importedData.tournaments.length, total: importedData.tournaments.length });
       setOverlaySyncStatus('GitHubのバックアップを読み込みました。オフラインモード中はSmashmateへ接続しません。');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'GitHubのバックアップを読み込めませんでした。');
