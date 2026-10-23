@@ -168,14 +168,10 @@ export default function Home() {
       );
     }
 
-    // 起動時はブラウザに保存済みのデータを優先する。
-    // 保存済みデータがない初回だけ、GitHubのバックアップを自動で読み込む。
+    // 起動時は毎回GitHubのアーカイブを確認し、ブラウザ側のデータと統合する。
+    // Smashmateにはアクセスせず、保存済みの過去大会を補完する。
     localStorage.setItem('ningyogeki-offline-mode', 'true');
-    if (savedData) {
-      setOverlaySyncStatus('ブラウザに保存済みの戦績を読み込みました。');
-    } else {
-      loadGitHubArchive(false);
-    }
+    loadGitHubArchive(false);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -378,23 +374,83 @@ export default function Home() {
         throw new Error('GitHub上のJSONが人形劇戦績サイトのバックアップ形式ではありません。');
       }
       const importedData = archive.data;
-      const message = 'GitHubのバックアップを読み込みます。大会：' +
-        importedData.tournaments.length + '件、対戦記録：' +
-        importedData.records.length + '件。現在の保存データを置き換えます。よろしいですか？';
-      if (confirmReplace && !window.confirm(message)) return;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(importedData));
-      if (Array.isArray(archive.characterComments)) {
-        localStorage.setItem('ningyogeki-character-comments-v7', JSON.stringify(archive.characterComments));
-        setCharacterComments(archive.characterComments);
+      let existingData = data;
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('ningyogeki-stats-v3');
+        if (stored) existingData = JSON.parse(stored);
+      } catch (e) {
+        console.warn('既存の戦績データを読み取れませんでした。バックアップを使用します。', e);
       }
+
+      // 大会・選手・対戦記録をIDで統合し、重複記録による二重計上を防ぐ。
+      const playerMap = new Map();
+      for (const player of existingData?.players || []) playerMap.set(String(player.id), player);
+      for (const player of importedData.players || []) playerMap.set(String(player.id), { ...playerMap.get(String(player.id)), ...player });
+
+      const tournamentMap = new Map();
+      for (const tournament of existingData?.tournaments || []) tournamentMap.set(Number(tournament.number), tournament);
+      for (const tournament of importedData.tournaments || []) tournamentMap.set(Number(tournament.number), { ...tournamentMap.get(Number(tournament.number)), ...tournament });
+
+      const recordMap = new Map();
+      for (const record of existingData?.records || []) {
+        recordMap.set(`${record.tournamentNumber}|${record.winnerId}|${record.loserId}`, record);
+      }
+      for (const record of importedData.records || []) {
+        recordMap.set(`${record.tournamentNumber}|${record.winnerId}|${record.loserId}`, record);
+      }
+      const mergedRecords = [...recordMap.values()];
+      const mergedStats = {};
+      for (const record of mergedRecords) {
+        const winnerId = String(record.winnerId);
+        const loserId = String(record.loserId);
+        mergedStats[winnerId] ??= {};
+        mergedStats[loserId] ??= {};
+        mergedStats[winnerId][loserId] ??= { wins: 0, losses: 0 };
+        mergedStats[loserId][winnerId] ??= { wins: 0, losses: 0 };
+        mergedStats[winnerId][loserId].wins += 1;
+        mergedStats[loserId][winnerId].losses += 1;
+      }
+      for (const opponents of Object.values(mergedStats)) {
+        for (const stat of Object.values(opponents)) {
+          const total = stat.wins + stat.losses;
+          stat.rate = total ? Math.round((stat.wins / total) * 1000) / 10 : 0;
+        }
+      }
+
+      const mergedData = {
+        ...(existingData || {}),
+        ...importedData,
+        players: [...playerMap.values()],
+        tournaments: [...tournamentMap.values()].sort((a, b) => a.number - b.number),
+        records: mergedRecords,
+        stats: mergedStats,
+        matches: mergedRecords.length,
+        failed: [...new Set([...(existingData?.failed || []), ...(importedData.failed || [])])],
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedData));
+
+      // キャラクターコメントもバックアップとブラウザ保存分を統合する。
+      try {
+        const existingComments = JSON.parse(localStorage.getItem('ningyogeki-character-comments-v7') || '[]');
+        const commentMap = new Map();
+        for (const comment of [...(Array.isArray(existingComments) ? existingComments : []), ...(Array.isArray(archive.characterComments) ? archive.characterComments : [])]) {
+          commentMap.set(JSON.stringify(comment), comment);
+        }
+        const mergedComments = [...commentMap.values()];
+        localStorage.setItem('ningyogeki-character-comments-v7', JSON.stringify(mergedComments));
+        setCharacterComments(mergedComments);
+      } catch (e) {
+        console.warn('キャラクターコメントの統合に失敗しました。', e);
+      }
+
       localStorage.setItem('ningyogeki-offline-mode', 'true');
-      setData(importedData);
+      setData(mergedData);
       setSelected('all');
       setSeason('current');
       setMatrixSeason('current');
       setError('');
       setCharacterError('');
-      setOverlaySyncStatus('GitHubのバックアップを読み込みました。オフラインモード中はSmashmateへ接続しません。');
+      setOverlaySyncStatus(`GitHubのバックアップと既存データを統合しました（${mergedData.tournaments.length}大会・${mergedRecords.length}対戦記録）。Smashmateには接続しません。`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'GitHubのバックアップを読み込めませんでした。');
     } finally {
