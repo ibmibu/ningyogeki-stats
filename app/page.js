@@ -892,28 +892,43 @@ export default function Home() {
 
     for (const match of matchHistory) {
       const tournamentNumber = Number(match.tournamentNumber) || 0;
-      for (const [idValue, isWinner] of [
-        [match.winnerId, true],
-        [match.loserId, false],
-      ]) {
-        const id = String(idValue);
-        if (!selectedIds.has(id)) continue;
+      const isInSeason =
+        selectedSeason !== 'all' &&
+        tournamentNumber >= (Number(selectedSeason) - 1) * 25 + 1 &&
+        tournamentNumber < (Number(selectedSeason) - 1) * 25 + 26;
 
-        const count = seasonMatchCounts.get(id) || 0;
-        if (
-          selectedSeason !== 'all' &&
-          tournamentNumber >= (Number(selectedSeason) - 1) * 25 + 1 &&
-          tournamentNumber < (Number(selectedSeason) - 1) * 25 + 26
-        ) {
-          seasonMatchCounts.set(id, count + 1);
-        } else if (!seasonMatchCounts.has(id)) {
-          seasonMatchCounts.set(id, count);
+      const winnerId = String(match.winnerId);
+      if (selectedIds.has(winnerId)) {
+        if (isInSeason) {
+          seasonMatchCounts.set(winnerId, (seasonMatchCounts.get(winnerId) || 0) + 1);
+        } else if (!seasonMatchCounts.has(winnerId)) {
+          seasonMatchCounts.set(winnerId, 0);
         }
+        if (match.winnerAfter != null) {
+          if (!matchesByPlayer.has(winnerId)) matchesByPlayer.set(winnerId, []);
+          matchesByPlayer.get(winnerId).push({
+            tournamentNumber,
+            rating: match.winnerAfter,
+            match,
+          });
+        }
+      }
 
-        const rating = isWinner ? match.winnerAfter : match.loserAfter;
-        if (rating == null) continue;
-        if (!matchesByPlayer.has(id)) matchesByPlayer.set(id, []);
-        matchesByPlayer.get(id).push({ tournamentNumber, rating, match });
+      const loserId = String(match.loserId);
+      if (selectedIds.has(loserId) && loserId !== winnerId) {
+        if (isInSeason) {
+          seasonMatchCounts.set(loserId, (seasonMatchCounts.get(loserId) || 0) + 1);
+        } else if (!seasonMatchCounts.has(loserId)) {
+          seasonMatchCounts.set(loserId, 0);
+        }
+        if (match.loserAfter != null) {
+          if (!matchesByPlayer.has(loserId)) matchesByPlayer.set(loserId, []);
+          matchesByPlayer.get(loserId).push({
+            tournamentNumber,
+            rating: match.loserAfter,
+            match,
+          });
+        }
       }
     }
 
