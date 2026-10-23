@@ -285,6 +285,10 @@ export default function Home() {
 
 
   async function loadLatest(savedData = data, forceFull = false) {
+    if (localStorage.getItem('ningyogeki-offline-mode') === 'true') {
+      setOfflineMode(true);
+      return;
+    }
     // 1回の操作につき大会一覧を確認し、未取得大会を最大1件だけ取得する。
     if (loadingRef.current) return;
     loadingRef.current = true;
