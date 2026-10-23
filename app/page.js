@@ -883,21 +883,44 @@ export default function Home() {
 
   const ratingTrends = useMemo(() => {
     if (!chartPlayerIds.length) return [];
-    return chartPlayerIds.map((rateChartPlayer, playerIndex) => {
 
-    const playerId = String(rateChartPlayer);
-    const playerMatches = [];
+    // 選択中の選手に関係する試合だけを1回の走査でまとめる。
+    // 選手ごとに全履歴を再検索しない。履歴の順序と採用条件は従来どおり。
+    const selectedIds = new Set(chartPlayerIds.map((id) => String(id)));
+    const matchesByPlayer = new Map();
+    const seasonMatchCounts = new Map();
 
     for (const match of matchHistory) {
       const tournamentNumber = Number(match.tournamentNumber) || 0;
-      const isWinner = String(match.winnerId) === playerId;
-      const isLoser = String(match.loserId) === playerId;
-      if (!isWinner && !isLoser) continue;
+      for (const [idValue, isWinner] of [
+        [match.winnerId, true],
+        [match.loserId, false],
+      ]) {
+        const id = String(idValue);
+        if (!selectedIds.has(id)) continue;
 
-      const rating = isWinner ? match.winnerAfter : match.loserAfter;
-      if (rating == null) continue;
-      playerMatches.push({ tournamentNumber, rating, match });
+        const count = seasonMatchCounts.get(id) || 0;
+        if (
+          selectedSeason !== 'all' &&
+          tournamentNumber >= (Number(selectedSeason) - 1) * 25 + 1 &&
+          tournamentNumber < (Number(selectedSeason) - 1) * 25 + 26
+        ) {
+          seasonMatchCounts.set(id, count + 1);
+        } else if (!seasonMatchCounts.has(id)) {
+          seasonMatchCounts.set(id, count);
+        }
+
+        const rating = isWinner ? match.winnerAfter : match.loserAfter;
+        if (rating == null) continue;
+        if (!matchesByPlayer.has(id)) matchesByPlayer.set(id, []);
+        matchesByPlayer.get(id).push({ tournamentNumber, rating, match });
+      }
     }
+
+    return chartPlayerIds.map((rateChartPlayer, playerIndex) => {
+
+    const playerId = String(rateChartPlayer);
+    const playerMatches = matchesByPlayer.get(playerId) || [];
 
     const xMin = selectedSeason === 'all'
       ? 1
@@ -989,11 +1012,7 @@ export default function Home() {
     const sharedSeasonMatchCount = selectedSeason === 'all'
       ? 0
       : Math.max(0, ...chartPlayerIds.map((id) =>
-          matchHistory.filter((match) =>
-            (String(match.winnerId) === String(id) || String(match.loserId) === String(id)) &&
-            (Number(match.tournamentNumber) || 0) >= xMin &&
-            (Number(match.tournamentNumber) || 0) < xMin + 25
-          ).length
+          seasonMatchCounts.get(String(id)) || 0
         ));
     const xMax = selectedSeason === 'all'
       ? Math.max(2, ...points.map((point) => point.xMatch))
