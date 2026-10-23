@@ -1570,6 +1570,18 @@ export default function Home() {
     const targetCanonicalId = canonicalAccountId(characterTargetPlayer.id);
     // いぶ選手の過去大会は手動登録を優先し、同じ大会のコメント集計と二重計上しない。
     const manualReportsByTournament = new Map();
+    const tournamentsByNormalizedName = new Map();
+    const tournamentsByNumber = new Map();
+    for (const tournament of data.tournaments || []) {
+      const normalizedName = normalizeTournamentName(tournament.name);
+      if (!tournamentsByNormalizedName.has(normalizedName)) {
+        tournamentsByNormalizedName.set(normalizedName, tournament);
+      }
+      const number = Number(tournament.number);
+      if (Number.isFinite(number) && !tournamentsByNumber.has(number)) {
+        tournamentsByNumber.set(number, tournament);
+      }
+    }
     {
       for (const report of MANUAL_CHARACTER_REPORTS) {
         // playerId なしの既存手動データは「いぶ」専用。playerId ありは指定選手だけに適用。
@@ -1577,15 +1589,11 @@ export default function Home() {
           ? canonicalAccountId(report.playerId) !== targetCanonicalId
           : targetCanonicalId !== '81727') continue;
         const reportName = String(report.tournamentName || '');
-        let tournament = (data.tournaments || []).find(
-          (item) => normalizeTournamentName(item.name) === normalizeTournamentName(reportName)
-        );
+        let tournament = tournamentsByNormalizedName.get(normalizeTournamentName(reportName));
         if (!tournament) {
           const numberMatch = reportName.match(/人形劇\s*#?\s*(\d+)/u);
           if (numberMatch) {
-            tournament = (data.tournaments || []).find(
-              (item) => Number(item.number) === Number(numberMatch[1])
-            );
+            tournament = tournamentsByNumber.get(Number(numberMatch[1]));
           }
         }
         const number = Number(tournament?.number);
