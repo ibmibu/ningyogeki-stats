@@ -151,6 +151,7 @@ export default function Home() {
   const attemptedCharacterTournaments = useRef(new Set());
 
   async function loadCharacterComments() {
+    if (localStorage.getItem('ningyogeki-offline-mode') === 'true') return;
     if (!data?.tournaments?.length || characterLoadInFlight.current) return;
 
     const cached = Array.isArray(characterComments) ? characterComments : [];
