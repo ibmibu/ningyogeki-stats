@@ -351,7 +351,7 @@ export default function Home() {
       const message = 'GitHubのバックアップを読み込みます。大会：' +
         importedData.tournaments.length + '件、対戦記録：' +
         importedData.records.length + '件。現在の保存データを置き換えます。よろしいですか？';
-      if (!window.confirm(message)) return;
+      if (confirmReplace && !window.confirm(message)) return;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(importedData));
       if (Array.isArray(archive.characterComments)) {
         localStorage.setItem('ningyogeki-character-comments-v7', JSON.stringify(archive.characterComments));
@@ -1806,65 +1806,6 @@ export default function Home() {
                   </span>
                 </div>
               ))}
-          </div>
-        </section>
-
-        {/* バックアップ管理 */}
-        <section className="control card" style={{ marginTop: '18px' }}>
-          <div>
-            <h2>データ管理</h2>
-
-            <p>
-              起動時はこのブラウザの保存済みデータを使用します。必要なときだけGitHubまたはJSONのバックアップを読み込めます。
-            </p>
-          </div>
-
-          <div className="buttonGroup">
-            <button
-              className="secondary"
-              onClick={() => syncToOverlay()}
-              disabled={!data}
-            >
-              ローカル連携へ同期
-            </button>
-
-            <button
-              className="secondary"
-              onClick={exportArchive}
-              disabled={!data}
-            >
-              全データを保存（JSON）
-            </button>
-
-            <button
-              className="secondary"
-              onClick={loadGitHubArchive}
-              disabled={loading}
-            >
-              GitHubのバックアップを読み込む
-            </button>
-
-            <button
-              className="secondary"
-              onClick={() => archiveInputRef.current?.click()}
-            >
-              バックアップJSONを読み込む
-            </button>
-            <input
-              ref={archiveInputRef}
-              type="file"
-              accept="application/json,.json"
-              onChange={importArchive}
-              style={{ display: 'none' }}
-            />
-
-          </div>
-
-          <div className="hint">
-            保存済みデータとバックアップだけを使用します。Smashmateへの通信は行いません。
-          </div>
-          <div className="hint" role="status" aria-live="polite">
-            {overlaySyncStatus}
           </div>
         </section>
 
