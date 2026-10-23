@@ -122,6 +122,8 @@ async function readApiJson(response, fallbackMessage) {
 
 export default function Home() {
   const [data, setData] = useState(null);
+  const [offlineMode, setOfflineMode] = useState(false);
+  const archiveInputRef = useRef(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [overlaySyncStatus, setOverlaySyncStatus] = useState('ローカル連携は未確認です。');
