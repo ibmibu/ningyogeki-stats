@@ -106,6 +106,7 @@ export default function Home() {
   const archiveInputRef = useRef(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(0);
   const [overlaySyncStatus, setOverlaySyncStatus] = useState('ローカル連携は未確認です。');
   const [selected, setSelected] = useState(() => {
     if (typeof window === 'undefined') return 'all';
@@ -338,10 +339,39 @@ export default function Home() {
   async function loadGitHubArchive(confirmReplace = true) {
     try {
       setLoading(true);
+      setLoadProgress(0);
       setError('');
       const response = await fetch('/data/ningyogeki-archive.json', { cache: 'no-store' });
       if (!response.ok) throw new Error('GitHubに保存したバックアップを取得できませんでした。');
-      const archive = await response.json();
+
+      let archive;
+      const totalBytes = Number(response.headers.get('content-length')) || 0;
+      if (response.body?.getReader) {
+        const reader = response.body.getReader();
+        const chunks = [];
+        let receivedBytes = 0;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          receivedBytes += value.length;
+          if (totalBytes > 0) {
+            setLoadProgress(Math.min(99, Math.floor((receivedBytes / totalBytes) * 100)));
+          } else {
+            setLoadProgress((current) => Math.min(90, current + 5));
+          }
+        }
+        const bytes = new Uint8Array(receivedBytes);
+        let offset = 0;
+        for (const chunk of chunks) {
+          bytes.set(chunk, offset);
+          offset += chunk.length;
+        }
+        archive = JSON.parse(new TextDecoder().decode(bytes));
+      } else {
+        archive = await response.json();
+      }
+      setLoadProgress(100);
       if (archive?.archiveFormat !== 'ningyogeki-stats-archive' ||
           !archive?.data?.players || !archive?.data?.tournaments ||
           !archive?.data?.records) {
@@ -369,6 +399,7 @@ export default function Home() {
       setError(e instanceof Error ? e.message : 'GitHubのバックアップを読み込めませんでした。');
     } finally {
       setLoading(false);
+      setLoadProgress(0);
     }
   }
 
@@ -994,41 +1025,19 @@ export default function Home() {
         <div className="content">
           <section className="empty card">
             <div className="spinner" />
-
-            <h2>保存済みデータがありません</h2>
-
-            <p>
-              GitHubのバックアップを読み込むか、保存済みのバックアップJSONを選択してください。
-              Smashmateへのアクセスは行いません。
-            </p>
-
-            <button
-              className="primary"
-              onClick={loadGitHubArchive}
-              disabled={loading}
+            <h2>大会情報読み込み中</h2>
+            <p>{loading ? loadProgress : 0}% 完了</p>
+            <div
+              role="progressbar"
+              aria-label="大会情報読み込み進捗"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={loading ? loadProgress : 0}
+              style={{ width: '100%', maxWidth: '320px', height: '8px', margin: '12px auto 0', background: 'var(--border, #e5e7eb)', borderRadius: '999px', overflow: 'hidden' }}
             >
-              GitHubのバックアップを読み込む
-            </button>
-            <button
-              className="secondary"
-              onClick={() => archiveInputRef.current?.click()}
-              disabled={loading}
-            >
-              バックアップJSONを読み込む
-            </button>
-            <input
-              ref={archiveInputRef}
-              type="file"
-              accept="application/json,.json"
-              onChange={importArchive}
-              style={{ display: 'none' }}
-            />
-
-            {error && (
-              <p className="error">
-                ⚠ {error}
-              </p>
-            )}
+              <div style={{ width: `${loading ? loadProgress : 0}%`, height: '100%', background: 'var(--accent, #4f8cff)', transition: 'width 160ms ease' }} />
+            </div>
+            {error && <p className="error">⚠ {error}</p>}
           </section>
         </div>
       </main>
