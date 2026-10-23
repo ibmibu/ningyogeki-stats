@@ -317,7 +317,7 @@ export default function Home() {
       const message = 'バックアップを読み込みます。大会：' +
         importedData.tournaments.length + '件、対戦記録：' +
         importedData.records.length + '件。現在の保存データを置き換えます。よろしいですか？';
-      if (confirmReplace && !window.confirm(message)) return;
+      if (!window.confirm(message)) return;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(importedData));
       if (Array.isArray(archive.characterComments)) {
         localStorage.setItem('ningyogeki-character-comments-v7', JSON.stringify(archive.characterComments));
