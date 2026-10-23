@@ -1639,15 +1639,10 @@ export default function Home() {
         reportedByTournament.set(number, used);
       }
     }
-    const recordsByTournament = new Map();
-    for (const record of data.records || []) {
-      const number = Number(record.tournamentNumber);
-      if (!Number.isFinite(number)) continue;
-      if (!recordsByTournament.has(number)) recordsByTournament.set(number, []);
-      recordsByTournament.get(number).push(record);
-    }
+    // 参加大会・優勝集計で作成した大会別記録を再利用する。
+    // キャラクター単騎判定では、各記録のIDを canonical 化してから判定する。
     const champions = new Map();
-    for (const [number, records] of recordsByTournament) {
+    for (const [number, records] of playerTournamentStats.recordsByTournament) {
       // 同一選手の旧IDと統合後IDが混在していても、同一選手として優勝判定する。
       const losers = new Set(records.map((record) => canonical(record.loserId)));
       const participants = new Set(
@@ -1665,7 +1660,7 @@ export default function Home() {
       .map(([number, characters]) => ({ number, character: [...characters][0] }))
       .sort((a, b) => b.number - a.number);
     return { counts: [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ja')), total: [...counts.values()].reduce((sum, value) => sum + value, 0), tournaments: seenTournaments.size, soloAchievements, matchedComments, parsedComments, targetId: String(characterTargetPlayer.id), fetchedComments: characterComments.reduce((sum, item) => sum + (item.comments?.length || 0), 0), fetchErrors: characterComments.filter((item) => item.error).length };
-  }, [data, selected, characterComments]);
+  }, [data, selected, characterComments, playerTournamentStats]);
 
   const opponentRows = useMemo(() => {
     if (!data || !selectedPlayer) return [];
