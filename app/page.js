@@ -1558,6 +1558,7 @@ export default function Home() {
     let matchedComments = 0;
     let parsedComments = 0;
     const targetCanonicalId = canonicalAccountId(characterTargetPlayer.id);
+    const targetNormalizedName = normalizePlayerName(characterTargetPlayer.name);
     // いぶ選手の過去大会は手動登録を優先し、同じ大会のコメント集計と二重計上しない。
     const manualReportsByTournament = new Map();
     const tournamentsByNormalizedName = new Map();
@@ -1611,7 +1612,7 @@ export default function Home() {
         // IDが一致しない場合も、投稿者名が正規化後に完全一致するなら同一選手として扱う。
         // 旧アカウントIDなどで登録IDとコメントIDが異なるケースを取りこぼさない。
         const matchesByName =
-          normalizePlayerName(comment.name) === normalizePlayerName(characterTargetPlayer.name);
+          normalizePlayerName(comment.name) === targetNormalizedName;
         if (!matchesById && !matchesByName) continue;
         matchedComments += 1;
         let remainingText = String(comment.text || '').normalize('NFKC');
