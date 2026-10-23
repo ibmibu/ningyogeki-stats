@@ -167,9 +167,14 @@ export default function Home() {
       );
     }
 
-    // 起動時はブラウザに保存済みのデータだけを表示する。
-    // Smashmateへはアクセスしない。GitHubバックアップは必要なときに手動で読み込む。
+    // 起動時はブラウザに保存済みのデータを優先する。
+    // 保存済みデータがない初回だけ、GitHubのバックアップを自動で読み込む。
     localStorage.setItem('ningyogeki-offline-mode', 'true');
+    if (savedData) {
+      setOverlaySyncStatus('ブラウザに保存済みの戦績を読み込みました。');
+    } else {
+      loadGitHubArchive(false);
+    }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -311,7 +316,7 @@ export default function Home() {
       const message = 'バックアップを読み込みます。大会：' +
         importedData.tournaments.length + '件、対戦記録：' +
         importedData.records.length + '件。現在の保存データを置き換えます。よろしいですか？';
-      if (!window.confirm(message)) return;
+      if (confirmReplace && !window.confirm(message)) return;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(importedData));
       if (Array.isArray(archive.characterComments)) {
         localStorage.setItem('ningyogeki-character-comments-v7', JSON.stringify(archive.characterComments));
@@ -319,7 +324,6 @@ export default function Home() {
       }
       localStorage.setItem('ningyogeki-offline-mode', 'true');
       setData(importedData);
-      setOfflineMode(true);
       setSelected('all');
       setSeason('current');
       setMatrixSeason('current');
@@ -331,7 +335,7 @@ export default function Home() {
     }
   }
 
-  async function loadGitHubArchive() {
+  async function loadGitHubArchive(confirmReplace = true) {
     try {
       setLoading(true);
       setError('');
