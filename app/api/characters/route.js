@@ -100,10 +100,9 @@ async function getComments(tournament) {
 export async function POST(request) {
   try {
     const payload = await request.json();
-    const tournaments = Array.isArray(payload.tournaments) ? payload.tournaments.slice(0, 150) : [];
-    const results = []; let next = 0;
-    async function worker() { while (next < tournaments.length) { const index = next++; results[index] = await getComments(tournaments[index]); } }
-    await Promise.all(Array.from({ length: Math.min(3, tournaments.length) }, worker));
+    const tournaments = Array.isArray(payload.tournaments) ? payload.tournaments.slice(0, 1) : [];
+    const results = [];
+    if (tournaments.length) results.push(await getComments(tournaments[0]));
     return Response.json({ results, count: results.length });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : 'コメント取得に失敗しました' }, { status: 500 });
