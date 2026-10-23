@@ -575,6 +575,52 @@ export default function Home() {
     }
   }
 
+  async function loadGitHubArchive() {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await fetch('/data/ningyogeki-archive.json', { cache: 'no-store' });
+      if (!response.ok) throw new Error('GitHubに保存したバックアップを取得できませんでした。');
+      const archive = await response.json();
+      if (archive?.archiveFormat !== 'ningyogeki-stats-archive' ||
+          !archive?.data?.players || !archive?.data?.tournaments ||
+          !archive?.data?.records) {
+        throw new Error('GitHub上のJSONが人形劇戦績サイトのバックアップ形式ではありません。');
+      }
+      const importedData = archive.data;
+      const message = 'GitHubのバックアップを読み込みます。大会：' +
+        importedData.tournaments.length + '件、対戦記録：' +
+        importedData.records.length + '件。現在の保存データを置き換えます。よろしいですか？';
+      if (!window.confirm(message)) return;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(importedData));
+      if (Array.isArray(archive.characterComments)) {
+        localStorage.setItem('ningyogeki-character-comments-v7', JSON.stringify(archive.characterComments));
+        setCharacterComments(archive.characterComments);
+      }
+      if (Array.isArray(archive.manualCharacterReports)) {
+        localStorage.setItem('ningyogeki-manual-character-reports-v1', JSON.stringify(archive.manualCharacterReports));
+      }
+      if (Array.isArray(archive.characterAliases)) {
+        localStorage.setItem('ningyogeki-character-aliases-v1', JSON.stringify(archive.characterAliases));
+      }
+      localStorage.setItem('ningyogeki-offline-mode', 'true');
+      setData(importedData);
+      setOfflineMode(true);
+      setSelected('all');
+      setSeason('current');
+      setMatrixSeason('current');
+      setError('');
+      setCharacterError('');
+      setCharacterCacheLoaded(true);
+      setCharacterProgress({ done: importedData.tournaments.length, total: importedData.tournaments.length });
+      setOverlaySyncStatus('GitHubのバックアップを読み込みました。オフラインモード中はSmashmateへ接続しません。');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'GitHubのバックアップを読み込めませんでした。');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function toggleOfflineMode() {
     const next = !offlineMode;
     if (!next && !window.confirm('オンラインモードに戻すと、最新データ確認時にSmashmateへ接続します。よろしいですか？')) return;
@@ -2072,6 +2118,14 @@ export default function Home() {
               disabled={!data}
             >
               全データを保存（JSON）
+            </button>
+
+            <button
+              className="secondary"
+              onClick={loadGitHubArchive}
+              disabled={loading}
+            >
+              GitHubのバックアップを読み込む
             </button>
 
             <button
