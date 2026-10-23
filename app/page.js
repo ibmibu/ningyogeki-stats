@@ -31,7 +31,7 @@ function normalizeTournamentName(value) {
 }
 
 function normalizePlayerName(value) {
-  return String(value || '').normalize('NFKC').replace(/\\s+/gu, '').trim();
+  return String(value || '').normalize('NFKC').replace(/\s+/gu, '').trim();
 }
 
 function rate(stat) {
