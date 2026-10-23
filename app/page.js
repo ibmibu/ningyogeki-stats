@@ -1567,10 +1567,10 @@ export default function Home() {
     const reportedByTournament = new Map();
     let matchedComments = 0;
     let parsedComments = 0;
+    const targetCanonicalId = canonicalAccountId(characterTargetPlayer.id);
     // いぶ選手の過去大会は手動登録を優先し、同じ大会のコメント集計と二重計上しない。
     const manualReportsByTournament = new Map();
     {
-      const targetCanonicalId = canonicalAccountId(characterTargetPlayer.id);
       for (const report of MANUAL_CHARACTER_REPORTS) {
         // playerId なしの既存手動データは「いぶ」専用。playerId ありは指定選手だけに適用。
         if (report.playerId
@@ -1607,7 +1607,7 @@ export default function Home() {
         const commentUserId = String(comment.userId || '').trim();
         const matchesById =
           Boolean(commentUserId) &&
-          canonicalAccountId(commentUserId) === canonicalAccountId(characterTargetPlayer.id);
+          canonicalAccountId(commentUserId) === targetCanonicalId;
         // コメントHTMLの形式によって投稿者IDが取得できない場合に限り、名前の完全一致で補完する。
         // IDが取得できているコメントは、従来どおりIDを優先して誤判定を避ける。
         // IDが一致しない場合も、投稿者名が正規化後に完全一致するなら同一選手として扱う。
@@ -1659,7 +1659,7 @@ export default function Home() {
       const unbeaten = [...participants].filter((id) => !losers.has(id));
       if (unbeaten.length === 1) champions.set(number, unbeaten[0]);
     }
-    const playerId = canonicalAccountId(characterTargetPlayer.id);
+    const playerId = targetCanonicalId;
     const soloAchievements = [...reportedByTournament.entries()]
       .filter(([number, characters]) => champions.get(number) === playerId && characters.size === 1)
       .map(([number, characters]) => ({ number, character: [...characters][0] }))
