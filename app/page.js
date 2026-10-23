@@ -1598,14 +1598,10 @@ export default function Home() {
         if (!matchesById && !matchesByName) continue;
         matchedComments += 1;
         let remainingText = String(comment.text || '').normalize('NFKC');
-        const detectedForComment = [];
-        const detectionTrace = [];
         // 正式名と辞書の別表記を同じ正式名に統一してから、大会ごとに重複を除く。
         for (const pattern of characterPatterns) {
           const foundAt = findExactName(remainingText, pattern.match);
           if (foundAt !== -1) {
-            detectedForComment.push(pattern.officialName);
-            detectionTrace.push({ matchedText: pattern.match, officialName: pattern.officialName, foundAt, remainingBefore: remainingText.slice(Math.max(0, foundAt - 24), Math.min(remainingText.length, foundAt + pattern.match.length + 36)) });
             if (!usedInTournament.has(pattern.officialName)) {
               counts.set(pattern.officialName, (counts.get(pattern.officialName) || 0) + 1);
               parsedComments += 1;
