@@ -414,8 +414,7 @@ export async function GET(request) {
     const records = [];
     const tournaments = [];
     const failed = [];
-    const persistableTournaments = [];
-
+  
     results.forEach((result, index) => {
       const source = targets[index];
 
@@ -453,12 +452,6 @@ export async function GET(request) {
       };
 
       tournaments.push(tournamentSummary);
-      persistableTournaments.push({
-        ...tournamentSummary,
-        seriesName: '人形劇',
-        playerDetails: result.players,
-        records: tournamentRecords,
-      });
     });
 
     // 初回読み込みを速くするため、選手プロフィールページの追加取得は行わず、
