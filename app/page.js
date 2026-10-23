@@ -1532,21 +1532,11 @@ export default function Home() {
   }, [data, matrixSeason, matrixSelectedSeason]);
 
   const matrixPlayers = useMemo(() => {
-    if (matrixSeason === 'all') {
-      const participantIds = new Set(playerTournamentStats.appearances.keys());
-      return sortedPlayers.filter((player) => participantIds.has(String(player.id)));
-    }
-    const firstTournament = (Number(matrixSelectedSeason) - 1) * 25 + 1;
-    const lastTournament = Number(matrixSelectedSeason) * 25;
-    const participantIds = new Set();
-    for (const record of data?.records || []) {
-      const number = Number(record.tournamentNumber) || 0;
-      if (number < firstTournament || number > lastTournament) continue;
-      participantIds.add(String(record.winnerId));
-      participantIds.add(String(record.loserId));
-    }
+    const participantIds = matrixSeason === 'all'
+      ? new Set(playerTournamentStats.appearances.keys())
+      : new Set(Object.keys(matrixStats));
     return sortedPlayers.filter((player) => participantIds.has(String(player.id)));
-  }, [data, matrixSeason, matrixSelectedSeason, sortedPlayers, playerTournamentStats]);
+  }, [matrixSeason, sortedPlayers, playerTournamentStats, matrixStats]);
 
 
   const selectedPlayer = data?.players.find(
